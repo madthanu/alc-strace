@@ -410,6 +410,7 @@ struct tcb {
 #endif
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
+	int out_dump_f;		/* Output dump file for this process (fd) */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
 	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
 	struct timeval stime;	/* System time usage as of last process wait */
@@ -654,6 +655,7 @@ extern const char *sprintflags(const char *, const struct xlat *, int);
 extern void dumpiov(struct tcb *, int, long);
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
+extern void dump_bytes(struct tcb *, long, long);
 extern void printnum(struct tcb *, long, const char *);
 extern void printnum_int(struct tcb *, long, const char *);
 extern void printpath(struct tcb *, long);
@@ -732,6 +734,7 @@ extern void printleader(struct tcb *);
 extern void line_ended(void);
 extern void tabto(void);
 extern void tprintf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+extern void tdump(void *addr, long len);
 extern void tprints(const char *str);
 
 #if SUPPORTED_PERSONALITIES > 1

@@ -29,6 +29,7 @@
  */
 
 #include "defs.h"
+#include <assert.h>
 #include <stdarg.h>
 #include <sys/param.h>
 #include <fcntl.h>
@@ -147,6 +148,7 @@ static char *acolumn_spaces;
 static char *outfname = NULL;
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
+static int shared_dump_log_fd;
 
 struct tcb *printing_tcp = NULL;
 static struct tcb *current_tcp;
@@ -537,6 +539,14 @@ tprintf(const char *fmt, ...)
 }
 
 void
+tdump(void *addr, long len)
+{
+	long ret = write(current_tcp->out_dump_f, addr, len);
+	assert(ret == len);
+}
+
+
+void
 tprints(const char *str)
 {
 	if (current_tcp) {
@@ -641,10 +651,13 @@ static void
 newoutf(struct tcb *tcp)
 {
 	tcp->outf = shared_log; /* if not -ff mode, the same file is for all */
+	tcp->out_dump_f = shared_dump_log_fd; /* if not -ff mode, the same file is for all */
 	if (followfork >= 2) {
 		char name[520 + sizeof(int) * 3];
 		sprintf(name, "%.512s.%u", outfname, tcp->pid);
 		tcp->outf = strace_fopen(name);
+		sprintf(name, "%.512s.byte_dump.%u", outfname, tcp->pid);
+		tcp->out_dump_f = open(name, O_CREAT | O_WRONLY | O_TRUNC, 00666);
 	}
 }
 
@@ -1567,6 +1580,7 @@ init(int argc, char *argv[])
 		tcbtab[c] = tcp++;
 
 	shared_log = stderr;
+	shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
 	set_sortby(DEFAULT_SORTBY);
 	set_personality(DEFAULT_PERSONALITY);
 	qualify("trace=all");
@@ -1758,9 +1772,11 @@ init(int argc, char *argv[])
 			if (followfork >= 2)
 				error_msg_and_die("Piping the output and -ff are mutually exclusive");
 			shared_log = strace_popen(outfname + 1);
+			shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
 		}
 		else if (followfork < 2)
 			shared_log = strace_fopen(outfname);
+			shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
 	} else {
 		/* -ff without -o FILE is the same as single -f */
 		if (followfork >= 2)
@@ -2045,6 +2061,7 @@ trace(void)
 		 */
 		if (event == PTRACE_EVENT_EXEC && os_release >= KERNEL_VERSION(3,0,0)) {
 			FILE *fp;
+			int fd;
 			struct tcb *execve_thread;
 			long old_pid = 0;
 
@@ -2069,6 +2086,9 @@ trace(void)
 			fp = execve_thread->outf;
 			execve_thread->outf = tcp->outf;
 			tcp->outf = fp;
+			fd = execve_thread->out_dump_f;
+			execve_thread->out_dump_f = tcp->out_dump_f;
+			tcp->out_dump_f = fd;
 			/* And their column positions */
 			execve_thread->curcol = tcp->curcol;
 			tcp->curcol = 0;

@@ -29,6 +29,7 @@
  */
 
 #include "defs.h"
+#include <assert.h>
 #include <fcntl.h>
 #if HAVE_SYS_UIO_H
 # include <sys/uio.h>
@@ -57,6 +58,7 @@ sys_write(struct tcb *tcp)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+		dump_bytes(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 		tprintf(", %lu", tcp->u_arg[2]);
 	}
 	return 0;
@@ -145,6 +147,56 @@ tprint_iov(struct tcb *tcp, unsigned long len, unsigned long addr, int decode_io
 	tprint_iov_upto(tcp, len, addr, decode_iov, (unsigned long) -1L);
 }
 
+
+/* Returns the total bytes dumped */
+unsigned long
+dump_iov(struct tcb *tcp, unsigned long len, unsigned long addr)
+{
+	unsigned long toret = 0;
+#if SUPPORTED_PERSONALITIES > 1
+	union {
+		struct { u_int32_t base; u_int32_t len; } iov32;
+		struct { u_int64_t base; u_int64_t len; } iov64;
+	} iov;
+#define sizeof_iov \
+	(current_wordsize == 4 ? sizeof(iov.iov32) : sizeof(iov.iov64))
+#define iov_iov_base \
+	(current_wordsize == 4 ? (uint64_t) iov.iov32.base : iov.iov64.base)
+#define iov_iov_len \
+	(current_wordsize == 4 ? (uint64_t) iov.iov32.len : iov.iov64.len)
+#else
+	struct iovec iov;
+#define sizeof_iov sizeof(iov)
+#define iov_iov_base iov.iov_base
+#define iov_iov_len iov.iov_len
+#endif
+	unsigned long size, cur, end;
+
+	if (!len) {
+		return 0;
+	}
+
+	size = len * sizeof_iov;
+	end = addr + size;
+
+	if (size / sizeof_iov != len || end < addr) {
+		assert(0);
+	}
+
+	for (cur = addr; cur < end; cur += sizeof_iov) {
+		if (umoven(tcp, cur, sizeof_iov, (char *) &iov) < 0) {
+			assert(0);
+		}
+		unsigned long len = iov_iov_len;
+		dump_bytes(tcp, (long) iov_iov_base, len);
+		toret += len;
+	}
+#undef sizeof_iov
+#undef iov_iov_base
+#undef iov_iov_len
+	return toret;
+}
+
 int
 sys_readv(struct tcb *tcp)
 {
@@ -170,7 +222,9 @@ sys_writev(struct tcb *tcp)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+		unsigned long total_size = dump_iov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 		tprintf(", %lu", tcp->u_arg[2]);
+		tprintf(", %lu", total_size);
 	}
 	return 0;
 }
@@ -211,6 +265,7 @@ sys_pwrite(struct tcb *tcp)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+		dump_bytes(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 		tprintf(", %lu, ", tcp->u_arg[2]);
 		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
 	}
@@ -243,8 +298,10 @@ sys_pwritev(struct tcb *tcp)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+		unsigned long total_size = dump_iov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 		tprintf(", %lu, ", tcp->u_arg[2]);
 		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
+		tprintf(", %lu", total_size);
 	}
 	return 0;
 }

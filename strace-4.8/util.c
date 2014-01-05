@@ -32,6 +32,7 @@
  */
 
 #include "defs.h"
+#include <assert.h>
 #include <sys/user.h>
 #include <sys/param.h>
 #include <fcntl.h>
@@ -614,6 +615,27 @@ printstr(struct tcb *tcp, long addr, long len)
 	if (ellipsis)
 		tprints("...");
 }
+
+/*
+ * Dump bytes specified by address `addr' and length `len'.
+ */
+void
+dump_bytes(struct tcb *tcp, long addr, long len)
+{
+	char *str;
+	str = malloc(len + 1);
+	if (!str)
+		die_out_of_memory();
+
+	if (umoven(tcp, addr, len, str) < 0) {
+		assert(0);
+	}
+
+	tdump(str, len);
+
+	free(str);
+}
+
 
 #if HAVE_SYS_UIO_H
 void
