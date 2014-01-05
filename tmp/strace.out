@@ -1,0 +1,365 @@
+01:51:03.534265 execve("/usr/local/bin/sqlite3", ["sqlite3", "/mnt/mydisk/test.db"], [/* 25 vars */]) = 0
+01:51:03.534609 brk(0)                  = 0x1cd5000
+01:51:03.534662 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.534715 mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b30000
+01:51:03.534762 access("/etc/ld.so.preload", R_OK) = -1 ENOENT (No such file or directory)
+01:51:03.534810 open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+01:51:03.534847 fstat(3, {st_mode=S_IFREG|0644, st_size=55971, ...}) = 0
+01:51:03.534900 mmap(NULL, 55971, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7fe656b22000
+01:51:03.534933 close(3)                = 0
+01:51:03.534965 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.535008 open("/usr/local/lib/libsqlite3.so.0", O_RDONLY|O_CLOEXEC) = 3
+01:51:03.535049 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\300\243\0\0\0\0\0\0"..., 832) = 832
+01:51:03.535099 fstat(3, {st_mode=S_IFREG|0755, st_size=2870776, ...}) = 0
+01:51:03.535144 mmap(NULL, 2799208, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fe656664000
+01:51:03.535178 mprotect(0x7fe65670c000, 2093056, PROT_NONE) = 0
+01:51:03.535214 mmap(0x7fe65690b000, 20480, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0xa7000) = 0x7fe65690b000
+01:51:03.535264 close(3)                = 0
+01:51:03.535301 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.535343 open("/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+01:51:03.535382 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\200\30\2\0\0\0\0\0"..., 832) = 832
+01:51:03.535424 fstat(3, {st_mode=S_IFREG|0755, st_size=1811128, ...}) = 0
+01:51:03.535469 mmap(NULL, 3925208, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fe6562a5000
+01:51:03.535503 mprotect(0x7fe65645a000, 2093056, PROT_NONE) = 0
+01:51:03.535536 mmap(0x7fe656659000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1b4000) = 0x7fe656659000
+01:51:03.535580 mmap(0x7fe65665f000, 17624, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fe65665f000
+01:51:03.535622 close(3)                = 0
+01:51:03.535659 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.535698 open("/lib/x86_64-linux-gnu/libdl.so.2", O_RDONLY|O_CLOEXEC) = 3
+01:51:03.535737 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\340\r\0\0\0\0\0\0"..., 832) = 832
+01:51:03.535779 fstat(3, {st_mode=S_IFREG|0644, st_size=14768, ...}) = 0
+01:51:03.535821 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b21000
+01:51:03.535860 mmap(NULL, 2109704, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fe6560a1000
+01:51:03.535894 mprotect(0x7fe6560a3000, 2097152, PROT_NONE) = 0
+01:51:03.535928 mmap(0x7fe6562a3000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x7fe6562a3000
+01:51:03.535975 close(3)                = 0
+01:51:03.536010 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.536048 open("/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 3
+01:51:03.536087 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\200l\0\0\0\0\0\0"..., 832) = 832
+01:51:03.536129 fstat(3, {st_mode=S_IFREG|0755, st_size=135366, ...}) = 0
+01:51:03.536172 mmap(NULL, 2212904, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7fe655e84000
+01:51:03.536206 mprotect(0x7fe655e9c000, 2093056, PROT_NONE) = 0
+01:51:03.536240 mmap(0x7fe65609b000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x17000) = 0x7fe65609b000
+01:51:03.536283 mmap(0x7fe65609d000, 13352, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fe65609d000
+01:51:03.536327 close(3)                = 0
+01:51:03.536378 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b20000
+01:51:03.536417 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b1f000
+01:51:03.536455 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b1e000
+01:51:03.536498 arch_prctl(ARCH_SET_FS, 0x7fe656b1f700) = 0
+01:51:03.536636 mprotect(0x7fe656659000, 16384, PROT_READ) = 0
+01:51:03.536770 mprotect(0x7fe65609b000, 4096, PROT_READ) = 0
+01:51:03.536812 mprotect(0x7fe6562a3000, 4096, PROT_READ) = 0
+01:51:03.536926 mprotect(0x7fe65690b000, 8192, PROT_READ) = 0
+01:51:03.536963 mprotect(0x60b000, 4096, PROT_READ) = 0
+01:51:03.537000 mprotect(0x7fe656b32000, 4096, PROT_READ) = 0
+01:51:03.537032 munmap(0x7fe656b22000, 55971) = 0
+01:51:03.537074 set_tid_address(0x7fe656b1f9d0) = 13667
+01:51:03.537105 set_robust_list(0x7fe656b1f9e0, 0x18) = 0
+01:51:03.537135 futex(0x7fffce6de51c, FUTEX_WAIT_BITSET_PRIVATE|FUTEX_CLOCK_REALTIME, 1, NULL, 7fe656b1f700) = -1 EAGAIN (Resource temporarily unavailable)
+01:51:03.537181 rt_sigaction(SIGRTMIN, {0x7fe655e8a750, [], SA_RESTORER|SA_SIGINFO, 0x7fe655e93cb0}, NULL, 8) = 0
+01:51:03.537230 rt_sigaction(SIGRT_1, {0x7fe655e8a7e0, [], SA_RESTORER|SA_RESTART|SA_SIGINFO, 0x7fe655e93cb0}, NULL, 8) = 0
+01:51:03.537269 rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+01:51:03.537308 getrlimit(RLIMIT_STACK, {rlim_cur=8192*1024, rlim_max=RLIM_INFINITY}) = 0
+01:51:03.537396 ioctl(0, SNDCTL_TMR_TIMEBASE or TCGETS, 0x7fffce6dcea8) = -1 EINVAL (Invalid argument)
+01:51:03.537443 rt_sigaction(SIGINT, {0x403840, [INT], SA_RESTORER|SA_RESTART, 0x7fe6562db4a0}, {SIG_DFL, [], 0}, 8) = 0
+01:51:03.537495 access("/mnt/mydisk/test.db", F_OK) = 0
+01:51:03.537606 brk(0)                  = 0x1cd5000
+01:51:03.537638 brk(0x1cf6000)          = 0x1cf6000
+01:51:03.537715 stat("/mnt/mydisk/test.db", {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.537769 open("/mnt/mydisk/test.db", O_RDWR|O_CREAT|O_CLOEXEC, 0644) = 3
+01:51:03.537815 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.537867 lseek(3, 0, SEEK_SET)   = 0
+01:51:03.537899 read(3, "SQLite format 3\0\4\0\1\1\0@  \0\0\0\6\0\0\0\37"..., 100) = 100
+01:51:03.538030 getuid()                = 0
+01:51:03.538074 socket(PF_FILE, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0) = 4
+01:51:03.538119 connect(4, {sa_family=AF_FILE, path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+01:51:03.538180 close(4)                = 0
+01:51:03.538216 socket(PF_FILE, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0) = 4
+01:51:03.538249 connect(4, {sa_family=AF_FILE, path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+01:51:03.538297 close(4)                = 0
+01:51:03.538345 open("/etc/nsswitch.conf", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.538388 fstat(4, {st_mode=S_IFREG|0644, st_size=513, ...}) = 0
+01:51:03.538432 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b2f000
+01:51:03.538467 read(4, "# /etc/nsswitch.conf\n#\n# Example"..., 4096) = 513
+01:51:03.538525 read(4, "", 4096)       = 0
+01:51:03.538561 close(4)                = 0
+01:51:03.538592 munmap(0x7fe656b2f000, 4096) = 0
+01:51:03.538640 open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.538677 fstat(4, {st_mode=S_IFREG|0644, st_size=55971, ...}) = 0
+01:51:03.538719 mmap(NULL, 55971, PROT_READ, MAP_PRIVATE, 4, 0) = 0x7fe656b22000
+01:51:03.538752 close(4)                = 0
+01:51:03.538784 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.538827 open("/lib/x86_64-linux-gnu/libnss_compat.so.2", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.538868 read(4, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0`\22\0\0\0\0\0\0"..., 832) = 832
+01:51:03.538910 fstat(4, {st_mode=S_IFREG|0644, st_size=35680, ...}) = 0
+01:51:03.538959 mmap(NULL, 2131240, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 4, 0) = 0x7fe655c7b000
+01:51:03.538994 mprotect(0x7fe655c83000, 2093056, PROT_NONE) = 0
+01:51:03.539029 mmap(0x7fe655e82000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x7000) = 0x7fe655e82000
+01:51:03.539076 close(4)                = 0
+01:51:03.539113 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.539150 open("/lib/x86_64-linux-gnu/libnsl.so.1", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.539198 read(4, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0`@\0\0\0\0\0\0"..., 832) = 832
+01:51:03.539240 fstat(4, {st_mode=S_IFREG|0644, st_size=97248, ...}) = 0
+01:51:03.539289 mmap(NULL, 2202328, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 4, 0) = 0x7fe655a61000
+01:51:03.539324 mprotect(0x7fe655a78000, 2093056, PROT_NONE) = 0
+01:51:03.539358 mmap(0x7fe655c77000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0x16000) = 0x7fe655c77000
+01:51:03.539404 mmap(0x7fe655c79000, 6872, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fe655c79000
+01:51:03.539448 close(4)                = 0
+01:51:03.539504 mprotect(0x7fe655c77000, 4096, PROT_READ) = 0
+01:51:03.539543 mprotect(0x7fe655e82000, 4096, PROT_READ) = 0
+01:51:03.539582 munmap(0x7fe656b22000, 55971) = 0
+01:51:03.539628 open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.539665 fstat(4, {st_mode=S_IFREG|0644, st_size=55971, ...}) = 0
+01:51:03.539707 mmap(NULL, 55971, PROT_READ, MAP_PRIVATE, 4, 0) = 0x7fe656b22000
+01:51:03.539740 close(4)                = 0
+01:51:03.539771 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.539812 open("/lib/x86_64-linux-gnu/libnss_nis.so.2", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.539851 read(4, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\260 \0\0\0\0\0\0"..., 832) = 832
+01:51:03.539893 fstat(4, {st_mode=S_IFREG|0644, st_size=47680, ...}) = 0
+01:51:03.539942 mmap(NULL, 2143552, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 4, 0) = 0x7fe655855000
+01:51:03.539977 mprotect(0x7fe65585f000, 2097152, PROT_NONE) = 0
+01:51:03.540011 mmap(0x7fe655a5f000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0xa000) = 0x7fe655a5f000
+01:51:03.540063 close(4)                = 0
+01:51:03.540101 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.540138 open("/lib/x86_64-linux-gnu/libnss_files.so.2", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.540177 read(4, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0@!\0\0\0\0\0\0"..., 832) = 832
+01:51:03.540218 fstat(4, {st_mode=S_IFREG|0644, st_size=52120, ...}) = 0
+01:51:03.540264 mmap(NULL, 2148472, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 4, 0) = 0x7fe655648000
+01:51:03.540298 mprotect(0x7fe655654000, 2093056, PROT_NONE) = 0
+01:51:03.540332 mmap(0x7fe655853000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 4, 0xb000) = 0x7fe655853000
+01:51:03.540381 close(4)                = 0
+01:51:03.540430 mprotect(0x7fe655853000, 4096, PROT_READ) = 0
+01:51:03.540468 mprotect(0x7fe655a5f000, 4096, PROT_READ) = 0
+01:51:03.540507 munmap(0x7fe656b22000, 55971) = 0
+01:51:03.540552 open("/etc/passwd", O_RDONLY|O_CLOEXEC) = 4
+01:51:03.540595 lseek(4, 0, SEEK_CUR)   = 0
+01:51:03.540629 fstat(4, {st_mode=S_IFREG|0644, st_size=2036, ...}) = 0
+01:51:03.540698 mmap(NULL, 2036, PROT_READ, MAP_SHARED, 4, 0) = 0x7fe656b2f000
+01:51:03.540734 lseek(4, 2036, SEEK_SET) = 2036
+01:51:03.540778 munmap(0x7fe656b2f000, 2036) = 0
+01:51:03.540810 close(4)                = 0
+01:51:03.540852 open("/root/.sqliterc", O_RDONLY) = -1 ENOENT (No such file or directory)
+01:51:03.540900 fstat(0, {st_mode=S_IFIFO|0600, st_size=0, ...}) = 0
+01:51:03.540943 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b2f000
+01:51:03.540977 read(0, "PRAGMA journal_mode = TRUNCATE;\n"..., 4096) = 4096
+01:51:03.541101 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.541144 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.541179 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.541215 access("/mnt/mydisk/test.db-journal", F_OK) = 0
+01:51:03.541252 stat("/mnt/mydisk/test.db-journal", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+01:51:03.541299 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.541340 access("/mnt/mydisk/test.db-wal", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.541377 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.541432 lseek(3, 0, SEEK_SET)   = 0
+01:51:03.541462 read(3, "SQLite format 3\0\4\0\1\1\0@  \0\0\0\6\0\0\0\37"..., 1024) = 1024
+01:51:03.541607 lseek(3, 2048, SEEK_SET) = 2048
+01:51:03.541639 read(3, "\0\0\0\4, a6 integer, a7 integer, a8"..., 1024) = 1024
+01:51:03.541678 lseek(3, 3072, SEEK_SET) = 3072
+01:51:03.541708 read(3, "\0\0\0\5ger, a85 integer, a86 intege"..., 1024) = 1024
+01:51:03.541745 lseek(3, 4096, SEEK_SET) = 4096
+01:51:03.541775 read(3, "\0\0\0\6eger, a159 integer, a160 int"..., 1024) = 1024
+01:51:03.541813 lseek(3, 5120, SEEK_SET) = 5120
+01:51:03.541842 read(3, "\0\0\0\0nteger, a232 integer, a233 i"..., 1024) = 1024
+01:51:03.542404 brk(0x1d18000)          = 0x1d18000
+01:51:03.542826 lseek(3, 7168, SEEK_SET) = 7168
+01:51:03.542857 read(3, "\0\0\0\t, a6 integer, a7 integer, a8"..., 1024) = 1024
+01:51:03.542895 lseek(3, 8192, SEEK_SET) = 8192
+01:51:03.542924 read(3, "\0\0\0\nger, a85 integer, a86 intege"..., 1024) = 1024
+01:51:03.542962 lseek(3, 9216, SEEK_SET) = 9216
+01:51:03.542992 read(3, "\0\0\0\veger, a159 integer, a160 int"..., 1024) = 1024
+01:51:03.543029 lseek(3, 10240, SEEK_SET) = 10240
+01:51:03.543058 read(3, "\0\0\0\0nteger, a232 integer, a233 i"..., 1024) = 1024
+01:51:03.544031 lseek(3, 12288, SEEK_SET) = 12288
+01:51:03.544063 read(3, "\0\0\0\16, a6 integer, a7 integer, a8"..., 1024) = 1024
+01:51:03.544101 lseek(3, 13312, SEEK_SET) = 13312
+01:51:03.544130 read(3, "\0\0\0\17ger, a85 integer, a86 intege"..., 1024) = 1024
+01:51:03.544168 lseek(3, 14336, SEEK_SET) = 14336
+01:51:03.544197 read(3, "\0\0\0\20eger, a159 integer, a160 int"..., 1024) = 1024
+01:51:03.544235 lseek(3, 15360, SEEK_SET) = 15360
+01:51:03.544265 read(3, "\0\0\0\0nteger, a232 integer, a233 i"..., 1024) = 1024
+01:51:03.545251 lseek(3, 17408, SEEK_SET) = 17408
+01:51:03.545284 read(3, "\0\0\0\23, a6 integer, a7 integer, a8"..., 1024) = 1024
+01:51:03.545321 lseek(3, 18432, SEEK_SET) = 18432
+01:51:03.545351 read(3, "\0\0\0\24ger, a85 integer, a86 intege"..., 1024) = 1024
+01:51:03.545389 lseek(3, 19456, SEEK_SET) = 19456
+01:51:03.545418 read(3, "\0\0\0\25eger, a159 integer, a160 int"..., 1024) = 1024
+01:51:03.545455 lseek(3, 20480, SEEK_SET) = 20480
+01:51:03.545485 read(3, "\0\0\0\0nteger, a232 integer, a233 i"..., 1024) = 1024
+01:51:03.546461 lseek(3, 22528, SEEK_SET) = 22528
+01:51:03.546493 read(3, "\0\0\0\30, a6 integer, a7 integer, a8"..., 1024) = 1024
+01:51:03.546531 lseek(3, 23552, SEEK_SET) = 23552
+01:51:03.546561 read(3, "\0\0\0\31ger, a85 integer, a86 intege"..., 1024) = 1024
+01:51:03.546598 lseek(3, 24576, SEEK_SET) = 24576
+01:51:03.546628 read(3, "\0\0\0\32eger, a159 integer, a160 int"..., 1024) = 1024
+01:51:03.546665 lseek(3, 25600, SEEK_SET) = 25600
+01:51:03.546695 read(3, "\0\0\0\0nteger, a232 integer, a233 i"..., 1024) = 1024
+01:51:03.546891 brk(0x1d3a000)          = 0x1d3a000
+01:51:03.546932 brk(0x1d39000)          = 0x1d39000
+01:51:03.547713 lseek(3, 27648, SEEK_SET) = 27648
+01:51:03.547744 read(3, "\0\0\0\35, a6 integer, a7 integer, a8"..., 1024) = 1024
+01:51:03.547782 lseek(3, 28672, SEEK_SET) = 28672
+01:51:03.547812 read(3, "\0\0\0\36ger, a85 integer, a86 intege"..., 1024) = 1024
+01:51:03.547850 lseek(3, 29696, SEEK_SET) = 29696
+01:51:03.547880 read(3, "\0\0\0\37eger, a159 integer, a160 int"..., 1024) = 1024
+01:51:03.547917 lseek(3, 30720, SEEK_SET) = 30720
+01:51:03.547947 read(3, "\0\0\0\0nteger, a232 integer, a233 i"..., 1024) = 1024
+01:51:03.548923 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=0, len=0}) = 0
+01:51:03.549000 fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 9), ...}) = 0
+01:51:03.549047 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fe656b2e000
+01:51:03.549089 write(1, "truncate\n", 9) = 9
+01:51:03.549494 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.549533 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.549568 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.549603 access("/mnt/mydisk/test.db-journal", F_OK) = 0
+01:51:03.549651 stat("/mnt/mydisk/test.db-journal", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+01:51:03.549699 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.549740 lseek(3, 24, SEEK_SET)  = 24
+01:51:03.549770 read(3, "\0\0\0\6\0\0\0\37\0\0\0\0\0\0\0\0", 16) = 16
+01:51:03.549807 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.549848 access("/mnt/mydisk/test.db-wal", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.549885 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.549928 fcntl(3, F_SETLK, {type=F_WRLCK, whence=SEEK_SET, start=1073741825, len=1}) = 0
+01:51:03.549970 lseek(3, 16384, SEEK_SET) = 16384
+01:51:03.550000 read(3, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.550078 stat("/mnt/mydisk/test.db", {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.550126 open("/mnt/mydisk/test.db-journal", O_RDWR|O_CREAT|O_CLOEXEC, 0644) = 4
+01:51:03.550169 fstat(4, {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+01:51:03.550211 geteuid()               = 0
+01:51:03.550243 fchown(4, 0, 0)         = 0
+01:51:03.550288 open("/dev/urandom", O_RDONLY|O_CLOEXEC) = 5
+01:51:03.550327 read(5, "'\301M\"\n\17\304\251\367\261n\35\221\275\325=\212\n\371gr\"\331_\vHj\347o;\253q"..., 256) = 256
+01:51:03.550394 close(5)                = 0
+01:51:03.550428 lseek(4, 0, SEEK_SET)   = 0
+01:51:03.550457 write(4, "\0\0\0\0\0\0\0\0\0\0\0\0\365*\306\343\0\0\0\37\0\0\2\0\0\0\4\0\0\0\0\0"..., 512) = 512
+01:51:03.550512 lseek(4, 512, SEEK_SET) = 512
+01:51:03.550541 write(4, "\0\0\0\21", 4) = 4
+01:51:03.550577 lseek(4, 516, SEEK_SET) = 516
+01:51:03.550606 write(4, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.550651 lseek(4, 1540, SEEK_SET) = 1540
+01:51:03.550680 write(4, "\365*\306\343", 4) = 4
+01:51:03.550910 lseek(3, 21504, SEEK_SET) = 21504
+01:51:03.550943 read(3, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.551006 lseek(4, 1544, SEEK_SET) = 1544
+01:51:03.551036 write(4, "\0\0\0\26", 4) = 4
+01:51:03.551072 lseek(4, 1548, SEEK_SET) = 1548
+01:51:03.551101 write(4, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.551146 lseek(4, 2572, SEEK_SET) = 2572
+01:51:03.551175 write(4, "\365*\306\343", 4) = 4
+01:51:03.551399 lseek(3, 26624, SEEK_SET) = 26624
+01:51:03.551432 read(3, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.551495 lseek(4, 2576, SEEK_SET) = 2576
+01:51:03.551525 write(4, "\0\0\0\33", 4) = 4
+01:51:03.551561 lseek(4, 2580, SEEK_SET) = 2580
+01:51:03.551590 write(4, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.551635 lseek(4, 3604, SEEK_SET) = 3604
+01:51:03.551665 write(4, "\365*\306\343", 4) = 4
+01:51:03.551721 fcntl(3, F_SETLK, {type=F_WRLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.551759 fcntl(3, F_SETLK, {type=F_WRLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.551796 lseek(4, 3608, SEEK_SET) = 3608
+01:51:03.551825 write(4, "\0\0\0\1", 4) = 4
+01:51:03.551860 lseek(4, 3612, SEEK_SET) = 3612
+01:51:03.551889 write(4, "SQLite format 3\0\4\0\1\1\0@  \0\0\0\6\0\0\0\37"..., 1024) = 1024
+01:51:03.551935 lseek(4, 4636, SEEK_SET) = 4636
+01:51:03.551965 write(4, "\365*\307\226", 4) = 4
+01:51:03.552001 lseek(4, 5120, SEEK_SET) = 5120
+01:51:03.552030 read(4, "", 8)          = 0
+01:51:03.552068 fsync(4)                = 0
+01:51:03.567555 open("/mnt/mydisk", O_RDONLY|O_CLOEXEC) = 5
+01:51:03.567609 fsync(5)                = 0
+01:51:03.584217 close(5)                = 0
+01:51:03.584255 lseek(4, 0, SEEK_SET)   = 0
+01:51:03.584287 write(4, "\331\325\5\371 \241c\327\0\0\0\4", 12) = 12
+01:51:03.584332 fsync(4)                = 0
+01:51:03.587169 lseek(3, 0, SEEK_SET)   = 0
+01:51:03.587199 write(3, "SQLite format 3\0\4\0\1\1\0@  \0\0\0\7\0\0\0\37"..., 1024) = 1024
+01:51:03.587244 lseek(3, 16384, SEEK_SET) = 16384
+01:51:03.587274 write(3, "\r\0\0\0\1\1\243\0\1\243\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.587329 lseek(3, 21504, SEEK_SET) = 21504
+01:51:03.587358 write(3, "\r\0\0\0\1\1\243\0\1\243\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.587402 lseek(3, 26624, SEEK_SET) = 26624
+01:51:03.587431 write(3, "\r\0\0\0\1\1\243\0\1\243\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.587476 fsync(3)                = 0
+01:51:03.609256 ftruncate(4, 0)         = 0
+01:51:03.609328 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.609369 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=1073741824, len=2}) = 0
+01:51:03.609405 close(4)                = 0
+01:51:03.609437 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=0, len=0}) = 0
+01:51:03.609524 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.609561 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.609596 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.609631 access("/mnt/mydisk/test.db-journal", F_OK) = 0
+01:51:03.609670 stat("/mnt/mydisk/test.db-journal", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+01:51:03.609720 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.609761 lseek(3, 24, SEEK_SET)  = 24
+01:51:03.609791 read(3, "\0\0\0\7\0\0\0\37\0\0\0\0\0\0\0\0", 16) = 16
+01:51:03.609830 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.609871 access("/mnt/mydisk/test.db-wal", F_OK) = -1 ENOENT (No such file or directory)
+01:51:03.609910 fstat(3, {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.609953 fcntl(3, F_SETLK, {type=F_WRLCK, whence=SEEK_SET, start=1073741825, len=1}) = 0
+01:51:03.609994 lseek(3, 1024, SEEK_SET) = 1024
+01:51:03.610023 read(3, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.610069 stat("/mnt/mydisk/test.db", {st_mode=S_IFREG|0644, st_size=31744, ...}) = 0
+01:51:03.610116 open("/mnt/mydisk/test.db-journal", O_RDWR|O_CREAT|O_CLOEXEC, 0644) = 4
+01:51:03.610158 fstat(4, {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+01:51:03.610199 geteuid()               = 0
+01:51:03.610228 fchown(4, 0, 0)         = 0
+01:51:03.610265 lseek(4, 0, SEEK_SET)   = 0
+01:51:03.610295 write(4, "\0\0\0\0\0\0\0\0\0\0\0\0006\240a\2\0\0\0\37\0\0\2\0\0\0\4\0\0\0\0\0"..., 512) = 512
+01:51:03.610346 lseek(4, 512, SEEK_SET) = 512
+01:51:03.610375 write(4, "\0\0\0\2", 4) = 4
+01:51:03.610411 lseek(4, 516, SEEK_SET) = 516
+01:51:03.610440 write(4, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.610484 lseek(4, 1540, SEEK_SET) = 1540
+01:51:03.610513 write(4, "6\240a\2", 4) = 4
+01:51:03.610567 lseek(3, 6144, SEEK_SET) = 6144
+01:51:03.610599 read(3, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.610642 lseek(4, 1544, SEEK_SET) = 1544
+01:51:03.610671 write(4, "\0\0\0\7", 4) = 4
+01:51:03.610706 lseek(4, 1548, SEEK_SET) = 1548
+01:51:03.610735 write(4, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.610781 lseek(4, 2572, SEEK_SET) = 2572
+01:51:03.610810 write(4, "6\240a\2", 4) = 4
+01:51:03.610861 lseek(3, 11264, SEEK_SET) = 11264
+01:51:03.610893 read(3, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.610935 lseek(4, 2576, SEEK_SET) = 2576
+01:51:03.610964 write(4, "\0\0\0\f", 4) = 4
+01:51:03.611000 lseek(4, 2580, SEEK_SET) = 2580
+01:51:03.611029 write(4, "\r\0\0\0\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.611074 lseek(4, 3604, SEEK_SET) = 3604
+01:51:03.611103 write(4, "6\240a\2", 4) = 4
+01:51:03.611146 read(0, " 50, 50, 50, 50, 50, 50, 50, 50,"..., 4096) = 3441
+01:51:03.611849 fcntl(3, F_SETLK, {type=F_WRLCK, whence=SEEK_SET, start=1073741824, len=1}) = 0
+01:51:03.611888 fcntl(3, F_SETLK, {type=F_WRLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.611925 lseek(4, 3608, SEEK_SET) = 3608
+01:51:03.611954 write(4, "\0\0\0\1", 4) = 4
+01:51:03.611996 lseek(4, 3612, SEEK_SET) = 3612
+01:51:03.612026 write(4, "SQLite format 3\0\4\0\1\1\0@  \0\0\0\7\0\0\0\37"..., 1024) = 1024
+01:51:03.612072 lseek(4, 4636, SEEK_SET) = 4636
+01:51:03.612101 write(4, "6\240a\265", 4) = 4
+01:51:03.612137 lseek(4, 5120, SEEK_SET) = 5120
+01:51:03.612166 read(4, "", 8)          = 0
+01:51:03.612200 fsync(4)                = 0
+01:51:03.634349 open("/mnt/mydisk", O_RDONLY|O_CLOEXEC) = 5
+01:51:03.634395 fsync(5)                = 0
+01:51:03.642683 close(5)                = 0
+01:51:03.642721 lseek(4, 0, SEEK_SET)   = 0
+01:51:03.642756 write(4, "\331\325\5\371 \241c\327\0\0\0\4", 12) = 12
+01:51:03.642803 fsync(4)                = 0
+01:51:03.645574 lseek(3, 0, SEEK_SET)   = 0
+01:51:03.645610 write(3, "SQLite format 3\0\4\0\1\1\0@  \0\0\0\10\0\0\0\37"..., 1024) = 1024
+01:51:03.645659 lseek(3, 1024, SEEK_SET) = 1024
+01:51:03.645695 write(3, "\r\0\0\0\1\1\243\0\1\243\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.645747 lseek(3, 6144, SEEK_SET) = 6144
+01:51:03.645782 write(3, "\r\0\0\0\1\1\243\0\1\243\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.645835 lseek(3, 11264, SEEK_SET) = 11264
+01:51:03.645870 write(3, "\r\0\0\0\1\1\243\0\1\243\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"..., 1024) = 1024
+01:51:03.645922 fsync(3)                = 0
+01:51:03.653635 ftruncate(4, 0)         = 0
+01:51:03.653700 fcntl(3, F_SETLK, {type=F_RDLCK, whence=SEEK_SET, start=1073741826, len=510}) = 0
+01:51:03.653745 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=1073741824, len=2}) = 0
+01:51:03.653788 close(4)                = 0
+01:51:03.653826 fcntl(3, F_SETLK, {type=F_UNLCK, whence=SEEK_SET, start=0, len=0}) = 0
+01:51:03.653874 read(0, "", 4096)       = 0
+01:51:03.653936 close(3)                = 0
+01:51:03.654281 brk(0x1d0c000)          = 0x1d0c000
+01:51:03.654396 exit_group(0)           = ?
