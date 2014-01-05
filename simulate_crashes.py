@@ -390,23 +390,27 @@ def get_micro_ops(rows):
 						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name))
 					else:
 						FileStatus.new_fd_mapping(fd, name, 0)
-		elif parsed_line.syscall == 'write':
+		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
-				assert parsed_line.ret != -1
-				count = safe_string_to_int(parsed_line.args[2])
-				dump_file = eval(parsed_line.args[3])
-				dump_offset = safe_string_to_int(parsed_line.args[4])
+				count = safe_string_to_int(parsed_line.args[-3])
+				assert parsed_line.ret == count
+				dump_file = eval(parsed_line.args[-2])
+				dump_offset = safe_string_to_int(parsed_line.args[-1])
 				name = FileStatus.get_name(fd)
-				curpos = FileStatus.get_pos(fd)
+				if parsed_line.syscall in ['pwrite', 'pwritev']:
+					pos = safe_string_to_int(parsed_line.args[-4])
+				else:
+					pos = FileStatus.get_pos(fd)
 				size = FileStatus.get_size(name)
-				if(curpos + count > size):
-					new_op = Struct(op = 'trunc', name = name, size = curpos + count)
+				if(pos + count > size):
+					new_op = Struct(op = 'trunc', name = name, size = pos + count)
 					micro_operations.append(new_op)
-					FileStatus.set_size(name, curpos + count)
-				new_op = Struct(op = 'write', name = name, offset = curpos, count = count, dump_file = dump_file, dump_offset = dump_offset)
+					FileStatus.set_size(name, pos + count)
+				new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
 				micro_operations.append(new_op)
-				FileStatus.set_pos(fd, curpos + count)
+				if parsed_line.syscall not in ['pwrite', 'pwritev']:
+					FileStatus.set_pos(fd, pos + count)
 		elif parsed_line.syscall == 'close':
 			assert int(parsed_line.ret) != -1
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -493,8 +497,8 @@ for trace_file in files:
 			sys.stderr.write("   line " + str(cnt) + " done.\n")
 		parsed_line = parse_line(line)
 		if parsed_line:
-			if parsed_line.syscall == 'write':
-				write_size = safe_string_to_int(parsed_line.args[2])
+			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
+				write_size = safe_string_to_int(parsed_line.args[-1])
 				m = re.search(r'\) += [^,]*$', line)
 				line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[ m.start(0) : ]
 				dump_offset += write_size
