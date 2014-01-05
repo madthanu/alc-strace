@@ -98,7 +98,7 @@ assert args.base_path != False and args.base_path.startswith('/')
 if 'interesting_path_string' in args.__dict__ and args.interesting_path_string != False:
 	filename = args.interesting_path_string
 else:
-	filename = r'/' +  args.base_path
+	filename = r'^' + args.base_path
 
 def colorize(s, i):
 	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
@@ -265,7 +265,7 @@ class Replayer:
 		self.short_outputs = ""
 		self.replay_count = 0
 	def print_ops(self):
-		f = open('/tmp/current_orderings', 'w')
+		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
 			f.write(
 				colorize(str(i), 3 if i > self.__end_at else 2) +
@@ -289,16 +289,17 @@ class Replayer:
 	def replay_and_check(self):
 		# Replaying and checking
 		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
-		f = open('/tmp/replay_output', 'w')
+		f = open('/tmp/replay_output', 'w+')
 		subprocess.call(args.checker_tool + " " + args.replayed_snapshot, shell = True, stdout = f)
 		f.close()
 		# Storing output in all necessary locations
 		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
 		self.print_ops()
 		os.system('cp /tmp/current_orderings /tmp/replay_outputs_long/' + str(self.replay_count) + '_orderings')
-		f = open('/tmp/short_output', 'r')
-		self.short_outputs += str(self.replay_count) + '\t' + f.read()
-		f.close()
+		if os.path.isfile('/tmp/short_output'):
+			f = open('/tmp/short_output', 'r')
+			self.short_outputs += str(self.replay_count) + '\t' + f.read()
+			f.close()
 		# Incrementing replay_count
 		self.replay_count += 1
 	def remove(self, i):
@@ -324,7 +325,7 @@ class Replayer:
 				try:
 					exec(f2) in dict(inspect.getmembers(self))
 				except:
-					f2 = open('/tmp/replay_output', 'w')
+					f2 = open('/tmp/replay_output', 'w+')
 					f2.write("Unexpected error:")
 					for i in sys.exc_info():
 						f2.write('\n' + str(i))
@@ -338,7 +339,7 @@ class Replayer:
 				self.print_ops()
 				f2.close()
 				if(self.replay_count > 1):
-					f2 = open('/tmp/replay_output', 'w')
+					f2 = open('/tmp/replay_output', 'w+')
 					f2.write(self.short_outputs)
 					f2.close()
 			else:
