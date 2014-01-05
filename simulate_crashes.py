@@ -150,9 +150,9 @@ class FileStatus:
 	fd_details = {}
 
 	@staticmethod
-	def new_fd_mapping(fd, name, pos):
+	def new_fd_mapping(fd, name, pos, attribs):
 		assert fd not in FileStatus.fd_details
-		FileStatus.fd_details[fd] = Struct(name = name, pos = pos)
+		FileStatus.fd_details[fd] = Struct(name = name, pos = pos, attribs = attribs)
 
 	@staticmethod
 	def remove_fd_mapping(fd):
@@ -167,6 +167,11 @@ class FileStatus:
 	def get_pos(fd):
 		assert fd in FileStatus.fd_details
 		return FileStatus.fd_details[fd].pos
+
+	@staticmethod
+	def get_attribs(fd):
+		assert fd in FileStatus.fd_details
+		return FileStatus.fd_details[fd].attribs
 
 	@staticmethod
 	def set_pos(fd, pos):
@@ -344,7 +349,7 @@ def replay_micro_ops(rows):
 			os.close(fd2)
 		elif line.op == 'mkdir':
 			os.mkdir(final(line.name), eval(line.mode))
-		elif line.op != 'fsync':
+		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range']:
 			print line.op
 			assert False
 
@@ -370,7 +375,6 @@ def get_micro_ops(rows):
 				if 'O_WRONLY' in flags or 'O_RDWR' in flags:
 					assert 'O_ASYNC' not in flags
 					assert 'O_DIRECTORY' not in flags
-					assert 'O_SYNC' not in flags
 				fd = safe_string_to_int(parsed_line.ret);
 				if fd >= 0:
 					if not FileStatus.file_exists(name):
@@ -387,9 +391,9 @@ def get_micro_ops(rows):
 						micro_operations.append(new_op)
 						FileStatus.set_size(name, 0)
 					if 'O_APPEND' in flags:
-						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name))
+						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if 'O_SYNC' in flags else '')
 					else:
-						FileStatus.new_fd_mapping(fd, name, 0)
+						FileStatus.new_fd_mapping(fd, name, 0, '', ['O_SYNC'] if 'O_SYNC' in flags else '')
 		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
@@ -409,6 +413,9 @@ def get_micro_ops(rows):
 					FileStatus.set_size(name, pos + count)
 				new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
 				micro_operations.append(new_op)
+				if 'O_SYNC' in FileStatus.get_attribs(fd):
+					new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count)
+					micro_operations.append(new_op)
 				if parsed_line.syscall not in ['pwrite', 'pwritev']:
 					FileStatus.set_pos(fd, pos + count)
 		elif parsed_line.syscall == 'close':
