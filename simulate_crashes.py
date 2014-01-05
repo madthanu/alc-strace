@@ -11,15 +11,8 @@ import subprocess
 import inspect
 import copy
 
-#filename = r'main|ibdata|ib_log'
-#filename = r'chrome_user_dir'
-#filename = r'MANIFEST|dbtmp|CURRENT'
-#filename = r'\.bitcoin'
-#filename = r'mydisk'
-filename = r'^[^/]'
-
 innocent_syscalls = ["_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
-"afs_syscall","alarm","alloc_hugepages","bdflush","bind","break","brk","cacheflush",
+"afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
 "capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","clone","close",
 "connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
 "epoll_wait","eventfd","eventfd2","execve","exit","exit_group","faccessat","fadvise64",
@@ -66,6 +59,7 @@ parser.add_argument('--replayed_snapshot', dest = 'replayed_snapshot', type = st
 parser.add_argument('--orderings_script', dest = 'orderings_script', type = str, default = False)
 parser.add_argument('--checker_tool', dest = 'checker_tool', type = str, default = False)
 parser.add_argument('--base_path', dest = 'base_path', type = str, default = False)
+parser.add_argument('--interesting_path_string', dest = 'interesting_path_string', type = str, default = False)
 args = parser.parse_args()
 
 class Struct:
@@ -84,7 +78,7 @@ class Struct:
 						else:
 							args.append('%s=%s' % (k, repr(v)))
 			if 'name' in vars(self):
-				args.insert(0, '"' + coded_colorize(self.name) + '"')
+				args.insert(0, '"' + coded_colorize(short_path(self.name)) + '"')
 			colored_op = colorize(self.op, 1) if(self.op.find('sync') != -1) else self.op
 			return '%s(%s)' % (colored_op, ', '.join(args))
 	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
@@ -92,15 +86,19 @@ class Struct:
 
 if args.config_file != False:
 	tmp = dict([])
-	exec args.config_file in tmp
+	execfile(args.config_file, globals(), tmp)
 	args = Struct()
 	args.update(tmp)
 
 assert args.prefix != False
 assert args.initial_snapshot != False
 assert args.replayed_snapshot != False
-assert args.base_path != False and args.base_path.starts_with('/')
+assert args.base_path != False and args.base_path.startswith('/')
 
+if 'interesting_path_string' in args.__dict__ and args.interesting_path_string != False:
+	filename = args.interesting_path_string
+else:
+	filename = r'^' + args.base_path
 
 def colorize(s, i):
 	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
@@ -113,21 +111,27 @@ def coded_colorize(s, s2 = None):
 
 # The input parameter must already have gone through original_path()
 def initial_path(name):
-	if not name.starts_with(args.base_path):
+	if not name.startswith(args.base_path):
 		return False
-	toret = name.replace(args.base_path, args.initial_snapshot, 1)
+	toret = name.replace(args.base_path, args.initial_snapshot + '/', 1)
 	return re.sub(r'//', r'/', toret)
 
 # The input parameter must already have gone through original_path()
 def replayed_path(name):
-	if not name.starts_with(args.base_path):
+	if not name.startswith(args.base_path):
 		return False
-	toret = name.replace(args.base_path, args.replayed_snapshot, 1)
+	toret = name.replace(args.base_path, args.replayed_snapshot + '/', 1)
 	return re.sub(r'//', r'/', toret)
 
+def short_path(name):
+	if not name.startswith(args.base_path):
+		return name
+	return name.replace(re.sub(r'//', r'/', args.base_path + '/'), '', 1)
+
+current_original_path = args.base_path
 def original_path(path):
 	if not path.startswith('/'):
-		path = args.base_path + '/' + path
+		path = current_original_path + '/' + path
 	while True:
 		old_path = path
 		path = re.sub(r'//', r'/', path)
@@ -261,7 +265,7 @@ class Replayer:
 		self.short_outputs = ""
 		self.replay_count = 0
 	def print_ops(self):
-		f = open('/tmp/current_orderings', 'w')
+		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
 			f.write(
 				colorize(str(i), 3 if i > self.__end_at else 2) +
@@ -285,16 +289,17 @@ class Replayer:
 	def replay_and_check(self):
 		# Replaying and checking
 		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
-		f = open('/tmp/replay_output', 'w')
+		f = open('/tmp/replay_output', 'w+')
 		subprocess.call(args.checker_tool + " " + args.replayed_snapshot, shell = True, stdout = f)
 		f.close()
 		# Storing output in all necessary locations
 		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
 		self.print_ops()
 		os.system('cp /tmp/current_orderings /tmp/replay_outputs_long/' + str(self.replay_count) + '_orderings')
-		f = open('/tmp/short_output', 'r')
-		self.short_outputs += str(self.replay_count) + '\t' + f.read()
-		f.close()
+		if os.path.isfile('/tmp/short_output'):
+			f = open('/tmp/short_output', 'r')
+			self.short_outputs += str(self.replay_count) + '\t' + f.read()
+			f.close()
 		# Incrementing replay_count
 		self.replay_count += 1
 	def remove(self, i):
@@ -320,7 +325,7 @@ class Replayer:
 				try:
 					exec(f2) in dict(inspect.getmembers(self))
 				except:
-					f2 = open('/tmp/replay_output', 'w')
+					f2 = open('/tmp/replay_output', 'w+')
 					f2.write("Unexpected error:")
 					for i in sys.exc_info():
 						f2.write('\n' + str(i))
@@ -334,7 +339,7 @@ class Replayer:
 				self.print_ops()
 				f2.close()
 				if(self.replay_count > 1):
-					f2 = open('/tmp/replay_output', 'w')
+					f2 = open('/tmp/replay_output', 'w+')
 					f2.write(self.short_outputs)
 					f2.close()
 			else:
@@ -397,17 +402,22 @@ def get_micro_ops(rows):
 
 		### Known Issues:
 		###	1. Access time with read() kind of calls, modification times in general
+		###	2. Links (that are used as files while there are two dirents pointing
+		###	to the same inode, as opposed to just created and destroyed) don't work.
 
-		if parsed_line.syscall == 'open':
+		if parsed_line.syscall == 'open' or \
+			(parsed_line.syscall == 'openat' and parsed_line.args[0] == 'AT_FDCWD'):
+			if parsed_line.syscall == 'openat':
+				parsed_line.args.pop(0)
 			flags = parsed_line.args[1].split('|')
 			name = original_path(eval(parsed_line.args[0]))
-			mode = parsed_line.args[2] if parsed_line.args == 3 else False
+			mode = parsed_line.args[2] if len(parsed_line.args) == 3 else False
 			if re.search(filename, name):
 				if 'O_WRONLY' in flags or 'O_RDWR' in flags:
 					assert 'O_ASYNC' not in flags
 					assert 'O_DIRECTORY' not in flags
 				fd = safe_string_to_int(parsed_line.ret);
-				if fd >= 0:
+				if fd >= 0 and 'O_DIRECTORY' not in flags:
 					if not FileStatus.file_exists(name):
 						assert 'O_CREAT' in flags
 						assert 'O_WRONLY' in flags or 'O_RDWR' in flags
@@ -424,12 +434,12 @@ def get_micro_ops(rows):
 					if 'O_APPEND' in flags:
 						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if 'O_SYNC' in flags else '')
 					else:
-						FileStatus.new_fd_mapping(fd, name, 0, '', ['O_SYNC'] if 'O_SYNC' in flags else '')
+						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if 'O_SYNC' in flags else '')
 		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				count = safe_string_to_int(parsed_line.args[-3])
-				assert parsed_line.ret == count
+				assert safe_string_to_int(parsed_line.ret) == count
 				dump_file = eval(parsed_line.args[-2])
 				dump_offset = safe_string_to_int(parsed_line.args[-1])
 				name = FileStatus.get_name(fd)
@@ -498,6 +508,9 @@ def get_micro_ops(rows):
 				mode = parsed_line.args[1]
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode))
+		elif parsed_line.syscall == 'chdir':
+			if int(parsed_line.ret) == 0:
+				current_original_path = original_path(eval(parsed_line.args[0]))
 		elif parsed_line.syscall in ['fcntl', 'fcntl64']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			cmd = parsed_line.args[1]
@@ -507,12 +520,12 @@ def get_micro_ops(rows):
 			fd = safe_string_to_int(parsed_line.args[4])
 			prot = parsed_line.args[2].split('|')
 			flags = parsed_line.args[3].split('|')
-			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and
+			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and \
 				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags:
 				assert 'PROT_WRITE' not in prot
 		elif parsed_line.syscall in ['mremap', 'msync', 'munmap']:
-			why_we_are_here = "These aren't totally innocent calls, and have to be dealt with when we start caring about mmap(),
-					but the calls are fine for now"
+			why_we_are_here = "These aren't totally innocent calls, and have to be dealt \
+			 with when we start caring about mmap(), but the calls are fine for now"
 		else:
 			assert parsed_line.syscall in innocent_syscalls
 	return micro_operations

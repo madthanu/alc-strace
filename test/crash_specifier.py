@@ -1,0 +1,6 @@
+load(0)
+#remove(56)
+#end_at(53)
+#save(1)
+print_ops()
+replay_and_check()
