@@ -60,20 +60,50 @@ innocent_syscalls = ["_newselect","_sysctl","accept","accept4","access","acct","
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--prefix', dest = 'prefix', type = str, default = False)
+parser.add_argument('--config_file', dest = 'config_file', type = str, default = False)
 parser.add_argument('--initial_snapshot', dest = 'initial_snapshot', type = str, default = False)
 parser.add_argument('--replayed_snapshot', dest = 'replayed_snapshot', type = str, default = False)
 parser.add_argument('--orderings_script', dest = 'orderings_script', type = str, default = False)
 parser.add_argument('--checker_tool', dest = 'checker_tool', type = str, default = False)
+parser.add_argument('--base_path', dest = 'base_path', type = str, default = False)
 args = parser.parse_args()
 
+class Struct:
+	def __init__(self, **entries): self.__dict__.update(entries)
+	def update(self, mydict): self.__dict__.update(mydict)
+	def __repr__(self):
+		if 'op' in vars(self):
+			if self.op == 'write':
+				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset']]
+			else:
+				args = []
+				for (k,v) in vars(self).items():
+					if k != 'op' and k != 'name' and k[0:7] != 'hidden_':
+						if k == 'source' or k == 'dest':
+							args.append('%s="%s"' % (k, coded_colorize(v)))
+						else:
+							args.append('%s=%s' % (k, repr(v)))
+			if 'name' in vars(self):
+				args.insert(0, '"' + coded_colorize(self.name) + '"')
+			colored_op = colorize(self.op, 1) if(self.op.find('sync') != -1) else self.op
+			return '%s(%s)' % (colored_op, ', '.join(args))
+	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
+	        return 'Struct(%s)' % ', '.join(args)
 
-def colorize(s, i):
-	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
+if args.config_file != False:
+	tmp = dict([])
+	exec args.config_file in tmp
+	args = Struct()
+	args.update(tmp)
 
 assert args.prefix != False
 assert args.initial_snapshot != False
 assert args.replayed_snapshot != False
+assert args.base_path != False and args.base_path.starts_with('/')
 
+
+def colorize(s, i):
+	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
 
 def coded_colorize(s, s2 = None):
 	colors=[1,3,5,6,11,12,14,15]
@@ -81,31 +111,35 @@ def coded_colorize(s, s2 = None):
 		s2 = s
 	return colorize(s, colors[hash(s2) % len(colors)])
 
-class Struct:
-    def __init__(self, **entries): self.__dict__.update(entries)
-    def __repr__(self):
-	if 'op' in vars(self):
-		if self.op == 'write':
-			args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset']]
-		else:
-			args = []
-			for (k,v) in vars(self).items():
-				if k != 'op' and k != 'name' and k[0:7] != 'hidden_':
-					if k == 'source' or k == 'dest':
-						args.append('%s="%s"' % (k, coded_colorize(v)))
-					else:
-						args.append('%s=%s' % (k, repr(v)))
-		if 'name' in vars(self):
-			args.insert(0, '"' + coded_colorize(self.name) + '"')
-		colored_op = colorize(self.op, 1) if(self.op.find('sync') != -1) else self.op
-	        return '%s(%s)' % (colored_op, ', '.join(args))
-        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
-        return 'Struct(%s)' % ', '.join(args)
+# The input parameter must already have gone through original_path()
+def initial_path(name):
+	if not name.starts_with(args.base_path):
+		return False
+	toret = name.replace(args.base_path, args.initial_snapshot, 1)
+	return re.sub(r'//', r'/', toret)
+
+# The input parameter must already have gone through original_path()
+def replayed_path(name):
+	if not name.starts_with(args.base_path):
+		return False
+	toret = name.replace(args.base_path, args.replayed_snapshot, 1)
+	return re.sub(r'//', r'/', toret)
+
+def original_path(path):
+	if not path.startswith('/'):
+		path = args.base_path + '/' + path
+	while True:
+		old_path = path
+		path = re.sub(r'//', r'/', path)
+		path = re.sub(r'/\./', r'/', path)
+		path = re.sub(r'/[^/]*/\.\./', r'/', path)
+		if path == old_path:
+			break
+	return path
 
 def get_initial_size(path):
-	path = args.initial_snapshot + '/' + path
 	try:
-		return os.stat(path).st_size
+		return os.stat(initial_path(path)).st_size
 	except OSError as err:
 		return -1
 
@@ -311,9 +345,6 @@ class Replayer:
 			f.write("done")
 			f.close()
 		
-def final(name):
-	return args.replayed_snapshot + '/' + name
-
 def replay_micro_ops(rows):
 	global args
 	os.system("rm -rf " + args.replayed_snapshot)
@@ -321,24 +352,24 @@ def replay_micro_ops(rows):
 	for line in rows:
 		if line.op == 'creat':
 			if line.mode:
-				fd = os.open(final(line.name), os.O_CREAT | os.O_WRONLY, eval(line.mode))
+				fd = os.open(replayed_path(line.name), os.O_CREAT | os.O_WRONLY, eval(line.mode))
 			else:
-				fd = os.open(final(line.name), os.O_CREAT | os.O_WRONLY)
+				fd = os.open(replayed_path(line.name), os.O_CREAT | os.O_WRONLY)
 			assert fd > 0
 			os.close(fd)
 		elif line.op == 'unlink':
-			os.unlink(final(line.name))
+			os.unlink(replayed_path(line.name))
 		elif line.op == 'link':
-			os.link(final(line.source), final(line.dest))
+			os.link(replayed_path(line.source), replayed_path(line.dest))
 		elif line.op == 'rename':
-			os.rename(final(line.source), final(line.dest))
+			os.rename(replayed_path(line.source), replayed_path(line.dest))
 		elif line.op == 'trunc':
-			fd = os.open(final(line.name), os.O_WRONLY)
+			fd = os.open(replayed_path(line.name), os.O_WRONLY)
 			assert fd > 0
 			os.ftruncate(fd, line.size)
 			os.close(fd)
 		elif line.op == 'write':
-			fd1 = os.open(final(line.name), os.O_WRONLY)
+			fd1 = os.open(replayed_path(line.name), os.O_WRONLY)
 			fd2 = os.open(line.dump_file, os.O_RDONLY)
 			os.lseek(fd1, line.offset, os.SEEK_SET)
 			os.lseek(fd2, line.dump_offset, os.SEEK_SET)
@@ -348,7 +379,7 @@ def replay_micro_ops(rows):
 			os.close(fd1)
 			os.close(fd2)
 		elif line.op == 'mkdir':
-			os.mkdir(final(line.name), eval(line.mode))
+			os.mkdir(replayed_path(line.name), eval(line.mode))
 		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range']:
 			print line.op
 			assert False
@@ -369,7 +400,7 @@ def get_micro_ops(rows):
 
 		if parsed_line.syscall == 'open':
 			flags = parsed_line.args[1].split('|')
-			name = eval(parsed_line.args[0])
+			name = original_path(eval(parsed_line.args[0]))
 			mode = parsed_line.args[2] if parsed_line.args == 3 else False
 			if re.search(filename, name):
 				if 'O_WRONLY' in flags or 'O_RDWR' in flags:
@@ -425,8 +456,8 @@ def get_micro_ops(rows):
 				FileStatus.remove_fd_mapping(fd)
 		elif parsed_line.syscall == 'link':
 			if int(parsed_line.ret) != -1:
-				source = eval(parsed_line.args[0])
-				dest = eval(parsed_line.args[1])
+				source = original_path(eval(parsed_line.args[0]))
+				dest = original_path(eval(parsed_line.args[1]))
 				if re.search(filename, source):
 					assert re.search(filename, dest)
 					assert len(FileStatus.get_fds(dest)) == 0
@@ -434,8 +465,8 @@ def get_micro_ops(rows):
 					FileStatus.set_size(dest, FileStatus.get_size(source))
 		elif parsed_line.syscall == 'rename':
 			if int(parsed_line.ret) != -1:
-				source = eval(parsed_line.args[0])
-				dest = eval(parsed_line.args[1])
+				source = original_path(eval(parsed_line.args[0]))
+				dest = original_path(eval(parsed_line.args[1]))
 				if re.search(filename, source):
 					assert re.search(filename, dest)
 					assert len(FileStatus.get_fds(source)) == 0
@@ -445,7 +476,7 @@ def get_micro_ops(rows):
 					FileStatus.delete_file(source)
 		elif parsed_line.syscall == 'unlink':
 			if int(parsed_line.ret) != -1:
-				name = eval(parsed_line.args[0])
+				name = original_path(eval(parsed_line.args[0]))
 				if re.search(filename, name):
 					assert len(FileStatus.get_fds(name)) == 0
 					micro_operations.append(Struct(op = 'unlink', name = name))
@@ -463,7 +494,7 @@ def get_micro_ops(rows):
 				micro_operations.append(Struct(op = parsed_line.syscall, name = name))
 		elif parsed_line.syscall == 'mkdir':
 			if int(parsed_line.ret) != -1:
-				name = eval(parsed_line.args[0])
+				name = original_path(eval(parsed_line.args[0]))
 				mode = parsed_line.args[1]
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode))
