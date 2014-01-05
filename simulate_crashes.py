@@ -18,59 +18,45 @@ import copy
 #filename = r'mydisk'
 filename = r'^[^/]'
 
-important = [
-	"close", 
-	"link", 
-	"open", 
-	"rename", 
-	"unlink", 
-	"write",
-	"fsync", 
-	"lseek", 
-	"mkdir" 
-]
-
-ignore_syscalls = [
-	"access", 
-	"arch_prctl", 
-	"brk", 
-	"connect", 
-	"execve", 
-	"exit_group", 
-	"fstat", 
-	"futex", 
-	"getcwd", 
-	"getdents", 
-	"getrlimit", 
-	"getuid", 
-	"lstat", 
-	"mprotect", 
-	"read", 
-	"readlink", 
-	"rt_sigaction", 
-	"rt_sigprocmask", 
-	"set_robust_list", 
-	"set_tid_address", 
-	"socket", 
-	"stat" 
-]
-
-half_ignore = [
-	"chdir", 
-	"mmap", 
-	"munmap", 
-	"openat"
-]
-
-unhandled = [
-	"_llseek", 
-	"mmap", 
-	"munmap", 
-	"openat"
-]
-
-
-ignore_syscalls += half_ignore
+innocent_syscalls = ["_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
+"afs_syscall","alarm","alloc_hugepages","bdflush","bind","break","brk","cacheflush",
+"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","clone","close",
+"connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
+"epoll_wait","eventfd","eventfd2","execve","exit","exit_group","faccessat","fadvise64",
+"fadvise64_64","fgetxattr","flistxattr","flock","fork","free_hugepages","fstat","fstat64",
+"fstatat64","fstatfs","fstatfs64","ftime","futex","get_kernel_syms","get_mempolicy","get_robust_list",
+"get_thread_area","getcpu","getcwd","getdents","getdents64","getegid","getegid32","geteuid",
+"geteuid32","getgid","getgid32","getgroups","getgroups32","getitimer","getpeername","getpagesize",
+"getpgid","getpgrp","getpid","getpmsg","getppid","getpriority","getresgid","getresgid32",
+"getresuid","getresuid32","getrlimit","getrusage","getsid","getsockname","getsockopt","gettid",
+"gettimeofday","getuid","getuid32","getxattr","gtty","idle","init_module","inotify_add_watch",
+"inotify_init","inotify_init1","inotify_rm_watch","ioctl","ioperm","iopl","ioprio_get","ioprio_set",
+"ipc","kexec_load","keyctl","kill","lgetxattr","listen","listxattr","llistxattr",
+"lock","lookup_dcookie","lstat","lstat64","madvise","madvise1","mbind","migrate_pages",
+"mincore","mlock","mlockall","modify_ldt","mount","move_pages","mprotect","mpx",
+"mq_getsetattr","mq_notify","mq_open","mq_timedreceive","mq_timedsend","mq_unlink","msgctl","msgget",
+"msgrcv","msgsnd","munlock","munlockall","nanosleep","nfsservctl","nice","oldfstat",
+"oldlstat","oldolduname","oldstat","olduname","pause","pciconfig_iobase","pciconfig_read","pciconfig_write",
+"perf_event_open","in","personality","phys","pipe","pipe2","pivot_root","poll",
+"ppoll","prctl","pread64","renamed","preadv","prlimit","prof","profil",
+"pselect6","ptrace","putpmsg","query_module","quotactl","read","readahead","readdir",
+"readlink","readlinkat","readv","reboot","recv","recvfrom","recvmsg","recvmmsg",
+"remap_file_pages","request_key","restart_syscall","rt_sigaction","rt_sigpending","rt_sigprocmask","rt_sigqueueinfo","rt_sigreturn",
+"rt_sigsuspend","rt_sigtimedwait","rt_tgsigqueueinfo","sched_get_priority_max","sched_get_priority_min","sched_getaffinity","sched_getparam","sched_getscheduler",
+"sched_rr_get_interval","sched_setaffinity","sched_setparam","sched_setscheduler","sched_yield","security","select","semctl",
+"semget","semop","semtimedop","send","sendmsg","sendto",
+"set_mempolicy","set_robust_list","set_thread_area","set_tid_address","set_zone_reclaim","available","setdomainname","setfsgid",
+"setfsgid32","setfsuid","setfsuid32","setgid","setgid32","setgroups","setgroups32","sethostname",
+"setitimer","setpgid","setpriority","setregid","setregid32","setresgid","setresgid32","setresuid",
+"setresuid32","setreuid","setreuid32","setrlimit","setsid","setsockopt","settimeofday","setuid",
+"setuid32","setup","setxattr","sgetmask","shutdown","sigaction","sigaltstack","signal",
+"signalfd","signalfd4","sigpending","sigprocmask","sigreturn","sigsuspend","socket","socketcall",
+"socketpair","spu_create","spu_run","ssetmask","stat","stat64","statfs","statfs64",
+"stime","stty","subpage_prot","swapoff","swapon","sysfs","sysinfo","syslog",
+"tgkill","time","timer_create","timer_delete","timer_getoverrun","timer_gettime","timer_settime","timerfd_create",
+"timerfd_gettime","timerfd_settime","times","tkill","tuxcall","ugetrlimit","ulimit","umount",
+"umount2","uname","unshare","uselib","ustat","utime","utimensat","utimes",
+"vfork","vhangup","vm86old","vmsplice","vserver","wait4","waitid","waitpid"]
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--prefix', dest = 'prefix', type = str, default = False)
@@ -373,11 +359,18 @@ def get_micro_ops(rows):
 		if parsed_line == False:
 			continue
 
-		if parsed_line.syscall in ['open']:
+		### Known Issues:
+		###	1. Access time with read() kind of calls, modification times in general
+
+		if parsed_line.syscall == 'open':
 			flags = parsed_line.args[1].split('|')
 			name = eval(parsed_line.args[0])
 			mode = parsed_line.args[2] if parsed_line.args == 3 else False
 			if re.search(filename, name):
+				if 'O_WRONLY' in flags or 'O_RDWR' in flags:
+					assert 'O_ASYNC' not in flags
+					assert 'O_DIRECTORY' not in flags
+					assert 'O_SYNC' not in flags
 				fd = safe_string_to_int(parsed_line.ret);
 				if fd >= 0:
 					if not FileStatus.file_exists(name):
@@ -451,20 +444,35 @@ def get_micro_ops(rows):
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				FileStatus.set_pos(fd, int(parsed_line.ret))
-		elif parsed_line.syscall == 'fsync':
+		elif parsed_line.syscall in ['fsync', 'fdatasync']:
 			assert int(parsed_line.ret) == 0
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				name = FileStatus.get_name(fd)
-				micro_operations.append(Struct(op = 'fsync', name = name))
+				micro_operations.append(Struct(op = parsed_line.syscall, name = name))
 		elif parsed_line.syscall == 'mkdir':
 			if int(parsed_line.ret) != -1:
 				name = eval(parsed_line.args[0])
 				mode = parsed_line.args[1]
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode))
+		elif parsed_line.syscall in ['fcntl', 'fcntl64']:
+			fd = safe_string_to_int(parsed_line.args[0])
+			cmd = parsed_line.args[1]
+			if FileStatus.is_watched(fd):
+				assert cmd in ['F_GETFD', 'F_SETFD', 'F_GETFL', 'F_SETLK', 'F_SETLKW', 'F_GETLK', 'F_SETLK64', 'F_SETLKW64', 'F_GETLK64']
+		elif parsed_line.syscall in ['mmap', 'mmap2']:
+			fd = safe_string_to_int(parsed_line.args[4])
+			prot = parsed_line.args[2].split('|')
+			flags = parsed_line.args[3].split('|')
+			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and
+				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags:
+				assert 'PROT_WRITE' not in prot
+		elif parsed_line.syscall in ['mremap', 'msync', 'munmap']:
+			why_we_are_here = "These aren't totally innocent calls, and have to be dealt with when we start caring about mmap(),
+					but the calls are fine for now"
 		else:
-			assert parsed_line.syscall in ignore_syscalls
+			assert parsed_line.syscall in innocent_syscalls
 	return micro_operations
 
 files = commands.getoutput("ls " + args.prefix + ".* | grep -v byte_dump").split()
