@@ -306,6 +306,38 @@ class Replayer:
 		assert i < len(self.micro_ops)
 		self.micro_ops.pop(i)
 		self.__end_at -= 1
+	def split(self, i, count = None, sizes = None):
+		assert i < len(self.micro_ops)
+		line = self.micro_ops[i]
+		assert line.op == 'write'
+		self.micro_ops.pop(i)
+		self.__end_at -= 1
+		current_offset = line.offset
+		remaining = line.count
+
+		if count is not None:
+			per_slice_size = int(math.ceil(float(line.count) / count))
+		elif sizes is not None and type(sizes) == int:
+			per_slice_size = sizes
+		else:
+			assert sizes is not None
+
+		while remaining > 0:
+			new_line = copy.deepcopy(line)
+			new_line.offset = current_offset
+			if sizes is not None and type(sizes) != int:
+				if len(sizes) > 0:
+					per_slice_size = sizes[0]
+					sizes.pop(0)
+				else:
+					per_slice_size = remaining
+			new_line.count = min(per_slice_size, remaining)
+			remaining -= new_line.count
+			current_offset += new_line.count
+			self.micro_ops.insert(i, new_line)
+			i += 1
+			self.__end_at += 1
+
 	def listener_loop(self):
 		os.system("rm -f /tmp/fifo_in")
 		os.system("rm -f /tmp/fifo_out")
