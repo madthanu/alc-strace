@@ -11,7 +11,7 @@ import subprocess
 import inspect
 import copy
 
-innocent_syscalls = ["_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
+innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
 "capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","clone","close",
 "connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
@@ -431,14 +431,15 @@ def get_micro_ops(rows):
 						new_op = Struct(op = 'trunc', name = name, size = 0)
 						micro_operations.append(new_op)
 						FileStatus.set_size(name, 0)
+					o_sync_present = 'O_SYNC' in flags or 'O_DSYNC' in flags or 'O_RSYNC' in flags
 					if 'O_APPEND' in flags:
-						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if 'O_SYNC' in flags else '')
+						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if o_sync_present else '')
 					else:
-						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if 'O_SYNC' in flags else '')
+						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '')
 		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
-				count = safe_string_to_int(parsed_line.args[-3])
+				count = safe_string_to_int(parsed_line.args[-3 if parsed_line.syscall in ['write', 'writev'] else -4])
 				assert safe_string_to_int(parsed_line.ret) == count
 				dump_file = eval(parsed_line.args[-2])
 				dump_offset = safe_string_to_int(parsed_line.args[-1])
