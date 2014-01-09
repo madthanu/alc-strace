@@ -472,18 +472,26 @@ def get_micro_ops(rows):
 						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if o_sync_present else '')
 					else:
 						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '')
-		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
+		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
+			print parsed_line
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
-				count = safe_string_to_int(parsed_line.args[-3 if parsed_line.syscall in ['write', 'writev'] else -4])
+				if parsed_line.syscall == 'write':
+					count = safe_string_to_int(parsed_line.args[2])
+					pos = FileStatus.get_pos(fd)
+				elif parsed_line.syscall == 'writev':
+					count = safe_string_to_int(parsed_line.args[3])
+					pos = FileStatus.get_pos(fd)
+				elif parsed_line.syscall == 'pwrite':
+					count = safe_string_to_int(parsed_line.args[2])
+					pos = safe_string_to_int(parsed_line.args[3])
+				elif parsed_line.syscall == 'pwritev':
+					count = safe_string_to_int(parsed_line.args[4])
+					pos = safe_string_to_int(parsed_line.args[3])
 				assert safe_string_to_int(parsed_line.ret) == count
 				dump_file = eval(parsed_line.args[-2])
 				dump_offset = safe_string_to_int(parsed_line.args[-1])
 				name = FileStatus.get_name(fd)
-				if parsed_line.syscall in ['pwrite', 'pwritev']:
-					pos = safe_string_to_int(parsed_line.args[-4])
-				else:
-					pos = FileStatus.get_pos(fd)
 				size = FileStatus.get_size(name)
 				if(pos + count > size):
 					new_op = Struct(op = 'trunc', name = name, size = pos + count)
