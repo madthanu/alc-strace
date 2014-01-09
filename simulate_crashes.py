@@ -473,7 +473,6 @@ def get_micro_ops(rows):
 					else:
 						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '')
 		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
-			print parsed_line
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				if parsed_line.syscall == 'write':
@@ -594,7 +593,10 @@ for trace_file in files:
 		parsed_line = parse_line(line)
 		if parsed_line:
 			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
-				write_size = safe_string_to_int(parsed_line.args[-1])
+				if parsed_line.syscall == 'pwrite':
+					write_size = safe_string_to_int(parsed_line.args[-2])
+				else:
+					write_size = safe_string_to_int(parsed_line.args[-1])
 				m = re.search(r'\) += [^,]*$', line)
 				line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[ m.start(0) : ]
 				dump_offset += write_size
