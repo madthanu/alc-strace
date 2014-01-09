@@ -59,6 +59,7 @@ parser.add_argument('--replayed_snapshot', dest = 'replayed_snapshot', type = st
 parser.add_argument('--orderings_script', dest = 'orderings_script', type = str, default = False)
 parser.add_argument('--checker_tool', dest = 'checker_tool', type = str, default = False)
 parser.add_argument('--base_path', dest = 'base_path', type = str, default = False)
+parser.add_argument('--starting_cwd', dest = 'starting_cwd', type = str, default = False)
 parser.add_argument('--interesting_path_string', dest = 'interesting_path_string', type = str, default = False)
 args = parser.parse_args()
 
@@ -100,6 +101,9 @@ if 'interesting_path_string' in args.__dict__ and args.interesting_path_string !
 else:
 	filename = r'^' + args.base_path
 
+if 'starting_cwd' not in args.__dict__ or args.starting_cwd == False:
+	args.starting_cwd = args.base_path
+
 def colorize(s, i):
 	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
 
@@ -128,7 +132,7 @@ def short_path(name):
 		return name
 	return name.replace(re.sub(r'//', r'/', args.base_path + '/'), '', 1)
 
-current_original_path = args.base_path
+current_original_path = args.starting_cwd
 def original_path(path):
 	if not path.startswith('/'):
 		path = current_original_path + '/' + path
