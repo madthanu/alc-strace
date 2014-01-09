@@ -540,6 +540,20 @@ def get_micro_ops(rows):
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				FileStatus.set_pos(fd, int(parsed_line.ret))
+		elif parsed_line.syscall in ['truncate', 'ftruncate']:
+			assert int(parsed_line.ret) != -1
+			if parsed_line.syscall == 'truncate':
+				name = original_path(eval(parsed_line.args[0]))
+				interesting = re.search(filename, name)
+			else:
+				fd = safe_string_to_int(parsed_line.args[0])
+				interesting = FileStatus.is_watched(fd)
+				if interesting: name = FileStatus.get_name(fd)
+			if interesting:
+				size = safe_string_to_int(parsed_line.args[1])
+				new_op = Struct(op = 'trunc', name = name, size = size)
+				micro_operations.append(new_op)
+				FileStatus.set_size(name, size)
 		elif parsed_line.syscall in ['fsync', 'fdatasync']:
 			assert int(parsed_line.ret) == 0
 			fd = safe_string_to_int(parsed_line.args[0])
