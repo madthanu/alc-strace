@@ -327,6 +327,7 @@ class Replayer:
 			assert sizes is not None
 
 		while remaining > 0:
+			print new_line
 			new_line = copy.deepcopy(line)
 			new_line.offset = current_offset
 			if sizes is not None and type(sizes) != int:
@@ -336,6 +337,7 @@ class Replayer:
 				else:
 					per_slice_size = remaining
 			new_line.count = min(per_slice_size, remaining)
+			new_line.dump_offset = line.dump_offset + (new_line.offset - line.offset)
 			remaining -= new_line.count
 			current_offset += new_line.count
 			self.micro_ops.insert(i, new_line)
