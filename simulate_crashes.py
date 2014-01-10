@@ -327,7 +327,6 @@ class Replayer:
 			assert sizes is not None
 
 		while remaining > 0:
-			print new_line
 			new_line = copy.deepcopy(line)
 			new_line.offset = current_offset
 			if sizes is not None and type(sizes) != int:
