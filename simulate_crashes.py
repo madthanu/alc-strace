@@ -422,6 +422,8 @@ def replay_micro_ops(rows):
 			os.close(fd2)
 		elif line.op == 'mkdir':
 			os.mkdir(replayed_path(line.name), eval(line.mode))
+		elif line.op == 'rmdir':
+			os.rmdir(replayed_path(line.name))
 		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range']:
 			print line.op
 			assert False
@@ -567,6 +569,11 @@ def get_micro_ops(rows):
 				mode = parsed_line.args[1]
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode))
+		elif parsed_line.syscall == 'rmdir':
+			if int(parsed_line.ret) != -1:
+				name = original_path(eval(parsed_line.args[0]))
+				if re.search(filename, name):
+					micro_operations.append(Struct(op = 'rmdir', name = name))
 		elif parsed_line.syscall == 'chdir':
 			if int(parsed_line.ret) == 0:
 				current_original_path = original_path(eval(parsed_line.args[0]))
