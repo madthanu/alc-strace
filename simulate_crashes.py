@@ -10,6 +10,8 @@ import os
 import subprocess
 import inspect
 import copy
+import string
+import traceback
 
 innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
@@ -382,15 +384,9 @@ class Replayer:
 					exec(f2) in dict(inspect.getmembers(self))
 				except:
 					f2 = open('/tmp/replay_output', 'w+')
-					f2.write("Unexpected error:")
-					for i in sys.exc_info():
-						f2.write('\n' + str(i))
-					f2.write(str(sys.exc_info()))
+					f2.write("Error during runprint\n")
+					f2.write(traceback.format_exc())
 					f2.close()
-					f.close()
-					f = open('/tmp/fifo_out', 'w')
-					f.write("error")
-					f.close()
 					
 				self.print_ops()
 				f2.close()
