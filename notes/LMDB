@@ -70,13 +70,13 @@ LMDB creates 2 files (data.mdb and lock.mdb) when an environment is opened but d
 
 2. Process crash when opening env : As mentioned earlier, LMDB writes two metapages to the beginning of the data file. There is no sync call made after writing these 2 pages. A crash can happen before these pages are persisted to disk. If this crash happens, any subsequent open calls on the same environment will fail with an error saying that the data file is not a valid MDB file. Note: This bug is not related to FS portability. This is a generic bug in terms of consistency.
 
-3. Splitting 106 bytes of metadata: The metadata is always written using FD2(the one with O_DSYNC flag). But there is a chance that this write can be split and a crash can in middle. There are actually two important parts in the metadata written - root of the data B+tree and the root of the free pages list. If a crash happened in such a way that the free page pointer doesn't reach the disk but the root of the data B+tree reaches the disk, then subsequent put operations will fail as the data file is in a corrupted state.
+3. Splitting 106 bytes of metadata: The metadata is always written using FD2(the one with O_DSYNC flag). But there is a chance that this write can be split and a crash can happen in middle. There are actually two important parts in the metadata written - root of the data B+tree and the root of the free pages list. If a crash happened in such a way that the free page pointer doesn't reach the disk but the root of the data B+tree reaches the disk, then subsequent put operations will fail as the data file is in a corrupted state.
 
 Error that is seen for this condition: 
 
 lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed
 
-There is an invariant always expected by mdb => free_pages + current_pages = in_use_pages. The above crash violates this expectation and hence the problem occurs.  
+There is an invariant always expected by mdb => free_pages + current_pages + 2 metapages = in_use_pages - 1. The above crash violates this expectation and hence the problem occurs.  
 
 Note: If the free pages section reaches the disk but not the root of the data B+tree, there is no problem. 
 
