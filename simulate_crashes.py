@@ -315,6 +315,20 @@ class Replayer:
 		assert i < len(self.micro_ops)
 		self.micro_ops.pop(i)
 		self.__end_at -= 1
+	def set_data(self, i, data = string.ascii_uppercase + string.digits, randomize = False):
+		data = str(data)
+		assert i < len(self.micro_ops)
+		line = self.micro_ops[i]
+		assert line.op == 'write'
+		if randomize:
+			data = ''.join(random.choice(data) for x in range(line.count))
+		assert len(data) == line.count
+		line.dump_file = ''
+		line.override_data = data
+	def set_garbage(self, i):
+		set_data(i, randomize = True)
+	def set_zeros(self, i):
+		set_data(i, data = '0', randomize = True)
 	def split(self, i, count = None, sizes = None):
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
@@ -416,15 +430,18 @@ def replay_micro_ops(rows):
 			os.ftruncate(fd, line.size)
 			os.close(fd)
 		elif line.op == 'write':
-			fd1 = os.open(replayed_path(line.name), os.O_WRONLY)
-			fd2 = os.open(line.dump_file, os.O_RDONLY)
-			os.lseek(fd1, line.offset, os.SEEK_SET)
-			os.lseek(fd2, line.dump_offset, os.SEEK_SET)
-			buf = os.read(fd2, line.count)
-			os.write(fd1, buf)
+			if line.dump_file == '':
+				buf = line.override_data
+			else:
+				fd = os.open(line.dump_file, os.O_RDONLY)
+				os.lseek(fd, line.dump_offset, os.SEEK_SET)
+				buf = os.read(fd, line.count)
+				os.close(fd)
+			fd = os.open(replayed_path(line.name), os.O_WRONLY)
+			os.lseek(fd, line.offset, os.SEEK_SET)
+			os.write(fd, buf)
+			os.close(fd)
 			buf = ""
-			os.close(fd1)
-			os.close(fd2)
 		elif line.op == 'mkdir':
 			os.mkdir(replayed_path(line.name), eval(line.mode))
 		elif line.op == 'rmdir':
