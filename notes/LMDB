@@ -100,3 +100,89 @@ Default configuration: writemap = False, metasync= True, map_async doesn't matte
 5. metasync = True, writemap = True, map_async = True: 0.00293183326721, 0.00306487083435, 0.00297808647156, 0.00288105010986, 0.00291013717651 ---- Average: 0.0029531955719
 
 6. sync = False: 0.00669407844543, 0.00664901733398, 0.00672101974487, 0.00664591789246, 0.00693702697754 ---- Average: 0.00672941207886
+
+
+Splitting metadata and crashing:
+++++++++++++++++++++++++++++++++
+
+Metadata total size : 106 bytes.
+
+This is the memory layout of the metadata:
+
+1. First 42 bytes for free list related data.
+2. Next 48 bytes for database related data
+(pad-4,flags-2,depth-2,branch_page_count-8,leaf_count-8,overflow_page_count-8,entries-8,root_of_tree-8)
+3. Last_page_in_the_tree - 8 bytes.
+4. Transaction ID - 8 bytes.
+
+Note: 42+48+8+8 == 106.
+
+Initial setup: There were 3 previous transactions on the database. The
+workload is the 4th txn on the database.
+
+I tried the following crash scenarios with respect to metadata:
+
+1. Only txn_id gets to disk
+2. Free list data, txn_id and last_page gets to disk but not main db details
+3. Only the last_page field goes to disk
+4. only main db + 2 fields go to disk and free pointer is missed
+5. only free pointer goes to disk
+6. Everything gets in except complete database pointer - it is 48 bytes -
+but a crash happens such that second 24 bytes (which contains the root) is
+missed
+7. Everything gets in except complete database pointer - it is 48 bytes -
+but a crash happens such that first 24 bytes (which contains depth,
+br_pages, leaves count etc) is missed
+
+After crashing, the query was made for all key value pairs and a new txn to
+insert a new key value pair was tried.
+
+Results:
+++++++++
+
+1. Only txn_id gets into metapage and no other data:
+
+Values obtained state: txn2
+Result : No issues.
+
+2. Free list data, txn_id and last_page goes in but not main db details:
+
+Values obtained state: txn2
+Result : Error: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno
+!= pgno' failed.
+
+3. Only the last_page field goes in nothing else:
+
+Values obtained state: txn3
+Result : No issues.
+
+4. only main db + 2 fields no free pointer:
+
+Values obtained state: txn4
+Result : Error: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno
+!= pgno' failed.
+
+5. only free pointer goes to disk:
+
+Values obtained state : txn3
+Result : No issues.
+
+6. Everything gets in except database pointer - it is 48 bytes - but a crash
+happens such that second 24 bytes (which contains the root) is missed:
+
+Values obtained state: txn2
+Result : Error: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno
+!= pgno' failed.
+
+7. Everything gets in except database pointer - it is 48 bytes - but a crash
+happens such that first 24 bytes (which contains depth, br_pages, leaves
+count etc) is missed:
+
+Values obtained state: txn4
+Result : No issues.
+
+Conclusion: As we can see, the database is always consistent with key value
+pairs. But the internal consistency of the database is not maintained which
+is revealed by subsequent operations. As already mentioned, the invariant
+free_pages + current_pages + 2 metapages = in_use_pages -1, does not hold in
+some cases after crashes and that is the reason for all seen errors.
