@@ -34,6 +34,7 @@ END_LEGAL */
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
@@ -79,6 +80,12 @@ VOID RecordMemWrite(VOID * ip, VOID * addr)
 
 VOID EmitWrite(THREADID threadid, UINT32 size)
 {
+    static int counter = 0;
+    counter ++;
+    if(counter % 30000 == 0) {
+        counter = 0;
+        printf("id: %u\n", getpid());
+    }
     VOID * ea = WriteEa[threadid];
     
     switch(size)
@@ -199,33 +206,22 @@ INT32 Usage()
 
 BOOL FollowChild(CHILD_PROCESS childProcess, VOID * userData)
 {
+//    static int count = 0;
     INT appArgc;
     CHAR const * const * appArgv;
-
-    OS_PROCESS_ID pid = CHILD_PROCESS_GetId(childProcess);
+    int i;
 
     CHILD_PROCESS_GetCommandLine(childProcess, &appArgc, &appArgv);
 
-    //Set Pin's command line for child process
-    INT pinArgc = 0;
-    CHAR const * pinArgv[32];
+    OS_PROCESS_ID id = CHILD_PROCESS_GetId(childProcess);
 
-	// Variables pinExe, tool and childLog are defined in Global Variables
-    pinArgv[pinArgc++] = "/home/madthanu/alc-strace/mtrace/pin-2.13-62732-gcc.4.4.7-linux/pin";
-    pinArgv[pinArgc++] = "-t";
-    pinArgv[pinArgc++] = "/home/madthanu/alc-strace/mtrace/pinatrace.so";
-    pinArgv[pinArgc++] = "--";
-
-    PrintTime();
-    fprintf(trace, "New child: pid = %u, argc = %u. ", pid, appArgc);
-
-	for (int i = 0; i < appArgc; i++){
-        fprintf(trace, "%s. ", appArgv[i]);
-	}
-    fprintf(trace, "\n");
-
-    CHILD_PROCESS_SetPinCommandLine(childProcess, pinArgc, pinArgv);
-
+    for(i = 0; i < appArgc; i++) {
+        printf("Argv: %s, id: %u\n", appArgv[i], id);
+    }
+//    if(count == 0) {
+//        count = 1;
+//        return FALSE;
+//    }
     return TRUE;
 }
 
