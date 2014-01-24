@@ -12,6 +12,7 @@ import inspect
 import copy
 import string
 import traceback
+import random
 
 innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
@@ -328,9 +329,9 @@ class Replayer:
 		line.dump_file = ''
 		line.override_data = data
 	def set_garbage(self, i):
-		set_data(i, randomize = True)
+		self.set_data(i, randomize = True)
 	def set_zeros(self, i):
-		set_data(i, data = '0', randomize = True)
+		self.set_data(i, data = '0', randomize = True)
 	def split(self, i, count = None, sizes = None):
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
