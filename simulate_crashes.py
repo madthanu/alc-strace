@@ -100,7 +100,6 @@ if 'interesting_path_string' in args.__dict__ and args.interesting_path_string !
 	filename = args.interesting_path_string
 else:
 	filename = r'^' + args.base_path
-
 if 'starting_cwd' not in args.__dict__ or args.starting_cwd == False:
 	args.starting_cwd = args.base_path
 
