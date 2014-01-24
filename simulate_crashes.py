@@ -14,7 +14,7 @@ import string
 import traceback
 import random
 
-innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
+innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
 "capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","close",
 "connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
@@ -177,10 +177,10 @@ def parse_line(line):
 
 		return toret
 	except AttributeError as err:
-		if line.find('+++ exited with') != -1:
-			return False
-		if line.fine(' --- SIG') != -1:
-			return False
+		for innocent_line in ['+++ exited with', ' --- SIG', '<unfinished ...>', ' = ? <unavailable>']:
+			if line.find(innocent_line) != -1:
+				return False
+		print line
 		raise err
 
 def safe_string_to_int(s):
@@ -556,7 +556,11 @@ def get_micro_ops(rows):
 			if int(parsed_line.ret) != -1:
 				name = original_path(eval(parsed_line.args[0]))
 				if re.search(filename, name):
-					assert len(FileStatus.get_fds(name)) == 0
+					fds = FileStatus.get_fds(name)
+					for fd in fds:
+						FileStatus.remove_fd_mapping(fd)
+						FileStatus.new_fd_mapping(fd, 'DANGEROUS', 0, 0)
+						print "Warning: File unlinked while being open: " + name
 					micro_operations.append(Struct(op = 'unlink', name = name))
 					FileStatus.delete_file(name)
 		elif parsed_line.syscall == 'lseek':
