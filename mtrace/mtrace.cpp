@@ -122,6 +122,7 @@ int main(int argc, char *argv[]) {
 	for(int i = 0; i < argc; i++) {
 		if(!strcmp(argv[i], "--")) {
 			strace = !strcmp(argv[i + 1], "strace");
+			printf("Command: %s, strace = %d\n", argv[i + 1], strace);
 			break;
 		}
 	}
