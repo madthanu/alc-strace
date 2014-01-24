@@ -16,10 +16,10 @@ import random
 
 innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
-"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","clone","close",
+"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","close",
 "connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
 "epoll_wait","eventfd","eventfd2","execve","exit","exit_group","faccessat","fadvise64",
-"fadvise64_64","fgetxattr","flistxattr","flock","fork","free_hugepages","fstat","fstat64",
+"fadvise64_64","fgetxattr","flistxattr","flock","free_hugepages","fstat","fstat64",
 "fstatat64","fstatfs","fstatfs64","ftime","futex","get_kernel_syms","get_mempolicy","get_robust_list",
 "get_thread_area","getcpu","getcwd","getdents","getdents64","getegid","getegid32","geteuid",
 "geteuid32","getgid","getgid32","getgroups","getgroups32","getitimer","getpeername","getpagesize",
@@ -178,6 +178,8 @@ def parse_line(line):
 		return toret
 	except AttributeError as err:
 		if line.find('+++ exited with') != -1:
+			return False
+		if line.fine(' --- SIG') != -1:
 			return False
 		raise err
 
@@ -596,6 +598,12 @@ def get_micro_ops(rows):
 		elif parsed_line.syscall == 'chdir':
 			if int(parsed_line.ret) == 0:
 				current_original_path = original_path(eval(parsed_line.args[0]))
+		elif parsed_line.syscall == 'clone':
+			if int(parsed_line.ret) != -1:
+				flags_string = parsed_line.args[1]
+				assert(flags_string.startswith("flags="))
+				flags = flags_string[6:].split('|')
+				assert 'CLONE_VM' in flags
 		elif parsed_line.syscall in ['fcntl', 'fcntl64']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			cmd = parsed_line.args[1]
