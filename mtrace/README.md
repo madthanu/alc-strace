@@ -14,7 +14,7 @@ Usage
 
 3. The common way to run mtrace would be: "mtrace -o my_output_files -- ./a.out".
 
-4. The syntax is: "mtrace [-s string_length] [-o output_files_prefix] -- <actual application command>"
+4. The syntax is: "mtrace [-s string_length] [-o output_files_prefix] -- <<actual application command>>"
 
 5. The '-s' argument is similar to the strace argument, but is defaulted to 0. Also, mtrace does not actually care about the string_length, instead outputting the first word that was written in an mwrite. The string_length argument is passed to the strace utility, however.
 
