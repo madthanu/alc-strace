@@ -8,14 +8,16 @@ Installation
 
 Usage
 -----
-1. Mtrace produces both the mtrace and the strace. Mtrace also produces the object dump files corresponding to the mtrace. If the custom-made strace has been previously installed, object files corresponding to the strace would also be produced.
+0. Definition: "mtrace", the memory access trace, is a trace of memory writes on mmap-ed regions.
 
-2. Mtrace does not follow children when the given application forks. There is currently no way to mtrace the children. The strace that is automatically invoked by mtrace, however, follows the children too.
+1. The mtrace utility produces both the mtrace and the strace. The utility also produces the object dump files corresponding to the mtrace. If the custom-made strace utility has been previously installed, object files corresponding to the strace would also be produced.
 
-3. The common way to run mtrace would be: "mtrace -o my_output_files -- ./a.out".
+2. The mtrace utility does not follow children when the given application forks. There is currently no way to obtain mtraces of the children. The strace utility that is automatically invoked, however, follows the children too.
+
+3. The common way to run the mtrace utility would be: "mtrace -o my_output_files -- ./a.out".
 
 4. The syntax is: "mtrace [-s string_length] [-o output_files_prefix] -- &lt;actual application command&gt;"
 
-5. The '-s' argument is similar to the strace argument, but is defaulted to 0. Also, mtrace does not actually care about the string_length, instead outputting the first word that was written in an mwrite. The string_length argument is passed to the strace utility, however.
+5. The '-s' argument is similar to the strace argument, but is defaulted to 0. Also, mtrace does not actually care about the string_length, instead outputting the first word that was written in an mwrite for all string lengths greater than 0. The string_length argument is directly passed to the strace utility, however.
 
 6. If the output_files_prefix is omitted, both the mtrace output and strace output are redirected to std*.
