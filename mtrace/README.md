@@ -1,8 +1,8 @@
 Installation
 ------------
 
-1.Go to the bash prompt, and navigate to the mtrace directory.
-2.wget "http://software.intel.com/sites/landingpage/pintool/downloads/pin-2.13-62732-gcc.4.4.7-linux.tar.gz"
+1. Go to the bash prompt, and navigate to the mtrace directory.
+2. wget "http://software.intel.com/sites/landingpage/pintool/downloads/pin-2.13-62732-gcc.4.4.7-linux.tar.gz"
 3. tar xvf pin-2.13-62732-gcc.4.4.7-linux.tar.gz
 4. sudo make install
 
