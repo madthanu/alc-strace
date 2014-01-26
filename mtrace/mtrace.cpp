@@ -10,30 +10,42 @@
 #include "pin.H"
 
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "-", "trace file");
+KNOB<UINT32> KnobPrintChars(KNOB_MODE_WRITEONCE, "pintool", "s", "0", "display some initial characters in each mwrite");
 
-struct syscall_details {
+struct syscall_details_t {
 	ADDRINT ip;
 	ADDRINT num;
 	ADDRINT args[6];
 };
 
+struct mwrite_tracker_t {
+	VOID *next_location;
+	struct timeval last_time;
+	size_t size;
+};
+
 LOCALVAR VOID *WriteEa[PIN_MAX_THREADS];
 LOCALVAR FILE *out_file[PIN_MAX_THREADS];
-LOCALVAR struct syscall_details thread_to_syscall[PIN_MAX_THREADS];
+LOCALVAR struct syscall_details_t thread_to_syscall[PIN_MAX_THREADS];
+LOCALVAR struct mwrite_tracker_t mwrite_tracker[PIN_MAX_THREADS];
+
+const unsigned int coalesce_microsecs = 2000;
+
 PIN_LOCK globalLock;
 bool standard_out;
+unsigned long print_chars;
 
 class MemregionTracker {
 
 	#define MAX_MEM_REGIONS 2000
-	struct t_region {
+	struct region_t {
 		void* addr_start;
 		void* addr_end;
 	};
 
 	private:
-	static struct t_region region[MAX_MEM_REGIONS];
-	static int region_last; // initialized to 0
+	static struct region_t region[MAX_MEM_REGIONS];
+	static int region_last;
 
 	static void _insert(void *addr_start, void *addr_end) {
 		int i;
@@ -127,11 +139,10 @@ class MemregionTracker {
 	}
 };
 
-struct MemregionTracker::t_region MemregionTracker::region[MAX_MEM_REGIONS];
-int MemregionTracker::region_last;
+struct MemregionTracker::region_t MemregionTracker::region[MAX_MEM_REGIONS];
+int MemregionTracker::region_last = 0;
 
-void mprintf(const char *format, ...)
-{
+void mprintf(const char *format, ...) {
 	FILE *file;
 
 	if(standard_out) {
@@ -157,27 +168,72 @@ VOID CaptureWriteEa(THREADID threadid, VOID * addr) {
 	WriteEa[threadid] = addr;
 }
 
-VOID PrintTime() {
+VOID PrintTime(struct timeval tv) {
 	char str[sizeof("HH:MM:SS")];
-	struct timeval tv;
-
-	gettimeofday(&tv, NULL);
 	time_t local = tv.tv_sec;
 
 	strftime(str, sizeof(str), "%T", localtime(&local));
 	mprintf("%s.%06ld ", str, (long)tv.tv_usec);
 }
 
+void flush_mwrite(THREADID threadid) {
+	if(mwrite_tracker[threadid].next_location != NULL) {
+		mprintf("%u) = 0\n", mwrite_tracker[threadid].size);
+		mwrite_tracker[threadid].next_location = NULL;
+	}
+}
+
+unsigned long long time_diff(struct timeval future, struct timeval past) {
+	return ((unsigned long long) future.tv_sec - (unsigned long long) past.tv_sec) * 1000000L + 
+		((unsigned long long) future.tv_usec - (unsigned long long) past.tv_usec);
+}
+
+void printable_string(char *src, char *dest, int dest_length) {
+	assert(dest_length != 0);
+	char *dest_end = dest + dest_length - 1;
+	while(*src != '\0') {
+		if(*src >= ' ' && *src <= '~' && *src != '"' && *src != '\'' && *src != '\\') {
+			if(dest == dest_end) break;
+			*dest = *src;
+			dest++;
+		} else {
+			if(dest + 5 >= dest_end) break;	
+			sprintf(dest, "\\%2p", (void *)(unsigned long long)(*src));
+			dest += 5;
+		}
+		src++;
+	}
+	*dest = '\0';
+}
+
 VOID EmitWrite(THREADID threadid, UINT32 size) {
 	assert(size <= 100);
 	char bytes[101];
+	struct timeval tv;
 	VOID *ea = WriteEa[threadid];
-
 	if(MemregionTracker::address_mapped(ea)) {
+		gettimeofday(&tv, NULL);
 		PIN_SafeCopy(&bytes[0], static_cast<char *>(ea), size);
-		bytes[size + 1] = '\0';
-		PrintTime();
-		mprintf("	W %p (%u bytes): '%s'\n", ea, size, bytes);
+		bytes[size] = '\0';
+
+		if(mwrite_tracker[threadid].next_location == ea && 
+			time_diff(tv, mwrite_tracker[threadid].last_time) < coalesce_microsecs) {
+			mwrite_tracker[threadid].size += size;
+		} else {
+			flush_mwrite(threadid);
+			PrintTime(tv);
+			if(print_chars) {
+				char tmp[100];
+				printable_string(bytes, tmp, 100);
+				mprintf("mwrite(%p, \"%s\"..., ", ea, tmp);
+			} else {
+				mprintf("mwrite(%p, \"\"..., ", ea);
+			}
+			mwrite_tracker[threadid].size = size;
+		}
+
+		mwrite_tracker[threadid].next_location = (UINT8 *)ea + size;
+		mwrite_tracker[threadid].last_time = tv;
 	}
 }
 
@@ -238,10 +294,16 @@ VOID Image(IMG img, VOID * v) {
 
 		char temp[10];
 		sprintf(temp, "%u", getpid());
+		char temp2[10];
+		sprintf(temp2, "%lu", print_chars);
 
 		pid_t pid = fork();
 		if(!pid) {
-			execlp("strace", "strace", "-ff", "-tt", "-o", "tmp/trace", "-p", temp, NULL);
+			if(standard_out) {
+				execlp("strace", "strace", "-ff", "-tt", "-s", temp2, "-p", temp, NULL);
+			} else {
+				execlp("strace", "strace", "-ff", "-tt", "-o", KnobOutputFile.Value().c_str(), "-s", temp2, "-p", temp, NULL);
+			}
 			assert(false);
 		}
 	}
@@ -249,6 +311,8 @@ VOID Image(IMG img, VOID * v) {
 
 VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
 {
+	flush_mwrite(threadIndex);
+
 	ADDRINT num = PIN_GetSyscallNumber(ctxt, std);
 
 	if (num != SYS_mmap && num != SYS_munmap) {
@@ -292,10 +356,11 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			int fd = (int)(*args++);
 			off_t offset = (off_t)(*args++);
 
-			printf("mmap(%p, %lu, %d, %d, %d, %lu) = %p\n", given_addr, length, prot, flags, fd, offset, ret);
+			//printf("mmap(%p, %lu, %d, %d, %d, %lu) = %p\n", given_addr, length, prot, flags, fd, offset, ret);
 
 			void *addr_start = ret;
 			void *addr_end = (void *)((UINT8 *) addr_start + length - 1);
+			(void) given_addr;
 			(void) offset;
 			if(flags & MAP_FIXED) {
 				MemregionTracker::remove_overlaps(addr_start, addr_end);
@@ -321,7 +386,7 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			void *addr_start = (void *)(*args++);
 			size_t length = (size_t)(*args++);
 
-			printf("munmap(%p, %lu) = %d\n", addr_start, length, ret);
+			//printf("munmap(%p, %lu) = %d\n", addr_start, length, ret);
 
 			void *addr_end = (void *)((UINT8 *) addr_start + length - 1);
 
@@ -337,12 +402,14 @@ int main(int argc, char *argv[]) {
 	PIN_InitLock(&globalLock);
 
 	standard_out = false;
+	print_chars = KnobPrintChars;
 	if(!strcmp(KnobOutputFile.Value().c_str(), "-")) {
 		standard_out = true;
 	} else {
 		memset(out_file, 0, sizeof(out_file));
 	}
 
+	memset(mwrite_tracker, 0, sizeof(out_file));
 	IMG_AddInstrumentFunction(Image, 0);
 	INS_AddInstrumentFunction(Instruction, 0);
 	PIN_AddSyscallEntryFunction(SyscallEntry, 0);
