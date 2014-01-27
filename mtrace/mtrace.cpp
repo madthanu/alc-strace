@@ -202,12 +202,17 @@ VOID CaptureWriteEa(THREADID threadid, VOID * addr) {
 	WriteEa[threadid] = addr;
 }
 
-VOID PrintTime(struct timeval tv) {
+VOID PrintTime(struct timeval *tv) {
+	struct timeval tv1;
+	if(tv == NULL) {
+		gettimeofday(&tv1, NULL);
+		tv = &tv1;
+	}
 	char str[sizeof("HH:MM:SS")];
-	time_t local = tv.tv_sec;
+	time_t local = tv->tv_sec;
 
 	strftime(str, sizeof(str), "%T", localtime(&local));
-	mprintf("%s.%06ld ", str, (long)tv.tv_usec);
+	mprintf("%s.%06ld ", str, (long)tv->tv_usec);
 }
 
 void flush_mwrite(THREADID threadid) {
@@ -256,7 +261,7 @@ VOID EmitWrite(THREADID threadid, UINT32 size) {
 			mwrite_tracker[threadid].size += size;
 		} else {
 			flush_mwrite(threadid);
-			PrintTime(tv);
+			PrintTime(&tv);
 			if(print_chars) {
 				char tmp[100];
 				printable_string(bytes, tmp, 100);
@@ -334,9 +339,7 @@ VOID Image(IMG img, VOID * v) {
 }
 
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v) {
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	PrintTime(tv);
+	PrintTime(NULL);
 	mprintf("mtrace_thread_start(%u, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
 	m_dump_bytes(NULL, 0);
 }
@@ -348,6 +351,7 @@ VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOI
 	ADDRINT num = PIN_GetSyscallNumber(ctxt, std);
 
 	if(num == SYS_execve) {	
+		PrintTime(NULL);
 		mprintf("mtrace_execve(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadIndex, PIN_ThreadId());
 		m_dump_bytes(NULL, 0);
 		return;
@@ -395,9 +399,7 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			int fd = (int)(*args++);
 			off_t offset = (off_t)(*args++);
 
-			struct timeval tv;
-			gettimeofday(&tv, NULL);
-			PrintTime(tv);
+			PrintTime(NULL);
 			mprintf("mtrace_mmap(%p, %lu, %d, %d, %d, %lu) = %p\n", given_addr, length, prot, flags, fd, offset, ret);
 
 			void *addr_start = ret;
@@ -428,10 +430,8 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			void *addr_start = (void *)(*args++);
 			size_t length = (size_t)(*args++);
 
-			struct timeval tv;
-			gettimeofday(&tv, NULL);
-			PrintTime(tv);
-			mprintf("munmap(%p, %lu) = %d\n", addr_start, length, ret);
+			PrintTime(NULL);
+			mprintf("mtrace_munmap(%p, %lu) = %d\n", addr_start, length, ret);
 
 			void *addr_end = (void *)((UINT8 *) addr_start + length - 1);
 
@@ -441,6 +441,7 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 }
 
 VOID AfterForkInChild(THREADID threadid, const CONTEXT* ctxt, VOID * arg) {
+	PrintTime(NULL);
 	mprintf("mtrace_fork_child(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
 	m_dump_bytes(NULL, 0);
 }
