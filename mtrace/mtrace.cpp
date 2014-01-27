@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <syscall.h>
+#include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
 #include "pin.H"
@@ -145,7 +146,7 @@ int MemregionTracker::region_last = 0;
 void mprintf(const char *format, ...) {
 	FILE *file;
 
-	if(standard_out) {
+/*	if(standard_out) {
 		file = stdout;
 	} else {
 		file = out_file[PIN_ThreadId()];
@@ -156,12 +157,19 @@ void mprintf(const char *format, ...) {
 			file = out_file[PIN_ThreadId()];
 			assert(file != NULL);
 		}
-	}
+	}*/
+
+	char temp[1000];
+	sprintf(temp, "%s.mtrace.%u.%ld.%u", KnobOutputFile.Value().c_str(), PIN_GetTid(), syscall(SYS_gettid), getpid());
+	file = fopen(temp, "a");
 	
 	va_list ap;
 	va_start(ap, format);
 	vfprintf(file, format, ap);
 	va_end(ap);
+
+	fflush(file);
+	fclose(file);
 }
 
 VOID CaptureWriteEa(THREADID threadid, VOID * addr) {
@@ -300,13 +308,20 @@ VOID Image(IMG img, VOID * v) {
 		pid_t pid = fork();
 		if(!pid) {
 			if(standard_out) {
-				execlp("strace", "strace", "-ff", "-tt", "-s", temp2, "-p", temp, NULL);
+				execlp("strace", "strace", "-ff", "-tt", "-b", "execve", "-q", "-s", temp2, "-p", temp, NULL);
 			} else {
-				execlp("strace", "strace", "-ff", "-tt", "-o", KnobOutputFile.Value().c_str(), "-s", temp2, "-p", temp, NULL);
+				execlp("strace", "strace", "-ff", "-tt", "-b", "execve", "-q", "-o", KnobOutputFile.Value().c_str(), "-s", temp2, "-p", temp, NULL);
 			}
 			assert(false);
 		}
 	}
+}
+
+VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v) {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	PrintTime(tv);
+	mprintf("mtrace_thread_start(%u, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
 }
 
 VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
@@ -315,13 +330,19 @@ VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOI
 
 	ADDRINT num = PIN_GetSyscallNumber(ctxt, std);
 
+	if(num == SYS_execve) {	
+		mprintf("mtrace_execve(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadIndex, PIN_ThreadId());
+		return;
+	}
+
 	if (num != SYS_mmap && num != SYS_munmap) {
 		thread_to_syscall[threadIndex].ip = 0;
 		return;
 	}
 
-	thread_to_syscall[threadIndex].ip = PIN_GetContextReg(ctxt, REG_INST_PTR);
+
 	thread_to_syscall[threadIndex].num = num;
+	thread_to_syscall[threadIndex].ip = PIN_GetContextReg(ctxt, REG_INST_PTR);
 
 	if(num == SYS_mmap) {
 		for(int i = 0; i < 6; i++) {
@@ -356,7 +377,10 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			int fd = (int)(*args++);
 			off_t offset = (off_t)(*args++);
 
-			//printf("mmap(%p, %lu, %d, %d, %d, %lu) = %p\n", given_addr, length, prot, flags, fd, offset, ret);
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			PrintTime(tv);
+			mprintf("mtrace_mmap(%p, %lu, %d, %d, %d, %lu) = %p\n", given_addr, length, prot, flags, fd, offset, ret);
 
 			void *addr_start = ret;
 			void *addr_end = (void *)((UINT8 *) addr_start + length - 1);
@@ -386,7 +410,10 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			void *addr_start = (void *)(*args++);
 			size_t length = (size_t)(*args++);
 
-			//printf("munmap(%p, %lu) = %d\n", addr_start, length, ret);
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			PrintTime(tv);
+			mprintf("munmap(%p, %lu) = %d\n", addr_start, length, ret);
 
 			void *addr_end = (void *)((UINT8 *) addr_start + length - 1);
 
@@ -412,6 +439,7 @@ int main(int argc, char *argv[]) {
 	memset(mwrite_tracker, 0, sizeof(out_file));
 	IMG_AddInstrumentFunction(Image, 0);
 	INS_AddInstrumentFunction(Instruction, 0);
+	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddSyscallEntryFunction(SyscallEntry, 0);
 	PIN_AddSyscallExitFunction(SyscallExit, 0);
 	PIN_AddFiniFunction(Fini, 0);

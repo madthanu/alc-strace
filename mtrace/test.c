@@ -7,6 +7,8 @@
 #include <string.h>
 #include <assert.h>
 #include <malloc.h>
+#include <pthread.h>
+#include <sys/syscall.h>
 
 char *strings[10];
 
@@ -24,23 +26,18 @@ void initialize_strings() {
 	}
 }
 
-int main() {
-	system("rm -f /tmp/mmap1");
-	system("rm -f /tmp/mmap2");
-	system("rm -f /tmp/mmap3");
-
-	initialize_strings();
-
-	int fd[3];
-	fd[0] = open("/tmp/mmap1", O_RDWR | O_CREAT, 00666);
-	fd[1] = open("/tmp/mmap2", O_RDWR | O_CREAT, 00666);
-	fd[2] = open("/tmp/mmap3", O_RDWR | O_CREAT, 00666);
-
+void *thread_main(void *input) {
 	char *memregion[3];
 	int ret;
 	int string_cnt = 0;
 	int i;
+	int fd[3];
+
+	printf("Thread: %u\n", syscall(SYS_gettid));
 	for(i = 0; i < 3; i++) {
+		char temp[100];
+		sprintf(temp, "/tmp/mmap%d_%s", i, (char *) input);
+		fd[i] = open(temp, O_RDWR | O_CREAT, 00666);
 		assert(fd[i] > 0);
 		ret = ftruncate(fd[i], 40960);
 		assert(ret == 0);
@@ -67,6 +64,29 @@ int main() {
 	someplace = mmap(memregion[1], 4096, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
 	printf("Untracked memregion[1] = %p; %c\n", someplace, strings[string_cnt][0]);
 	strcpy(someplace, strings[string_cnt++]);
+}
+
+int main() {
+	pthread_t thread[2];
+	char thread_id[2][10];
+	int i, ret, pid;
+
+	system("rm -f /tmp/mmap*");
+	initialize_strings();
+
+	pid = fork();
+	assert(pid != -1);
+
+	for(i = 0; i < 2; i++) {
+		sprintf(thread_id[i], "%d.%d", pid, i);
+		ret = pthread_create(&thread[i], NULL, thread_main, (char *)thread_id[i]);
+		assert(ret == 0);
+	}
+
+	for(i = 0; i < 2; i++) {
+		ret = pthread_join(thread[i], NULL);
+		assert(ret == 0);
+	}
 
 	printf("done.\n");
 }
