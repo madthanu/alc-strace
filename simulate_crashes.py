@@ -196,24 +196,58 @@ def safe_string_to_int(s):
 
 
 class MemregionTracker:
-	# memregion[addr_start] = Struct(addr_end, name, offset)
-	memregion = {}
+	# memregion_map[addr_start] = Struct(addr_end, name, offset)
+	memregion_map = {}
 
 	@staticmethod
-	def insert(addr_start, addr_end, name, offset)
+	def __find_overlap(addr_start, addr_end):
+		for cur_start in memregion_map.keys():
+			memregion = memregion_map[cur_start]
+			cur_end = memregion.addr_end
+			if (addr_start >= cur_start and addr_start <= cur_end) or \
+				(addr_end >= cur_start and addr_end <= cur_end) or \
+				(cur_start >= addr_start and cur_start <= addr_end) or \
+				(cur_end >= addr_start and cur_end <= addr_end):
+				return memregion
+		return False
+
+	
+	@staticmethod
+	def insert(addr_start, addr_end, name, offset):
+		assert __find_overlap(addr_start, addr_end) == False
+		memregion[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, offset = offset)
 
 	@staticmethod
-	def remove_overlaps(addr_start, addr_end)
+	def remove_overlaps(addr_start, addr_end, whole_regions = False):
+		while True:
+			found_region = __find_overlap(addr_start, addr_end)
+			if found_region == False:
+				return
+
+			found_region = copy.deepcopy(found_region)
+			del memregion_map[found_region.addr_start]
+
+			if(!whole_regions):
+				if(found_start < addr_start):
+					new_region = copy.deepcopy(found_region)
+					new_region.addr_end = addr_start - 1
+					memregion_map[new_region.addr_start] = new_region
+				if(found_end > addr_end):
+					new_region = copy.deepcopy(found_region)
+					new_region.addr_start = addr_end + 1
+					new_region.offset = (new_region.addr_start - found_region.addr_start) + found_region.offset
+					memregion_map[new_region.addr_start] = new_region
 
 	@staticmethod
-	def remove_overlapping_regions(addr_start, addr_end)
+	def file_mapped(name):
+		for region in memregion_map.values():
+			if region.name == name:
+				return True
+		return False
 
 	@staticmethod
-	def file_mapped(name)
-
-	@staticmethod
-	def resolve_address(addr)
-
+	def resolve(addr):
+		return __find_overlap(addr, addr)
 
 class FileStatus:
 	fd_details = {}
@@ -476,6 +510,7 @@ def get_micro_ops(rows):
 	global filename, args, ignore_syscalls
 	micro_operations = []
 	for row in rows:
+		syscall_pid = row[0]
 		line = row[2]
 		line = line.strip()
 
@@ -637,13 +672,49 @@ def get_micro_ops(rows):
 			if FileStatus.is_watched(fd):
 				assert cmd in ['F_GETFD', 'F_SETFD', 'F_GETFL', 'F_SETLK', 'F_SETLKW', 'F_GETLK', 'F_SETLK64', 'F_SETLKW64', 'F_GETLK64']
 		elif parsed_line.syscall in ['mmap', 'mmap2']:
-			fd = safe_string_to_int(parsed_line.args[4])
+			addr_start = safe_string_to_int(parsed_line.ret)
+			length = safe_string_to_int(parsed_line.args[1])
 			prot = parsed_line.args[2].split('|')
 			flags = parsed_line.args[3].split('|')
+			fd = safe_string_to_int(parsed_line.args[4])
+			offset = safe_string_to_int(parsed_line.args[5])
+			if parsed_line.syscall == 'mmap2':
+				offset = offset * 4096
+
+			if addr_start == -1:
+				return
+
+			addr_end = addr_start + length - 1
+			if 'MAP_FIXED' in flags:
+				given_addr = safe_string_to_int(parsed_line.args[0])
+				assert given_addr = addr_start
+				assert 'MAP_GROWSDOWN' not in flags
+				MemregionTracker.remove_overlaps(addr_start, addr_end)
+
+			
 			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and \
-				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags:
-				assert 'PROT_WRITE' not in prot
-		elif parsed_line.syscall in ['mremap', 'msync', 'munmap']:
+				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags and \
+				'PROT_WRITE' in prot:
+				assert syscall_pid in mtrace_recorded
+				assert 'MAP_GROWSDOWN' not in flags
+				MemregionTracker.insert(addr_start, addr_end, FileStatus.get_name(fd), offset)
+		elif parsed_line.syscall == 'munmap':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[1])
+			addr_end = addr_start + length - 1
+			ret = safe_string_to_int(parsed_line.ret)
+			if ret != -1:
+				MemregionTracker.remove_overlaps(addr_start, addr_end, whole_regions = True)
+		elif parsed_line.syscall == 'msync':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[1])
+			flags = parsed_line.args[2].split('|')
+			ret = safe_string_to_int(parsed_line.ret)
+
+			addr_end = addr_start + length - 1
+			if ret != -1:
+				
+		elif parsed_line.syscall in ['mremap', 'msync']:
 			why_we_are_here = "These aren't totally innocent calls, and have to be dealt \
 			 with when we start caring about mmap(), but the calls are fine for now"
 		else:
