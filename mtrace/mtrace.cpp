@@ -1,14 +1,34 @@
 #include <assert.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <syscall.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
+#include <syscall.h>
 #include <time.h>
 #include <unistd.h>
 #include "pin.H"
+
+/******************************************************************************
+ * Note: There is an unexpected complexity with this code. Output files should
+ * be created for each thread that is cloned or fork, even if the thread does
+ * not ever write to an mmaped region. Apparently, this is non-intuitive to 
+ * achieve with Pintool hooks; certain hooks don't work for certain things,
+ * such as cloning and then immediately doing an execve. There are a couple of
+ * "mtrace_clone", "mtrace_execv" etc. output emitted by this tool; they serve
+ * the purpose of tracing something (within the odd combination of hooks that
+ * seems to cover all ways in which fork/clone can behave) on each thread,
+ * even if the thread doesn't produce mwrites. Along with outputting
+ * mtrace_clone-like things, this code also calls m_dump_bytes(NULL, 0), to
+ * ensure that the corresponding byte_dump file is created.
+ *
+ * Another related complexity is due to PIN ThreadID. They are
+ * process-specific. Thus, Pin ThreadID 0 in process X is a different thread
+ * from ThreadID 0 in process Y, even if Y is forked from X.
+ *****************************************************************************/
 
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "-", "trace file");
 KNOB<UINT32> KnobPrintChars(KNOB_MODE_WRITEONCE, "pintool", "s", "0", "display some initial characters in each mwrite");
@@ -26,11 +46,10 @@ struct mwrite_tracker_t {
 };
 
 LOCALVAR VOID *WriteEa[PIN_MAX_THREADS];
-LOCALVAR FILE *out_file[PIN_MAX_THREADS];
 LOCALVAR struct syscall_details_t thread_to_syscall[PIN_MAX_THREADS];
 LOCALVAR struct mwrite_tracker_t mwrite_tracker[PIN_MAX_THREADS];
 
-const unsigned int coalesce_microsecs = 2000;
+const unsigned int coalesce_microsecs = 20000;
 
 PIN_LOCK globalLock;
 bool standard_out;
@@ -146,28 +165,35 @@ int MemregionTracker::region_last = 0;
 void mprintf(const char *format, ...) {
 	FILE *file;
 
-/*	if(standard_out) {
+	if(standard_out) {
 		file = stdout;
 	} else {
-		file = out_file[PIN_ThreadId()];
-		if(file == NULL) {
-			char temp[1000];
-			sprintf(temp, "%s.mtrace.%u", KnobOutputFile.Value().c_str(), PIN_GetTid());
-			out_file[PIN_ThreadId()] = fopen(temp, "w");
-			file = out_file[PIN_ThreadId()];
-			assert(file != NULL);
-		}
-	}*/
+		char temp[1000];
+		sprintf(temp, "%s.mtrace.%u", KnobOutputFile.Value().c_str(), PIN_GetTid());
+		file = fopen(temp, "a");
+	}
 
-	char temp[1000];
-	sprintf(temp, "%s.mtrace.%u.%ld.%u", KnobOutputFile.Value().c_str(), PIN_GetTid(), syscall(SYS_gettid), getpid());
-	file = fopen(temp, "a");
 	
 	va_list ap;
 	va_start(ap, format);
 	vfprintf(file, format, ap);
 	va_end(ap);
 
+	fflush(file);
+	fclose(file);
+}
+
+void m_dump_bytes(const void *bytes, size_t size) {
+	if(standard_out) {
+		return;
+	}
+
+	FILE *file;
+	char temp[1000];
+	sprintf(temp, "%s.mtrace.byte_dump.%u", KnobOutputFile.Value().c_str(), PIN_GetTid());
+
+	file = fopen(temp, "a");
+	fwrite(bytes, size, 1, file);
 	fflush(file);
 	fclose(file);
 }
@@ -224,6 +250,7 @@ VOID EmitWrite(THREADID threadid, UINT32 size) {
 		PIN_SafeCopy(&bytes[0], static_cast<char *>(ea), size);
 		bytes[size] = '\0';
 
+		m_dump_bytes(bytes, size);
 		if(mwrite_tracker[threadid].next_location == ea && 
 			time_diff(tv, mwrite_tracker[threadid].last_time) < coalesce_microsecs) {
 			mwrite_tracker[threadid].size += size;
@@ -279,19 +306,8 @@ VOID Instruction(INS ins, VOID * v) {
 	assert(write_operands <= 1);
 }
 
-VOID Fini(INT32 code, VOID * v) {
-	for(unsigned int i = 0; i < sizeof(out_file) / sizeof(FILE *); i++) {
-		if(out_file[i]) {
-			fprintf(out_file[i], "#eof\n");
-			fclose(out_file[i]);
-			out_file[i] = 0;
-		}
-	}
-}
-
 INT32 Usage() {
-	PIN_ERROR( "This Pintool prints a trace of memory addresses\n" 
-		+ KNOB_BASE::StringKnobSummary() + "\n");
+	PIN_ERROR( "This is the mtrace Pintool.\n" + KNOB_BASE::StringKnobSummary() + "\n");
 	return -1;
 }
 
@@ -322,6 +338,7 @@ VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v) {
 	gettimeofday(&tv, NULL);
 	PrintTime(tv);
 	mprintf("mtrace_thread_start(%u, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
+	m_dump_bytes(NULL, 0);
 }
 
 VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v)
@@ -332,6 +349,7 @@ VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOI
 
 	if(num == SYS_execve) {	
 		mprintf("mtrace_execve(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadIndex, PIN_ThreadId());
+		m_dump_bytes(NULL, 0);
 		return;
 	}
 
@@ -422,27 +440,28 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 	}
 }
 
+VOID AfterForkInChild(THREADID threadid, const CONTEXT* ctxt, VOID * arg) {
+	mprintf("mtrace_fork_child(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
+	m_dump_bytes(NULL, 0);
+}
+
+
 int main(int argc, char *argv[]) {
 	PIN_InitSymbols();
  	if(PIN_Init(argc, argv))
 		return Usage();
 	PIN_InitLock(&globalLock);
 
-	standard_out = false;
+	standard_out = !strcmp(KnobOutputFile.Value().c_str(), "-");
 	print_chars = KnobPrintChars;
-	if(!strcmp(KnobOutputFile.Value().c_str(), "-")) {
-		standard_out = true;
-	} else {
-		memset(out_file, 0, sizeof(out_file));
-	}
 
-	memset(mwrite_tracker, 0, sizeof(out_file));
+	memset(mwrite_tracker, 0, sizeof(mwrite_tracker));
 	IMG_AddInstrumentFunction(Image, 0);
 	INS_AddInstrumentFunction(Instruction, 0);
-	PIN_AddThreadStartFunction(ThreadStart, 0);
 	PIN_AddSyscallEntryFunction(SyscallEntry, 0);
 	PIN_AddSyscallExitFunction(SyscallExit, 0);
-	PIN_AddFiniFunction(Fini, 0);
+	PIN_AddThreadStartFunction(ThreadStart, 0);
+	PIN_AddForkFunction(FPOINT_AFTER_IN_CHILD, AfterForkInChild, 0);
 
 	PIN_StartProgram();
 

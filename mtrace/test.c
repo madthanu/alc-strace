@@ -18,10 +18,9 @@ void initialize_strings() {
 	int i, j;
 	for(i = 0; i < 10; i++) {
 		strings[i] = malloc(110);
-		for(j = 0; j < 99; j++) {
+		for(j = 0; j < 100; j++) {
 			strings[i][j] = 'a' + i;
 		}
-		strings[i][99] = '\0';
 		strings[i][100] = '\0';
 	}
 }

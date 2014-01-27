@@ -9,11 +9,12 @@ force: ;
 
 test: test.c
 	gcc -lpthread test.c
+	./mtrace_test.sh
 
 mtrace.so: $(OBJDIR)mtrace.so
 	cp $(OBJDIR)mtrace.so ./
 
-all: mtrace.so test
+all: mtrace.so
 
 /usr/bin/mtrace: all
 	echo "Installing mtrace:"
