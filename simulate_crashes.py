@@ -73,19 +73,25 @@ class Struct:
 	def update(self, mydict): self.__dict__.update(mydict)
 	def __repr__(self):
 		if 'op' in vars(self):
-			if self.op == 'write':
+			if self.op in ['stdout', 'stderr']:
+				args = ['"' + repr(self.data) + '"']
+			elif self.op == 'write':
 				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset']]
 			else:
 				args = []
 				for (k,v) in vars(self).items():
 					if k != 'op' and k != 'name' and k[0:7] != 'hidden_':
 						if k == 'source' or k == 'dest':
-							args.append('%s="%s"' % (k, coded_colorize(v)))
+							args.append('%s="%s"' % (k, coded_colorize(short_path(v))))
 						else:
 							args.append('%s=%s' % (k, repr(v)))
 			if 'name' in vars(self):
 				args.insert(0, '"' + coded_colorize(short_path(self.name)) + '"')
-			colored_op = colorize(self.op, 1) if(self.op.find('sync') != -1) else self.op
+			colored_op = self.op
+			if self.op.find('sync') != -1:
+				colored_op = colorize(self.op, 1)
+			elif self.op in ['stdout', 'stderr']:
+				colored_op = colorize(self.op, 2)
 			return '%s(%s)' % (colored_op, ', '.join(args))
 	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
 	        return 'Struct(%s)' % ', '.join(args)
@@ -501,7 +507,7 @@ def replay_micro_ops(rows):
 			os.mkdir(replayed_path(line.name), eval(line.mode))
 		elif line.op == 'rmdir':
 			os.rmdir(replayed_path(line.name))
-		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range']:
+		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range', 'stdout', 'stderr']:
 			print line.op
 			assert False
 
@@ -556,35 +562,47 @@ def get_micro_ops(rows):
 						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '')
 		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
 			fd = safe_string_to_int(parsed_line.args[0])
-			if FileStatus.is_watched(fd):
-				if parsed_line.syscall == 'write':
-					count = safe_string_to_int(parsed_line.args[2])
-					pos = FileStatus.get_pos(fd)
-				elif parsed_line.syscall == 'writev':
-					count = safe_string_to_int(parsed_line.args[3])
-					pos = FileStatus.get_pos(fd)
-				elif parsed_line.syscall == 'pwrite':
-					count = safe_string_to_int(parsed_line.args[2])
-					pos = safe_string_to_int(parsed_line.args[3])
-				elif parsed_line.syscall == 'pwritev':
-					count = safe_string_to_int(parsed_line.args[4])
-					pos = safe_string_to_int(parsed_line.args[3])
-				assert safe_string_to_int(parsed_line.ret) == count
+			if FileStatus.is_watched(fd) or fd in [1, 2]:
 				dump_file = eval(parsed_line.args[-2])
 				dump_offset = safe_string_to_int(parsed_line.args[-1])
-				name = FileStatus.get_name(fd)
-				size = FileStatus.get_size(name)
-				if(pos + count > size):
-					new_op = Struct(op = 'trunc', name = name, size = pos + count)
+				if fd in [1, 2]:
+					count = safe_string_to_int(parsed_line.args[2])
+					fd_data = os.open(dump_file, os.O_RDONLY)
+					os.lseek(fd_data, dump_offset, os.SEEK_SET)
+					buf = os.read(fd_data, count)
+					os.close(fd_data)
+					if fd == 1:
+						new_op = Struct(op = 'stdout', data = buf)
+					else:
+						new_op = Struct(op = 'stderr', data = buf)
 					micro_operations.append(new_op)
-					FileStatus.set_size(name, pos + count)
-				new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
-				micro_operations.append(new_op)
-				if 'O_SYNC' in FileStatus.get_attribs(fd):
-					new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count)
+				else:
+					if parsed_line.syscall == 'write':
+						count = safe_string_to_int(parsed_line.args[2])
+						pos = FileStatus.get_pos(fd)
+					elif parsed_line.syscall == 'writev':
+						count = safe_string_to_int(parsed_line.args[3])
+						pos = FileStatus.get_pos(fd)
+					elif parsed_line.syscall == 'pwrite':
+						count = safe_string_to_int(parsed_line.args[2])
+						pos = safe_string_to_int(parsed_line.args[3])
+					elif parsed_line.syscall == 'pwritev':
+						count = safe_string_to_int(parsed_line.args[4])
+						pos = safe_string_to_int(parsed_line.args[3])
+					assert safe_string_to_int(parsed_line.ret) == count
+					name = FileStatus.get_name(fd)
+					size = FileStatus.get_size(name)
+					if(pos + count > size):
+						new_op = Struct(op = 'trunc', name = name, size = pos + count)
+						micro_operations.append(new_op)
+						FileStatus.set_size(name, pos + count)
+					new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
 					micro_operations.append(new_op)
-				if parsed_line.syscall not in ['pwrite', 'pwritev']:
-					FileStatus.set_pos(fd, pos + count)
+					if 'O_SYNC' in FileStatus.get_attribs(fd):
+						new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count)
+						micro_operations.append(new_op)
+					if parsed_line.syscall not in ['pwrite', 'pwritev']:
+						FileStatus.set_pos(fd, pos + count)
 		elif parsed_line.syscall == 'close':
 			assert int(parsed_line.ret) != -1
 			fd = safe_string_to_int(parsed_line.args[0])
