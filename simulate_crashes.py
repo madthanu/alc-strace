@@ -195,6 +195,26 @@ def safe_string_to_int(s):
 		raise err
 
 
+class MemregionTracker:
+	# memregion[addr_start] = Struct(addr_end, name, offset)
+	memregion = {}
+
+	@staticmethod
+	def insert(addr_start, addr_end, name, offset)
+
+	@staticmethod
+	def remove_overlaps(addr_start, addr_end)
+
+	@staticmethod
+	def remove_overlapping_regions(addr_start, addr_end)
+
+	@staticmethod
+	def file_mapped(name)
+
+	@staticmethod
+	def resolve_address(addr)
+
+
 class FileStatus:
 	fd_details = {}
 
