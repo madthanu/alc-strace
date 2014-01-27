@@ -54,6 +54,8 @@ innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","
 "umount2","uname","unshare","uselib","ustat","utime","utimensat","utimes",
 "vfork","vhangup","vm86old","vmsplice","vserver","wait4","waitid","waitpid"]
 
+innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--prefix', dest = 'prefix', type = str, default = False)
 parser.add_argument('--config_file', dest = 'config_file', type = str, default = False)
@@ -449,6 +451,7 @@ def replay_micro_ops(rows):
 			print line.op
 			assert False
 
+mtrace_recorded = []
 def get_micro_ops(rows):
 	global filename, args, ignore_syscalls
 	micro_operations = []
@@ -635,6 +638,8 @@ for trace_file in files:
 	f = open(trace_file, 'r')
 	array = trace_file.split('.')
 	pid = int(array[len(array) - 1])
+	if(array[-2] == 'mtrace')
+		mtrace_recorded.push(pid)
 	cnt = 0
 	dump_offset = 0
 	m = re.search(r'\.[^.]*$', trace_file)
@@ -645,7 +650,7 @@ for trace_file in files:
 			sys.stderr.write("   line " + str(cnt) + " done.\n")
 		parsed_line = parse_line(line)
 		if parsed_line:
-			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
+			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev', 'mwrite']:
 				if parsed_line.syscall == 'pwrite':
 					write_size = safe_string_to_int(parsed_line.args[-2])
 				else:
