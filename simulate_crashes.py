@@ -206,7 +206,8 @@ class MemregionTracker:
 	memregion_map = {}
 
 	@staticmethod
-	def __find_overlap(addr_start, addr_end):
+	def __find_overlap(addr_start, addr_end, return_immediately = True):
+		toret = []
 		for cur_start in memregion_map.keys():
 			memregion = memregion_map[cur_start]
 			cur_end = memregion.addr_end
@@ -214,8 +215,13 @@ class MemregionTracker:
 				(addr_end >= cur_start and addr_end <= cur_end) or \
 				(cur_start >= addr_start and cur_start <= addr_end) or \
 				(cur_end >= addr_start and cur_end <= addr_end):
-				return memregion
-		return False
+				if return_immediately:
+					return memregion
+				else:
+					toret.append(memregion)
+		if return_immediately:
+			return False
+		return toret
 
 	
 	@staticmethod
@@ -234,11 +240,11 @@ class MemregionTracker:
 			del memregion_map[found_region.addr_start]
 
 			if(!whole_regions):
-				if(found_start < addr_start):
+				if(found_region.addr_start < addr_start):
 					new_region = copy.deepcopy(found_region)
 					new_region.addr_end = addr_start - 1
 					memregion_map[new_region.addr_start] = new_region
-				if(found_end > addr_end):
+				if(found_region.addr_start > addr_end):
 					new_region = copy.deepcopy(found_region)
 					new_region.addr_start = addr_end + 1
 					new_region.offset = (new_region.addr_start - found_region.addr_start) + found_region.offset
@@ -252,8 +258,22 @@ class MemregionTracker:
 		return False
 
 	@staticmethod
-	def resolve(addr):
-		return __find_overlap(addr, addr)
+	def resolve_range(addr_start, addr_end):
+		toret = []
+		overlap_regions = copy.deepcopy(__find_overlap(addr_start, addr_end, return_immediately = False))
+		overlap_regions = sorted(overlap_regions, key = lambda region: region.addr_start)
+		for region in overlap_regions:
+			if region.addr_start < addr_start:
+				assert addr_start <= region.addr_end
+				region.offset = (region.addr_start - addr_start) + region.offset
+				region.addr_start = addr_start
+			if region.addr_end > addr_end:
+				assert addr_end >= region.addr_start
+				region.addr_end = addr_end
+			assert region.addr_start >= addr_start
+			assert region.addr_end <= addr_end
+			toret.append(region)
+		return toret
 
 class FileStatus:
 	fd_details = {}
@@ -731,10 +751,25 @@ def get_micro_ops(rows):
 
 			addr_end = addr_start + length - 1
 			if ret != -1:
-				
-		elif parsed_line.syscall in ['mremap', 'msync']:
-			why_we_are_here = "These aren't totally innocent calls, and have to be dealt \
-			 with when we start caring about mmap(), but the calls are fine for now"
+				regions = MemregionTracker.resolve_range(addr_start, addr_end)
+				for region in regions:
+					count = region.addr_end - region.addr_start + 1
+					new_op = Struct(op = 'file_sync_range', name = region.name, offset = region.offset, count = count)
+					micro_operations.append(new_op)
+		elif parsed_line.syscall == 'mwrite':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[2])
+			dump_file = eval(parsed_line.args[3])
+			dump_offset = safe_string_to_int(parsed_line.args[4])
+
+			addr_end = addr_start + length - 1
+			regions = MemregionTracker.resolve_range(addr_start, addr_end)
+			for region in regions:
+				count = region.addr_end - region.addr_start + 1
+				cur_dump_offset = dump_offset + (region.addr_start - addr_start)
+				offset = region.offset
+				name = region.name
+				new_op = Struct(op = 'write', name = name, offset = offset, count = count, dump_file = dump_file, dump_offset = cur_dump_offset)
 		else:
 			assert parsed_line.syscall in innocent_syscalls
 	return micro_operations
