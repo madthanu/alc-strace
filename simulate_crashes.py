@@ -54,6 +54,8 @@ innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","
 "umount2","uname","unshare","uselib","ustat","utime","utimensat","utimes",
 "vfork","vhangup","vm86old","vmsplice","vserver","wait4","waitid","waitpid"]
 
+innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--prefix', dest = 'prefix', type = str, default = False)
 parser.add_argument('--config_file', dest = 'config_file', type = str, default = False)
@@ -198,6 +200,89 @@ def safe_string_to_int(s):
 		print s
 		raise err
 
+
+class MemregionTracker:
+	# memregion_map[addr_start] = Struct(addr_end, name, offset)
+	memregion_map = {}
+
+	@staticmethod
+	def __find_overlap(addr_start, addr_end, return_immediately = True):
+		toret = []
+		for cur_start in MemregionTracker.memregion_map.keys():
+			memregion = MemregionTracker.memregion_map[cur_start]
+			cur_end = memregion.addr_end
+			if (addr_start >= cur_start and addr_start <= cur_end) or \
+				(addr_end >= cur_start and addr_end <= cur_end) or \
+				(cur_start >= addr_start and cur_start <= addr_end) or \
+				(cur_end >= addr_start and cur_end <= addr_end):
+				if return_immediately:
+					return memregion
+				else:
+					toret.append(memregion)
+		if return_immediately:
+			return False
+		return toret
+
+	
+	@staticmethod
+	def insert(addr_start, addr_end, name, offset):
+		assert MemregionTracker.__find_overlap(addr_start, addr_end) == False
+		MemregionTracker.memregion[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, offset = offset)
+
+	@staticmethod
+	def remove_overlaps(addr_start, addr_end, whole_regions = False):
+		while True:
+			found_region = MemregionTracker.__find_overlap(addr_start, addr_end)
+			if found_region == False:
+				return
+
+			found_region = copy.deepcopy(found_region)
+			del MemregionTracker.memregion_map[found_region.addr_start]
+
+			if not whole_regions:
+				if(found_region.addr_start < addr_start):
+					new_region = copy.deepcopy(found_region)
+					new_region.addr_end = addr_start - 1
+					MemregionTracker.memregion_map[new_region.addr_start] = new_region
+				if(found_region.addr_start > addr_end):
+					new_region = copy.deepcopy(found_region)
+					new_region.addr_start = addr_end + 1
+					new_region.offset = (new_region.addr_start - found_region.addr_start) + found_region.offset
+					MemregionTracker.memregion_map[new_region.addr_start] = new_region
+
+	@staticmethod
+	def file_mapped(name):
+		for region in MemregionTracker.memregion_map.values():
+			if region.name == name:
+				return True
+		return False
+
+	@staticmethod
+	def file_maps_set_dangerous(name):
+		for region in MemregionTracker.memregion_map.values():
+			region = copy.deepcopy(region)
+			if region.name == name:
+				del MemregionTracker.memregion_map[region.addr_start]
+			region.name = 'DANGEROUS'
+			MemregionTracker.memregion_map[region.addr_start] = region
+
+	@staticmethod
+	def resolve_range(addr_start, addr_end):
+		toret = []
+		overlap_regions = copy.deepcopy(MemregionTracker.__find_overlap(addr_start, addr_end, return_immediately = False))
+		overlap_regions = sorted(overlap_regions, key = lambda region: region.addr_start)
+		for region in overlap_regions:
+			if region.addr_start < addr_start:
+				assert addr_start <= region.addr_end
+				region.offset = (region.addr_start - addr_start) + region.offset
+				region.addr_start = addr_start
+			if region.addr_end > addr_end:
+				assert addr_end >= region.addr_start
+				region.addr_end = addr_end
+			assert region.addr_start >= addr_start
+			assert region.addr_end <= addr_end
+			toret.append(region)
+		return toret
 
 class FileStatus:
 	fd_details = {}
@@ -455,10 +540,12 @@ def replay_micro_ops(rows):
 			print line.op
 			assert False
 
+mtrace_recorded = []
 def get_micro_ops(rows):
 	global filename, args, ignore_syscalls
 	micro_operations = []
 	for row in rows:
+		syscall_pid = row[0]
 		line = row[2]
 		line = line.strip()
 
@@ -567,6 +654,8 @@ def get_micro_ops(rows):
 					assert re.search(filename, dest)
 					assert len(FileStatus.get_fds(source)) == 0
 					assert len(FileStatus.get_fds(dest)) == 0
+					assert MemregionTracker.file_mapped(source) == False
+					assert MemregionTracker.file_mapped(dest) == False
 					micro_operations.append(Struct(op = 'rename', source = source, dest = dest))
 					FileStatus.set_size(dest, FileStatus.get_size(source))
 					FileStatus.delete_file(source)
@@ -579,6 +668,9 @@ def get_micro_ops(rows):
 						FileStatus.remove_fd_mapping(fd)
 						FileStatus.new_fd_mapping(fd, 'DANGEROUS', 0, 0)
 						print "Warning: File unlinked while being open: " + name
+					if MemregionTracker.file_mapped(name):
+						print "Warning: File unlinked while being mapped: " + name
+						MemregionTracker.file_maps_set_dangerous(name)
 					micro_operations.append(Struct(op = 'unlink', name = name))
 					FileStatus.delete_file(name)
 		elif parsed_line.syscall == 'lseek':
@@ -632,15 +724,66 @@ def get_micro_ops(rows):
 			if FileStatus.is_watched(fd):
 				assert cmd in ['F_GETFD', 'F_SETFD', 'F_GETFL', 'F_SETLK', 'F_SETLKW', 'F_GETLK', 'F_SETLK64', 'F_SETLKW64', 'F_GETLK64']
 		elif parsed_line.syscall in ['mmap', 'mmap2']:
-			fd = safe_string_to_int(parsed_line.args[4])
+			addr_start = safe_string_to_int(parsed_line.ret)
+			length = safe_string_to_int(parsed_line.args[1])
 			prot = parsed_line.args[2].split('|')
 			flags = parsed_line.args[3].split('|')
+			fd = safe_string_to_int(parsed_line.args[4])
+			offset = safe_string_to_int(parsed_line.args[5])
+			if parsed_line.syscall == 'mmap2':
+				offset = offset * 4096
+
+			if addr_start == -1:
+				return
+
+			addr_end = addr_start + length - 1
+			if 'MAP_FIXED' in flags:
+				given_addr = safe_string_to_int(parsed_line.args[0])
+				assert given_addr == addr_start
+				assert 'MAP_GROWSDOWN' not in flags
+				MemregionTracker.remove_overlaps(addr_start, addr_end)
+
+			
 			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and \
-				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags:
-				assert 'PROT_WRITE' not in prot
-		elif parsed_line.syscall in ['mremap', 'msync', 'munmap']:
-			why_we_are_here = "These aren't totally innocent calls, and have to be dealt \
-			 with when we start caring about mmap(), but the calls are fine for now"
+				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags and \
+				'PROT_WRITE' in prot:
+				assert syscall_pid in mtrace_recorded
+				assert 'MAP_GROWSDOWN' not in flags
+				MemregionTracker.insert(addr_start, addr_end, FileStatus.get_name(fd), offset)
+		elif parsed_line.syscall == 'munmap':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[1])
+			addr_end = addr_start + length - 1
+			ret = safe_string_to_int(parsed_line.ret)
+			if ret != -1:
+				MemregionTracker.remove_overlaps(addr_start, addr_end, whole_regions = True)
+		elif parsed_line.syscall == 'msync':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[1])
+			flags = parsed_line.args[2].split('|')
+			ret = safe_string_to_int(parsed_line.ret)
+
+			addr_end = addr_start + length - 1
+			if ret != -1:
+				regions = MemregionTracker.resolve_range(addr_start, addr_end)
+				for region in regions:
+					count = region.addr_end - region.addr_start + 1
+					new_op = Struct(op = 'file_sync_range', name = region.name, offset = region.offset, count = count)
+					micro_operations.append(new_op)
+		elif parsed_line.syscall == 'mwrite':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[2])
+			dump_file = eval(parsed_line.args[3])
+			dump_offset = safe_string_to_int(parsed_line.args[4])
+
+			addr_end = addr_start + length - 1
+			regions = MemregionTracker.resolve_range(addr_start, addr_end)
+			for region in regions:
+				count = region.addr_end - region.addr_start + 1
+				cur_dump_offset = dump_offset + (region.addr_start - addr_start)
+				offset = region.offset
+				name = region.name
+				new_op = Struct(op = 'write', name = name, offset = offset, count = count, dump_file = dump_file, dump_offset = cur_dump_offset)
 		else:
 			assert parsed_line.syscall in innocent_syscalls
 	return micro_operations
@@ -653,6 +796,8 @@ for trace_file in files:
 	f = open(trace_file, 'r')
 	array = trace_file.split('.')
 	pid = int(array[len(array) - 1])
+	if array[-2] == 'mtrace':
+		mtrace_recorded.push(pid)
 	cnt = 0
 	dump_offset = 0
 	m = re.search(r'\.[^.]*$', trace_file)
@@ -663,7 +808,7 @@ for trace_file in files:
 			sys.stderr.write("   line " + str(cnt) + " done.\n")
 		parsed_line = parse_line(line)
 		if parsed_line:
-			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
+			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev', 'mwrite']:
 				if parsed_line.syscall == 'pwrite':
 					write_size = safe_string_to_int(parsed_line.args[-2])
 				else:
