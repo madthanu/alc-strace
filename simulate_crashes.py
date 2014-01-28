@@ -785,7 +785,7 @@ def get_micro_ops(rows):
 				name = region.name
 				new_op = Struct(op = 'write', name = name, offset = offset, count = count, dump_file = dump_file, dump_offset = cur_dump_offset)
 		else:
-			assert parsed_line.syscall in innocent_syscalls
+			assert parsed_line.syscall in innocent_syscalls or parsed_line.syscall.startswith('ignore_')
 	return micro_operations
 
 files = commands.getoutput("ls " + args.prefix + ".* | grep -v byte_dump").split()
