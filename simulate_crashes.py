@@ -208,8 +208,8 @@ class MemregionTracker:
 	@staticmethod
 	def __find_overlap(addr_start, addr_end, return_immediately = True):
 		toret = []
-		for cur_start in memregion_map.keys():
-			memregion = memregion_map[cur_start]
+		for cur_start in MemregionTracker.memregion_map.keys():
+			memregion = MemregionTracker.memregion_map[cur_start]
 			cur_end = memregion.addr_end
 			if (addr_start >= cur_start and addr_start <= cur_end) or \
 				(addr_end >= cur_start and addr_end <= cur_end) or \
@@ -226,41 +226,50 @@ class MemregionTracker:
 	
 	@staticmethod
 	def insert(addr_start, addr_end, name, offset):
-		assert __find_overlap(addr_start, addr_end) == False
-		memregion[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, offset = offset)
+		assert MemregionTracker.__find_overlap(addr_start, addr_end) == False
+		MemregionTracker.memregion[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, offset = offset)
 
 	@staticmethod
 	def remove_overlaps(addr_start, addr_end, whole_regions = False):
 		while True:
-			found_region = __find_overlap(addr_start, addr_end)
+			found_region = MemregionTracker.__find_overlap(addr_start, addr_end)
 			if found_region == False:
 				return
 
 			found_region = copy.deepcopy(found_region)
-			del memregion_map[found_region.addr_start]
+			del MemregionTracker.memregion_map[found_region.addr_start]
 
-			if(!whole_regions):
+			if not whole_regions:
 				if(found_region.addr_start < addr_start):
 					new_region = copy.deepcopy(found_region)
 					new_region.addr_end = addr_start - 1
-					memregion_map[new_region.addr_start] = new_region
+					MemregionTracker.memregion_map[new_region.addr_start] = new_region
 				if(found_region.addr_start > addr_end):
 					new_region = copy.deepcopy(found_region)
 					new_region.addr_start = addr_end + 1
 					new_region.offset = (new_region.addr_start - found_region.addr_start) + found_region.offset
-					memregion_map[new_region.addr_start] = new_region
+					MemregionTracker.memregion_map[new_region.addr_start] = new_region
 
 	@staticmethod
 	def file_mapped(name):
-		for region in memregion_map.values():
+		for region in MemregionTracker.memregion_map.values():
 			if region.name == name:
 				return True
 		return False
 
 	@staticmethod
+	def file_maps_set_dangerous(name):
+		for region in MemregionTracker.memregion_map.values():
+			region = copy.deepcopy(region)
+			if region.name == name:
+				del MemregionTracker.memregion_map[region.addr_start]
+			region.name = 'DANGEROUS'
+			MemregionTracker.memregion_map[region.addr_start] = region
+
+	@staticmethod
 	def resolve_range(addr_start, addr_end):
 		toret = []
-		overlap_regions = copy.deepcopy(__find_overlap(addr_start, addr_end, return_immediately = False))
+		overlap_regions = copy.deepcopy(MemregionTracker.__find_overlap(addr_start, addr_end, return_immediately = False))
 		overlap_regions = sorted(overlap_regions, key = lambda region: region.addr_start)
 		for region in overlap_regions:
 			if region.addr_start < addr_start:
@@ -645,6 +654,8 @@ def get_micro_ops(rows):
 					assert re.search(filename, dest)
 					assert len(FileStatus.get_fds(source)) == 0
 					assert len(FileStatus.get_fds(dest)) == 0
+					assert MemregionTracker.file_mapped(source) == False
+					assert MemregionTracker.file_mapped(dest) == False
 					micro_operations.append(Struct(op = 'rename', source = source, dest = dest))
 					FileStatus.set_size(dest, FileStatus.get_size(source))
 					FileStatus.delete_file(source)
@@ -657,6 +668,9 @@ def get_micro_ops(rows):
 						FileStatus.remove_fd_mapping(fd)
 						FileStatus.new_fd_mapping(fd, 'DANGEROUS', 0, 0)
 						print "Warning: File unlinked while being open: " + name
+					if MemregionTracker.file_mapped(name):
+						print "Warning: File unlinked while being mapped: " + name
+						MemregionTracker.file_maps_set_dangerous(name)
 					micro_operations.append(Struct(op = 'unlink', name = name))
 					FileStatus.delete_file(name)
 		elif parsed_line.syscall == 'lseek':
@@ -725,7 +739,7 @@ def get_micro_ops(rows):
 			addr_end = addr_start + length - 1
 			if 'MAP_FIXED' in flags:
 				given_addr = safe_string_to_int(parsed_line.args[0])
-				assert given_addr = addr_start
+				assert given_addr == addr_start
 				assert 'MAP_GROWSDOWN' not in flags
 				MemregionTracker.remove_overlaps(addr_start, addr_end)
 
@@ -782,7 +796,7 @@ for trace_file in files:
 	f = open(trace_file, 'r')
 	array = trace_file.split('.')
 	pid = int(array[len(array) - 1])
-	if(array[-2] == 'mtrace')
+	if array[-2] == 'mtrace':
 		mtrace_recorded.push(pid)
 	cnt = 0
 	dump_offset = 0
