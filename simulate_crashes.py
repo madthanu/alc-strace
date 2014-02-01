@@ -13,6 +13,7 @@ import copy
 import string
 import traceback
 import random
+import auto_test
 
 innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
@@ -386,6 +387,27 @@ class Replayer:
 		assert int(i) in self.saved
 		(self.micro_ops, self.__end_at) = self.saved[int(i)]
 		self.micro_ops = copy.deepcopy(self.micro_ops)
+	def auto_test(self, test_case = None, begin_at = None, limit = 100):
+		if begin_at == None:
+			begin_at = 0
+
+		pre = self.micro_ops[0 : begin_at]
+		middle = self.micro_ops[begin_at : self.__end_at + 1]
+		post = self.micro_ops[self.__end_at + 1 : ]
+
+		original_end_at = self.__end_at
+		middle_len = len(middle)
+
+		combos = auto_test.get_combos(middle, limit)
+		assert(len(combos) != 0)
+		if test_case != None:
+			assert(test_case < len(combos))
+			combos = combos[test_case : test_case + 1]
+
+		for combo in combos:
+			self.micro_ops = copy.deepcopy(pre + combo + post)
+			self.__end_at = original_end_at - middle_len + len(combo)
+			self.replay_and_check()
 	def replay_and_check(self, summary_string = None):
 		# Replaying and checking
 		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
@@ -495,7 +517,7 @@ class Replayer:
 			f = open('/tmp/fifo_out', 'w')
 			f.write("done")
 			f.close()
-		
+
 def replay_micro_ops(rows):
 	global args
 	os.system("rm -rf " + args.replayed_snapshot)
