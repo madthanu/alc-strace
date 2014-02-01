@@ -10,13 +10,16 @@ import os
 import subprocess
 import inspect
 import copy
+import string
+import traceback
+import random
 
-innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
+innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
-"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","clone","close",
+"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","close",
 "connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
 "epoll_wait","eventfd","eventfd2","execve","exit","exit_group","faccessat","fadvise64",
-"fadvise64_64","fgetxattr","flistxattr","flock","fork","free_hugepages","fstat","fstat64",
+"fadvise64_64","fgetxattr","flistxattr","flock","free_hugepages","fstat","fstat64",
 "fstatat64","fstatfs","fstatfs64","ftime","futex","get_kernel_syms","get_mempolicy","get_robust_list",
 "get_thread_area","getcpu","getcwd","getdents","getdents64","getegid","getegid32","geteuid",
 "geteuid32","getgid","getgid32","getgroups","getgroups32","getitimer","getpeername","getpagesize",
@@ -59,6 +62,7 @@ parser.add_argument('--replayed_snapshot', dest = 'replayed_snapshot', type = st
 parser.add_argument('--orderings_script', dest = 'orderings_script', type = str, default = False)
 parser.add_argument('--checker_tool', dest = 'checker_tool', type = str, default = False)
 parser.add_argument('--base_path', dest = 'base_path', type = str, default = False)
+parser.add_argument('--starting_cwd', dest = 'starting_cwd', type = str, default = False)
 parser.add_argument('--interesting_path_string', dest = 'interesting_path_string', type = str, default = False)
 args = parser.parse_args()
 
@@ -67,19 +71,25 @@ class Struct:
 	def update(self, mydict): self.__dict__.update(mydict)
 	def __repr__(self):
 		if 'op' in vars(self):
-			if self.op == 'write':
+			if self.op in ['stdout', 'stderr']:
+				args = ['"' + repr(self.data) + '"']
+			elif self.op == 'write':
 				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset']]
 			else:
 				args = []
 				for (k,v) in vars(self).items():
 					if k != 'op' and k != 'name' and k[0:7] != 'hidden_':
 						if k == 'source' or k == 'dest':
-							args.append('%s="%s"' % (k, coded_colorize(v)))
+							args.append('%s="%s"' % (k, coded_colorize(short_path(v))))
 						else:
 							args.append('%s=%s' % (k, repr(v)))
 			if 'name' in vars(self):
 				args.insert(0, '"' + coded_colorize(short_path(self.name)) + '"')
-			colored_op = colorize(self.op, 1) if(self.op.find('sync') != -1) else self.op
+			colored_op = self.op
+			if self.op.find('sync') != -1:
+				colored_op = colorize(self.op, 1)
+			elif self.op in ['stdout', 'stderr']:
+				colored_op = colorize(self.op, 2)
 			return '%s(%s)' % (colored_op, ', '.join(args))
 	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
 	        return 'Struct(%s)' % ', '.join(args)
@@ -99,6 +109,9 @@ if 'interesting_path_string' in args.__dict__ and args.interesting_path_string !
 	filename = args.interesting_path_string
 else:
 	filename = r'^' + args.base_path
+
+if 'starting_cwd' not in args.__dict__ or args.starting_cwd == False:
+	args.starting_cwd = args.base_path
 
 def colorize(s, i):
 	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
@@ -128,7 +141,7 @@ def short_path(name):
 		return name
 	return name.replace(re.sub(r'//', r'/', args.base_path + '/'), '', 1)
 
-current_original_path = args.base_path
+current_original_path = args.starting_cwd
 def original_path(path):
 	if not path.startswith('/'):
 		path = current_original_path + '/' + path
@@ -170,8 +183,10 @@ def parse_line(line):
 
 		return toret
 	except AttributeError as err:
-		if line.find('+++ exited with') != -1:
-			return False
+		for innocent_line in ['+++ exited with', ' --- SIG', '<unfinished ...>', ' = ? <unavailable>']:
+			if line.find(innocent_line) != -1:
+				return False
+		print line
 		raise err
 
 def safe_string_to_int(s):
@@ -267,6 +282,7 @@ class Replayer:
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
+			print self.micro_ops[i]
 			f.write(
 				colorize(str(i), 3 if i > self.__end_at else 2) +
 				'\t' +
@@ -286,7 +302,27 @@ class Replayer:
 		assert int(i) in self.saved
 		(self.micro_ops, self.__end_at) = self.saved[int(i)]
 		self.micro_ops = copy.deepcopy(self.micro_ops)
-	def replay_and_check(self):
+	def load_and_replay(self, fname, index = -1):
+		combination_list = pickle.load(open(fname, 'r'))
+		if index != -1:
+			self.micro_ops = combination_list[index]
+			self.__end_at = len(self.micro_ops)
+			cnt = 0
+			for j in self.micro_ops:
+				j.hidden_id = str(cnt)
+				cnt = cnt + 1
+			self.replay_and_check()
+			return
+
+		for i in combination_list:
+			self.micro_ops = i
+			self.__end_at = len(self.micro_ops)
+			cnt = 0
+			for j in self.micro_ops:
+				j.hidden_id = str(cnt)
+				cnt = cnt + 1
+			self.replay_and_check()
+	def replay_and_check(self, summary_string = None):
 		# Replaying and checking
 		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
 		f = open('/tmp/replay_output', 'w+')
@@ -296,16 +332,72 @@ class Replayer:
 		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
 		self.print_ops()
 		os.system('cp /tmp/current_orderings /tmp/replay_outputs_long/' + str(self.replay_count) + '_orderings')
+		if summary_string == None:
+			summary_string = 'R' + str(self.replay_count)
+		else:
+			summary_string = str(summary_string)
 		if os.path.isfile('/tmp/short_output'):
 			f = open('/tmp/short_output', 'r')
-			self.short_outputs += str(self.replay_count) + '\t' + f.read()
+			self.short_outputs += str(summary_string) + '\t' + f.read()
+			if self.short_outputs[-1] != '\n':
+				self.short_outputs += '\n'
 			f.close()
 		# Incrementing replay_count
 		self.replay_count += 1
+		print('replay_check(' + summary_string + ') finished.')
 	def remove(self, i):
 		assert i < len(self.micro_ops)
 		self.micro_ops.pop(i)
 		self.__end_at -= 1
+	def set_data(self, i, data = string.ascii_uppercase + string.digits, randomize = False):
+		data = str(data)
+		assert i < len(self.micro_ops)
+		line = self.micro_ops[i]
+		assert line.op == 'write'
+		if randomize:
+			data = ''.join(random.choice(data) for x in range(line.count))
+		assert len(data) == line.count
+		line.dump_file = ''
+		line.override_data = data
+	def set_garbage(self, i):
+		self.set_data(i, randomize = True)
+	def set_zeros(self, i):
+		self.set_data(i, data = '0', randomize = True)
+	def export_pickle(self, fname):
+		pickle.dump(self.micro_ops, open(fname, 'w'))
+	def split(self, i, count = None, sizes = None):
+		assert i < len(self.micro_ops)
+		line = self.micro_ops[i]
+		assert line.op == 'write'
+		self.micro_ops.pop(i)
+		self.__end_at -= 1
+		current_offset = line.offset
+		remaining = line.count
+
+		if count is not None:
+			per_slice_size = int(math.ceil(float(line.count) / count))
+		elif sizes is not None and type(sizes) == int:
+			per_slice_size = sizes
+		else:
+			assert sizes is not None
+
+		while remaining > 0:
+			new_line = copy.deepcopy(line)
+			new_line.offset = current_offset
+			if sizes is not None and type(sizes) != int:
+				if len(sizes) > 0:
+					per_slice_size = sizes[0]
+					sizes.pop(0)
+				else:
+					per_slice_size = remaining
+			new_line.count = min(per_slice_size, remaining)
+			new_line.dump_offset = line.dump_offset + (new_line.offset - line.offset)
+			remaining -= new_line.count
+			current_offset += new_line.count
+			self.micro_ops.insert(i, new_line)
+			i += 1
+			self.__end_at += 1
+
 	def listener_loop(self):
 		os.system("rm -f /tmp/fifo_in")
 		os.system("rm -f /tmp/fifo_out")
@@ -326,15 +418,9 @@ class Replayer:
 					exec(f2) in dict(inspect.getmembers(self))
 				except:
 					f2 = open('/tmp/replay_output', 'w+')
-					f2.write("Unexpected error:")
-					for i in sys.exc_info():
-						f2.write('\n' + str(i))
-					f2.write(str(sys.exc_info()))
+					f2.write("Error during runprint\n")
+					f2.write(traceback.format_exc())
 					f2.close()
-					f.close()
-					f = open('/tmp/fifo_out', 'w')
-					f.write("error")
-					f.close()
 					
 				self.print_ops()
 				f2.close()
@@ -374,18 +460,23 @@ def replay_micro_ops(rows):
 			os.ftruncate(fd, line.size)
 			os.close(fd)
 		elif line.op == 'write':
-			fd1 = os.open(replayed_path(line.name), os.O_WRONLY)
-			fd2 = os.open(line.dump_file, os.O_RDONLY)
-			os.lseek(fd1, line.offset, os.SEEK_SET)
-			os.lseek(fd2, line.dump_offset, os.SEEK_SET)
-			buf = os.read(fd2, line.count)
-			os.write(fd1, buf)
+			if line.dump_file == '':
+				buf = line.override_data
+			else:
+				fd = os.open(line.dump_file, os.O_RDONLY)
+				os.lseek(fd, line.dump_offset, os.SEEK_SET)
+				buf = os.read(fd, line.count)
+				os.close(fd)
+			fd = os.open(replayed_path(line.name), os.O_WRONLY)
+			os.lseek(fd, line.offset, os.SEEK_SET)
+			os.write(fd, buf)
+			os.close(fd)
 			buf = ""
-			os.close(fd1)
-			os.close(fd2)
 		elif line.op == 'mkdir':
 			os.mkdir(replayed_path(line.name), eval(line.mode))
-		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range']:
+		elif line.op == 'rmdir':
+			os.rmdir(replayed_path(line.name))
+		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range', 'stdout', 'stderr']:
 			print line.op
 			assert False
 
@@ -419,8 +510,6 @@ def get_micro_ops(rows):
 				fd = safe_string_to_int(parsed_line.ret);
 				if fd >= 0 and 'O_DIRECTORY' not in flags:
 					if not FileStatus.file_exists(name):
-						print line
-						print name
 						assert 'O_CREAT' in flags
 						assert 'O_WRONLY' in flags or 'O_RDWR' in flags
 						assert len(FileStatus.get_fds(name)) == 0
@@ -438,33 +527,49 @@ def get_micro_ops(rows):
 						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if o_sync_present else '')
 					else:
 						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '')
-		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
+		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
 			fd = safe_string_to_int(parsed_line.args[0])
-			if FileStatus.is_watched(fd):
-				count = safe_string_to_int(parsed_line.args[-3 if parsed_line.syscall in ['write', 'writev'] else -4])
-				print FileStatus.get_name(fd)
-				print line
-				print "Testing for " + str(count) + " == " + str(parsed_line.ret)
-				assert safe_string_to_int(parsed_line.ret) == count
+			if FileStatus.is_watched(fd) or fd in [1, 2]:
 				dump_file = eval(parsed_line.args[-2])
 				dump_offset = safe_string_to_int(parsed_line.args[-1])
-				name = FileStatus.get_name(fd)
-				if parsed_line.syscall in ['pwrite', 'pwritev']:
-					pos = safe_string_to_int(parsed_line.args[-4])
+				if fd in [1, 2]:
+					count = safe_string_to_int(parsed_line.args[2])
+					fd_data = os.open(dump_file, os.O_RDONLY)
+					os.lseek(fd_data, dump_offset, os.SEEK_SET)
+					buf = os.read(fd_data, count)
+					os.close(fd_data)
+					if fd == 1:
+						new_op = Struct(op = 'stdout', data = buf)
+					else:
+						new_op = Struct(op = 'stderr', data = buf)
+					micro_operations.append(new_op)
 				else:
-					pos = FileStatus.get_pos(fd)
-				size = FileStatus.get_size(name)
-				if(pos + count > size):
-					new_op = Struct(op = 'trunc', name = name, size = pos + count)
+					if parsed_line.syscall == 'write':
+						count = safe_string_to_int(parsed_line.args[2])
+						pos = FileStatus.get_pos(fd)
+					elif parsed_line.syscall == 'writev':
+						count = safe_string_to_int(parsed_line.args[3])
+						pos = FileStatus.get_pos(fd)
+					elif parsed_line.syscall == 'pwrite':
+						count = safe_string_to_int(parsed_line.args[2])
+						pos = safe_string_to_int(parsed_line.args[3])
+					elif parsed_line.syscall == 'pwritev':
+						count = safe_string_to_int(parsed_line.args[4])
+						pos = safe_string_to_int(parsed_line.args[3])
+					assert safe_string_to_int(parsed_line.ret) == count
+					name = FileStatus.get_name(fd)
+					size = FileStatus.get_size(name)
+					if(pos + count > size):
+						new_op = Struct(op = 'trunc', name = name, size = pos + count)
+						micro_operations.append(new_op)
+						FileStatus.set_size(name, pos + count)
+					new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
 					micro_operations.append(new_op)
-					FileStatus.set_size(name, pos + count)
-				new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
-				micro_operations.append(new_op)
-				if 'O_SYNC' in FileStatus.get_attribs(fd):
-					new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count)
-					micro_operations.append(new_op)
-				if parsed_line.syscall not in ['pwrite', 'pwritev']:
-					FileStatus.set_pos(fd, pos + count)
+					if 'O_SYNC' in FileStatus.get_attribs(fd):
+						new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count)
+						micro_operations.append(new_op)
+					if parsed_line.syscall not in ['pwrite', 'pwritev']:
+						FileStatus.set_pos(fd, pos + count)
 		elif parsed_line.syscall == 'close':
 			assert int(parsed_line.ret) != -1
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -494,7 +599,11 @@ def get_micro_ops(rows):
 			if int(parsed_line.ret) != -1:
 				name = original_path(eval(parsed_line.args[0]))
 				if re.search(filename, name):
-					assert len(FileStatus.get_fds(name)) == 0
+					fds = FileStatus.get_fds(name)
+					for fd in fds:
+						FileStatus.remove_fd_mapping(fd)
+						FileStatus.new_fd_mapping(fd, 'DANGEROUS', 0, 0)
+						print "Warning: File unlinked while being open: " + name
 					micro_operations.append(Struct(op = 'unlink', name = name))
 					FileStatus.delete_file(name)
 		elif parsed_line.syscall == 'lseek':
@@ -502,6 +611,20 @@ def get_micro_ops(rows):
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				FileStatus.set_pos(fd, int(parsed_line.ret))
+		elif parsed_line.syscall in ['truncate', 'ftruncate']:
+			assert int(parsed_line.ret) != -1
+			if parsed_line.syscall == 'truncate':
+				name = original_path(eval(parsed_line.args[0]))
+				interesting = re.search(filename, name)
+			else:
+				fd = safe_string_to_int(parsed_line.args[0])
+				interesting = FileStatus.is_watched(fd)
+				if interesting: name = FileStatus.get_name(fd)
+			if interesting:
+				size = safe_string_to_int(parsed_line.args[1])
+				new_op = Struct(op = 'trunc', name = name, size = size)
+				micro_operations.append(new_op)
+				FileStatus.set_size(name, size)
 		elif parsed_line.syscall in ['fsync', 'fdatasync']:
 			assert int(parsed_line.ret) == 0
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -514,9 +637,20 @@ def get_micro_ops(rows):
 				mode = parsed_line.args[1]
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode))
+		elif parsed_line.syscall == 'rmdir':
+			if int(parsed_line.ret) != -1:
+				name = original_path(eval(parsed_line.args[0]))
+				if re.search(filename, name):
+					micro_operations.append(Struct(op = 'rmdir', name = name))
 		elif parsed_line.syscall == 'chdir':
 			if int(parsed_line.ret) == 0:
 				current_original_path = original_path(eval(parsed_line.args[0]))
+		elif parsed_line.syscall == 'clone':
+			if int(parsed_line.ret) != -1:
+				flags_string = parsed_line.args[1]
+				assert(flags_string.startswith("flags="))
+				flags = flags_string[6:].split('|')
+				assert 'CLONE_VM' in flags
 		elif parsed_line.syscall in ['fcntl', 'fcntl64']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			cmd = parsed_line.args[1]
@@ -526,7 +660,6 @@ def get_micro_ops(rows):
 			fd = safe_string_to_int(parsed_line.args[4])
 			prot = parsed_line.args[2].split('|')
 			flags = parsed_line.args[3].split('|')
-			print line
 			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and \
 				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags:
 				assert 'PROT_WRITE' not in prot
@@ -534,14 +667,12 @@ def get_micro_ops(rows):
 			why_we_are_here = "These aren't totally innocent calls, and have to be dealt \
 			 with when we start caring about mmap(), but the calls are fine for now"
 		else:
-			print line
 			assert parsed_line.syscall in innocent_syscalls
 	return micro_operations
 
 files = commands.getoutput("ls " + args.prefix + ".* | grep -v byte_dump").split()
 rows = []
 assert len(files) > 0
-print files
 for trace_file in files:
 	sys.stderr.write("Threaded mode processing file " + trace_file + "...\n")
 	f = open(trace_file, 'r')
@@ -558,7 +689,10 @@ for trace_file in files:
 		parsed_line = parse_line(line)
 		if parsed_line:
 			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
-				write_size = safe_string_to_int(parsed_line.args[-1])
+				if parsed_line.syscall == 'pwrite':
+					write_size = safe_string_to_int(parsed_line.args[-2])
+				else:
+					write_size = safe_string_to_int(parsed_line.args[-1])
 				m = re.search(r'\) += [^,]*$', line)
 				line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[ m.start(0) : ]
 				dump_offset += write_size
