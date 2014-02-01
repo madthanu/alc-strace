@@ -42,7 +42,12 @@ CRASH SPECIFICATION API
 
 ### auto_test(test_case = None, begin_at = None, limit = 100)
 
-When the crash specification entirely consists of *load(0)* and *auto_test()* calls, a 100 legal combinations (re-ordered crash points) are automatically generated, replayed, and checked. This behavior is affected by the different parameters to the function, and the *end_at()* call.
+Consider the following crash specification: 
+
+	load(0)
+	auto_test()
+
+This specification generates a 100 legal combinations (re-ordered crash points), replays them, and checks them. The short checker outputs corresponding to the checked combinations are listed. This behavior is affected by the different parameters to the function, and the *end_at()* call.
 
 * If the *limit* parameter is specified, only that many legal combinations are automatically generated. The combinations produced in the current version, for a small limit, seem to be pretty useful (in the current version, the ones generated are the first *limit* combinations produced by a BFS search). To generate all possible combinations, this parameter should be set to *None*.
 * If the *test_case* parameter is specified, only the *test_case*-th combination generated is replayed. This is typically useful after *auto_test()* has been already used once without this parameter; in that case, only the short checker output corresponding to each configuration generated will be shown. If the short checker output shows that a particular combination is incorrect, the *test_case* parameter can be used to list the actual combination, and to get detailed checker output for that particular combination. The *test_case* parameter is an integer corresponding to the inconsistent combination (the 'x' in 'Rx').
