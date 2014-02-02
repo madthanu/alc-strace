@@ -417,12 +417,12 @@ class Replayer:
 		middle_len = len(middle)
 
 		if test_case != None:
-			limit = test_case
+			limit = test_case + 1
 		combos = self.__combos(middle, limit)
 		assert(len(combos) != 0)
 		if test_case != None:
-			assert(test_case < len(combos))
-			combos = combos[test_case : test_case + 1]
+			combos = combos[test_case : ]
+			assert len(combos) == 1
 
 		for combo in combos:
 			self.micro_ops = copy.deepcopy(pre + combo + post)
