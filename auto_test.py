@@ -383,7 +383,7 @@ def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
         for op_combo in itertools.combinations(op_list, i):
             o_count += 1
             assert(o_count <= limit_tested)
-            if limit != None and set_count > limit:
+            if limit != None and set_count >= limit:
                 return ans_list
             if test_validity(op_combo):
                 mop_list = []

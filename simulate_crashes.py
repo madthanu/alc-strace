@@ -96,6 +96,14 @@ class Struct:
 			return '%s(%s)' % (colored_op, ', '.join(args))
 	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
 	        return 'Struct(%s)' % ', '.join(args)
+	def __eq__(self, other):
+		if type(self) != type(other):
+			return False
+		return str(self.__dict__) == str(other.__dict__)
+	def __ne__(self, other):
+		return not self.__eq__(other)
+	def __hash__(self):
+		return hash(str(self.__dict__))
 
 if args.config_file != False:
 	tmp = dict([])
@@ -365,6 +373,7 @@ class Replayer:
 		self.saved[0] = (copy.deepcopy(self.micro_ops), self.__end_at)
 		self.short_outputs = ""
 		self.replay_count = 0
+		self.__cached_combos = {}
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
@@ -387,6 +396,15 @@ class Replayer:
 		assert int(i) in self.saved
 		(self.micro_ops, self.__end_at) = self.saved[int(i)]
 		self.micro_ops = copy.deepcopy(self.micro_ops)
+	def __combos(self, micro_ops, limit):
+		tuple_ops = tuple(micro_ops)
+		if tuple_ops in self.__cached_combos:
+			(combos, cached_limit) = self.__cached_combos[tuple_ops]
+			if cached_limit >= limit:
+				return combos[0 : limit]
+		combos = auto_test.get_combos(copy.deepcopy(micro_ops), limit)
+		self.__cached_combos[tuple_ops] = (combos, limit)
+		return combos
 	def auto_test(self, test_case = None, begin_at = None, limit = 100):
 		if begin_at == None:
 			begin_at = 0
@@ -398,7 +416,9 @@ class Replayer:
 		original_end_at = self.__end_at
 		middle_len = len(middle)
 
-		combos = auto_test.get_combos(middle, limit)
+		if test_case != None:
+			limit = test_case
+		combos = self.__combos(middle, limit)
 		assert(len(combos) != 0)
 		if test_case != None:
 			assert(test_case < len(combos))
