@@ -30,7 +30,7 @@ parser.add_argument("-vv","--very_verbose", help="Print internal re-ordering cal
 args = parser.parse_args()
 
 # This causes problems on my mac. Keeping for Thanu's repo.
-if __name__ == 'main':
+if __name__ == '__main__':
 	args = parser.parse_args()
 else:
 	args = parser.parse_args([])
@@ -434,6 +434,13 @@ def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
     global op_list, total_len
     global max_combo_limit
     global max_combos_tested 
+    global num_recursive_calls, generated_combos
+
+    generated_combos = set()
+    max_combo_limit = None
+    max_combos_tested = 10000000
+    num_recursive_calls = 0
+
 
     # Set limits
     max_combo_limit = limit
@@ -452,30 +459,31 @@ def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
     generate_combos(0, -1, Set())
     return generated_combos   
 
-# The main function. Acts as a tester.
-micro_op_pickle = pickle.load(open(args.op_file, 'r'))
-combos = get_combos(micro_op_pickle, 10000)
-print("Number of combos: " + str(len(combos)))
 
-# Print out the list of operations
-if args.very_verbose:
-    print("List of operations:")
-    print_op_list(op_list)
-    print("Total ops:" + str(len(op_list)))
+if __name__ == '__main__':
+	micro_op_pickle = pickle.load(open(args.op_file, 'r'))
+	combos = get_combos(micro_op_pickle, 10000)
+	print("Number of combos: " + str(len(combos)))
 
-if args.print_dependencies or args.very_verbose:
-    for op in op_list:
-        print("\n" + op.get_short_string() + " depends on:")
-        for dop in op.deps:
-            print(dop.get_short_string())
+	# Print out the list of operations
+	if args.very_verbose:
+	    print("List of operations:")
+	    print_op_list(op_list)
+	    print("Total ops:" + str(len(op_list)))
 
-if args.brute_force_verify:
-    all_combos = try_all_combos(op_list) 
-    mismatch_flag = False
-    print("Mis-matches:")
-    for x in combos:
-        if x not in all_combos:
-    	    print_op_string(x)
-    	    mismatch_flag = True
-    if not mismatch_flag:
-    	print("Perfect Match!")
+	if args.print_dependencies or args.very_verbose:
+	    for op in op_list:
+	        print("\n" + op.get_short_string() + " depends on:")
+	        for dop in op.deps:
+	            print(dop.get_short_string())
+
+	if args.brute_force_verify:
+	    all_combos = try_all_combos(op_list) 
+	    mismatch_flag = False
+	    print("Mis-matches:")
+	    for x in combos:
+	        if x not in all_combos:
+	    	    print_op_string(x)
+	    	    mismatch_flag = True
+	    if not mismatch_flag:
+	    	print("Perfect Match!")
