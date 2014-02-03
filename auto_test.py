@@ -403,16 +403,15 @@ def generate_combos(start, end, drop_set):
     # Check limits
     num_recursive_calls += 1
     assert(num_recursive_calls <= max_combos_tested)
-
+    # Return if we have enough combos.
+    if max_combo_limit and len(generated_combos) >= max_combo_limit:
+    	return
+ 
     # Create the combo set.
     op_set_so_far = Set(op_list[start:(end+1)]) - drop_set
     op_set_so_far = sorted(op_set_so_far, key=lambda Operation: Operation.global_id)
     if len(op_set_so_far):
     	generated_combos.add(tuple(op_set_so_far))
-    
-    # Return if we have enough combos.
-    if max_combo_limit and len(generated_combos) >= max_combo_limit:
-    	return
     
     # Return if we are at the end of the op_list.
     if end == (total_len - 1):
@@ -443,7 +442,6 @@ def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
     max_combo_limit = None
     max_combos_tested = 10000000
     num_recursive_calls = 0
-
 
     # Set limits
     max_combo_limit = limit
