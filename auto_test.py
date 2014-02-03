@@ -386,7 +386,7 @@ def try_all_combos(op_list, limit = None, limit_tested = 10000000):
                 #ans_list.append(mop_list)
                 ans_list.append(op_combo)
                 set_count += 1
-    return ans_list
+    return get_micro_ops_set(ans_list)
 
 # Globals for combo generation.
 generated_combos = set()
@@ -429,6 +429,9 @@ def generate_combos(start, end, drop_set):
         # Add this op to the local drop set for the next iteration.
         local_drop_set.add(op_list[i])
 
+def get_micro_ops_set(vijayops_set):
+    return [[x.micro_op for x in combo] for combo in vijayops_set]
+
 # Main interface to Thanu's software stack.
 def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
     global op_list, total_len
@@ -457,7 +460,7 @@ def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
     # Generate all the combos
     total_len = len(op_list)
     generate_combos(0, -1, Set())
-    return generated_combos   
+    return get_micro_ops_set(generated_combos)
 
 
 if __name__ == '__main__':
