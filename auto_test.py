@@ -27,7 +27,7 @@ parser.add_argument("-v","--verbose", help="Print dependency calculations.",
                     action="store_true")
 parser.add_argument("-vv","--very_verbose", help="Print internal re-ordering calculations.", 
                     action="store_true")
-args = parser.parse_args()
+#args = parser.parse_args()
 
 # This causes problems on my mac. Keeping for Thanu's repo.
 if __name__ == '__main__':
