@@ -16,19 +16,20 @@ import sys
 # parses thread value, but doesn't really use that value anywhere.
 
 # Parse input arguments. 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--op_file', dest = 'op_file', type = str, default = False)
-parser.add_argument("-b","--brute_force_verify", help="Verify re-orderings via\
-        brute force", 
-        action="store_true")
-parser.add_argument("-p","--print_reorderings", help="Print re-orderings", 
-        action="store_true")
+parser.add_argument("-b","--brute_force_verify", help="Verify combinations via\
+                    brute force", 
+                    action="store_true")
+parser.add_argument("-p","--print_dependencies", help="Print dependencies", 
+                    action="store_true")
 parser.add_argument("-v","--verbose", help="Print dependency calculations.", 
-        action="store_true")
+                    action="store_true")
 parser.add_argument("-vv","--very_verbose", help="Print internal re-ordering calculations.", 
-        action="store_true")
+                    action="store_true")
+args = parser.parse_args()
 
+# This causes problems on my mac. Keeping for Thanu's repo.
 if __name__ == 'main':
 	args = parser.parse_args()
 else:
@@ -45,10 +46,9 @@ class Struct:
         return 'Struct(%s)' % ', '.join(args)
 
 # The list of syscalls we are interested in.
-calls_of_interest = ["write", "fsync", "unlink", "rename", "creat", "trunc", "mkdir", "rmdir", "link"]
+calls_of_interest = ["write", "fsync", "unlink", "rename", "creat", "trunc", "mkdir", "rmdir", "link", "fdatasync", "file_sync_range"]
 # The list of syscalls treated as ordering points.
 ordering_calls = ["fsync", "fdatasync", "file_sync_range"]
-calls_of_interest += ordering_calls
 # Metadata calls.
 metadata_calls = ["link", "unlink", "mkdir", "rmdir", "rename", "creat"]
 
@@ -87,7 +87,7 @@ latest_fsync_op = {}
 
 # Latest global fsync (on any file).
 latest_fsync_on_any_file = None 
-
+ 
 # Test whether the first path is a parent of the second.
 def is_parent(path_a, path_b):
     return path_b.startswith(path_a)
@@ -110,10 +110,6 @@ def incr_current_gen(filename):
 # Class to encapsulate operation details.
 class Operation:
 
-    # Empty constructor
-    def __init(self):
-        self.syscall = "fsync"
-
     # All the setup
     def __init__(self, micro_op):
         global num_ops_per_file
@@ -121,6 +117,9 @@ class Operation:
         global filename_set
         self.syscall = micro_op.op 
         self.micro_op = micro_op
+        # Set of ops that depend on this op: dropping this op means dropping those ops
+        # also.
+        self.dependent_ops = Set()
 
         # Get the filename: this could either be in name or source field
         if micro_op.op in ["link", "rename"]:  
@@ -131,8 +130,6 @@ class Operation:
             self.filename = micro_op.name
             filename_set.add(self.filename)
 
-        # The number of operations that needs to exist before this one
-        self.before = 0
         # The file specific ID for each filename
         op_index = (self.filename, self.syscall)
         self.op_id = num_ops_per_file[op_index] = num_ops_per_file.get(op_index, 0) + 1
@@ -189,15 +186,13 @@ class Operation:
         # Process parent and child information.
         for f in filename_set:
             if self.filename != f and is_parent(f, self.filename)\
-                    and (self.filename not in parent_dir):
-                        #print(f, "is a parent of", filename)
+            and (self.filename not in parent_dir):
                 parent_dir[self.filename] = f
                 child_list[f].add(self.filename)
             # Also check for self.dest
             if self.syscall in ["link", "rename"]:
                 if self.dest != f and is_parent(f, self.dest)\
-                        and (self.dest not in parent_dir):
-                            #print(f, "is a parent of", dest)
+                and (self.dest not in parent_dir):
                     parent_dir[self.dest] = f
                     child_list[f].add(self.dest)
 
@@ -209,29 +204,24 @@ class Operation:
             gen = incr_current_gen(self.filename)
             fg_key = (self.filename, gen)
             creation_op[fg_key] = self 
-            #print("creat", fg_key, self.global_id)
         elif self.syscall in "link": 
             gen = incr_current_gen(self.dest)
             fg_key = (self.dest, gen)
             creation_op[fg_key] = self 
-            #print("link", fg_key, self.global_id)
         elif self.syscall in "rename": 
             # A rename is a creat on the dest, and an unlink on the source.
             # First handle the dest. 
             gen = incr_current_gen(self.dest)
             fg_key = (self.dest, gen)
             creation_op[fg_key] = self 
-            #print("rename-dest", fg_key, self.global_id)
             # Second, the source.
             gen = get_current_gen(self.source)
             fg_key = (self.source, gen)
             unlink_op[fg_key] = self 
-            #print("rename-source", fg_key, self.global_id)
         elif self.syscall in "unlink": 
             gen = get_current_gen(self.filename)
             fg_key = (self.filename, gen)
             unlink_op[fg_key] = self 
-            #print("unlink", fg_key, self.global_id)
 
     # This method returns a nice short representation of the operation. This
     # needs to be updated as we support new operations. See design doc for what
@@ -242,7 +232,7 @@ class Operation:
             rstr += "W"
         elif self.syscall == "unlink":
             rstr += "U"
-        elif self.syscall == "fsync":
+        elif self.syscall in ["fsync", "fdatasync", "file_sync_range"]: 
             rstr += "F"
         elif self.syscall == "rename":
             rstr += "R"
@@ -271,11 +261,11 @@ class Operation:
     # the conditions for this operation evaluates to true. 
     def calculate_dependencies(self):
         global op_list
-
+     
         # If this is a metadata operation, the relevant directories must exist.
         # For creat/mkdir/unlink this means parent of the file.
         # For link and rename, this also includes means parent of the dest.
-
+       
         if self.syscall in metadata_calls:
             # If parent was created, depend on that. Key is to remember that
             # this operation will act on the current generation of the parent.
@@ -349,8 +339,23 @@ class Operation:
 def print_op_list(op_list):
     res_str = ""
     for op in op_list:
-        res_str += " " + op.get_short_string()
-    print res_str
+        #res_str += " " + op.get_short_string()
+        print(op.get_short_string())
+        print("deps:")
+        print_op_string(op.deps)
+    #print res_str
+
+# Print the whole thing on one line instead of as a list.
+def print_op_string(op_combo):
+    str = ""
+    for x in op_combo:
+    	str += x.get_short_string() + " "
+    print(str)
+
+# Process deps to form populate dependent_ops.
+for op in op_list:
+    for dep in op.deps():
+        dep.dependent_ops.add(op)	
 
 def test_validity(op_list):
     valid = True
@@ -361,19 +366,8 @@ def test_validity(op_list):
             return False
     return True
 
-# Main function. 
-# Parse the ines in the op file
-def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
-    for micro_op in micro_op_pickle:
-        # If the syscall is not in the list we are interestd in, continue.
-        if micro_op.op not in calls_of_interest:
-            continue
-
-        x = Operation(micro_op)
-        op_list.append(x)
-        if args.very_verbose:
-            print(x.get_short_string())
-
+# The brute force method.
+def try_all_combos(op_list, limit = None, limit_tested = 10000000):
     ans_list = []
     clist = op_list[:]
     total_size = len(op_list) 
@@ -389,6 +383,99 @@ def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
                 mop_list = []
                 for xx in op_combo:
                     mop_list.append(xx.micro_op)
-                ans_list.append(mop_list)
+                #ans_list.append(mop_list)
+                ans_list.append(op_combo)
                 set_count += 1
     return ans_list
+
+# Globals for combo generation.
+generated_combos = set()
+max_combo_limit = None
+max_combos_tested = 10000000
+num_recursive_calls = 0
+
+# The recursive function that calculates all the combos.
+# The op_list is treated as a global constant.
+# Each invocation of the function has the prefix (0 to n-1) that has been
+# processed plus the ops that have been dropped in that prefix.
+def generate_combos(start, end, drop_set):
+    global num_recursive_calls
+    # Check limits
+    num_recursive_calls += 1
+    assert(num_recursive_calls <= max_combos_tested)
+
+    # Create the combo set.
+    op_set_so_far = Set(op_list[start:(end+1)]) - drop_set
+    op_set_so_far = sorted(op_set_so_far, key=lambda Operation: Operation.global_id)
+    if len(op_set_so_far):
+    	generated_combos.add(tuple(op_set_so_far))
+    
+    # Return if we have enough combos.
+    if max_combo_limit and len(generated_combos) >= max_combo_limit:
+    	return
+    
+    # Return if we are at the end of the op_list.
+    if end == (total_len - 1):
+    	return
+
+    # Build up a local drop_set
+    local_drop_set = drop_set.copy()
+   
+    # Look for candidates beyond the end position.
+    for i in range(end + 1, total_len):
+        if len(op_list[i].deps & local_drop_set) == 0:
+            # Can be included
+            generate_combos(start, i, local_drop_set)
+        # Add this op to the local drop set for the next iteration.
+        local_drop_set.add(op_list[i])
+
+# Main interface to Thanu's software stack.
+def get_combos(micro_op_pickle, limit = None, limit_tested = 10000000):
+    global op_list, total_len
+    global max_combo_limit
+    global max_combos_tested 
+
+    # Set limits
+    max_combo_limit = limit
+    max_combos_tested = limit_tested
+
+    for micro_op in micro_op_pickle:
+        # If the syscall is not in the list we are interestd in, continue.
+        if micro_op.op not in calls_of_interest:
+            continue
+    
+        x = Operation(micro_op)
+        op_list.append(x)
+
+    # Generate all the combos
+    total_len = len(op_list)
+    generate_combos(0, -1, Set())
+    return generated_combos   
+
+# The main function. Acts as a tester.
+micro_op_pickle = pickle.load(open(args.op_file, 'r'))
+combos = get_combos(micro_op_pickle, 10000)
+print("Number of combos: " + str(len(combos)))
+
+# Print out the list of operations
+if args.very_verbose:
+    print("List of operations:")
+    print_op_list(op_list)
+    print("Total ops:" + str(len(op_list)))
+
+if args.print_dependencies or args.very_verbose:
+    for op in op_list:
+        print("\n" + op.get_short_string() + " depends on:")
+        for dop in op.deps:
+            print(dop.get_short_string())
+
+if args.brute_force_verify:
+    all_combos = try_all_combos(op_list) 
+    mismatch_flag = False
+    print("Mis-matches:")
+    for x in combos:
+        if x not in all_combos:
+    	    print_op_string(x)
+    	    mismatch_flag = True
+    if not mismatch_flag:
+    	print("Perfect Match!")
