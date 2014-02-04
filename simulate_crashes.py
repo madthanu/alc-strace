@@ -13,13 +13,25 @@ import copy
 import string
 import traceback
 import random
+import auto_test
+import signal
 
-innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
+def handler(signum, frame):
+	print 'Signal handler called with signal', signum
+	assert False
+
+#for sig in [signal.SIGABRT, signal.SIGALRM, signal.SIGBUS, signal.SIGCHLD, signal.SIGCLD, signal.SIGCONT, signal.SIGFPE, signal.SIGHUP, signal.SIGILL, signal.SIGINT, signal.SIGIO, signal.SIGIOT, signal.SIGKILL, signal.SIGPIPE, signal.SIGPOLL, signal.SIGPROF, signal.SIGPWR, signal.SIGQUIT, signal.SIGRTMAX, signal.SIGRTMIN, signal.SIGSEGV, signal.SIGSTOP, signal.SIGSYS, signal.SIGTERM, signal.SIGTRAP, signal.SIGTSTP, signal.SIGTTIN, signal.SIGTTOU, signal.SIGURG, signal.SIGUSR1, signal.SIGUSR2, signal.SIGVTALRM, signal.SIGWINCH, signal.SIGXCPU, signal.SIGXFSZ]:
+#	if sig not in [9, 19, 20, 17, 18]:
+#		print sig
+#		signal.signal(sig, handler)
+
+
+innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
-"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","clone","close",
+"capget","capset","clock_getres","clock_gettime","clock_nanosleep","clock_settime","close",
 "connect","creat","create_module","delete_module","epoll_create","epoll_create1","epoll_ctl","epoll_pwait",
 "epoll_wait","eventfd","eventfd2","execve","exit","exit_group","faccessat","fadvise64",
-"fadvise64_64","fgetxattr","flistxattr","flock","fork","free_hugepages","fstat","fstat64",
+"fadvise64_64","fgetxattr","flistxattr","flock","free_hugepages","fstat","fstat64",
 "fstatat64","fstatfs","fstatfs64","ftime","futex","get_kernel_syms","get_mempolicy","get_robust_list",
 "get_thread_area","getcpu","getcwd","getdents","getdents64","getegid","getegid32","geteuid",
 "geteuid32","getgid","getgid32","getgroups","getgroups32","getitimer","getpeername","getpagesize",
@@ -54,6 +66,8 @@ innocent_syscalls = ["pread","_newselect","_sysctl","accept","accept4","access",
 "umount2","uname","unshare","uselib","ustat","utime","utimensat","utimes",
 "vfork","vhangup","vm86old","vmsplice","vserver","wait4","waitid","waitpid"]
 
+innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--prefix', dest = 'prefix', type = str, default = False)
 parser.add_argument('--config_file', dest = 'config_file', type = str, default = False)
@@ -71,22 +85,36 @@ class Struct:
 	def update(self, mydict): self.__dict__.update(mydict)
 	def __repr__(self):
 		if 'op' in vars(self):
-			if self.op == 'write':
-				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset']]
+			if self.op in ['stdout', 'stderr']:
+				args = ['"' + repr(self.data) + '"']
+			elif self.op == 'write':
+				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset', 'inode']]
 			else:
 				args = []
 				for (k,v) in vars(self).items():
 					if k != 'op' and k != 'name' and k[0:7] != 'hidden_':
 						if k == 'source' or k == 'dest':
-							args.append('%s="%s"' % (k, coded_colorize(v)))
+							args.append('%s="%s"' % (k, coded_colorize(short_path(v))))
 						else:
 							args.append('%s=%s' % (k, repr(v)))
 			if 'name' in vars(self):
 				args.insert(0, '"' + coded_colorize(short_path(self.name)) + '"')
-			colored_op = colorize(self.op, 1) if(self.op.find('sync') != -1) else self.op
+			colored_op = self.op
+			if self.op.find('sync') != -1:
+				colored_op = colorize(self.op, 1)
+			elif self.op in ['stdout', 'stderr']:
+				colored_op = colorize(self.op, 2)
 			return '%s(%s)' % (colored_op, ', '.join(args))
 	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
 	        return 'Struct(%s)' % ', '.join(args)
+	def __eq__(self, other):
+		if type(self) != type(other):
+			return False
+		return str(self.__dict__) == str(other.__dict__)
+	def __ne__(self, other):
+		return not self.__eq__(other)
+	def __hash__(self):
+		return hash(str(self.__dict__))
 
 if args.config_file != False:
 	tmp = dict([])
@@ -103,6 +131,7 @@ if 'interesting_path_string' in args.__dict__ and args.interesting_path_string !
 	filename = args.interesting_path_string
 else:
 	filename = r'^' + args.base_path
+
 if 'starting_cwd' not in args.__dict__ or args.starting_cwd == False:
 	args.starting_cwd = args.base_path
 
@@ -176,8 +205,10 @@ def parse_line(line):
 
 		return toret
 	except AttributeError as err:
-		if line.find('+++ exited with') != -1:
-			return False
+		for innocent_line in ['+++ exited with', ' --- SIG', '<unfinished ...>', ' = ? <unavailable>']:
+			if line.find(innocent_line) != -1:
+				return False
+		print line
 		raise err
 
 def safe_string_to_int(s):
@@ -190,13 +221,96 @@ def safe_string_to_int(s):
 		raise err
 
 
+class MemregionTracker:
+	# memregion_map[addr_start] = Struct(addr_end, name, inode, offset)
+	memregion_map = {}
+
+	@staticmethod
+	def __find_overlap(addr_start, addr_end, return_immediately = True):
+		toret = []
+		for cur_start in MemregionTracker.memregion_map.keys():
+			memregion = MemregionTracker.memregion_map[cur_start]
+			cur_end = memregion.addr_end
+			if (addr_start >= cur_start and addr_start <= cur_end) or \
+				(addr_end >= cur_start and addr_end <= cur_end) or \
+				(cur_start >= addr_start and cur_start <= addr_end) or \
+				(cur_end >= addr_start and cur_end <= addr_end):
+				if return_immediately:
+					return memregion
+				else:
+					toret.append(memregion)
+		if return_immediately:
+			return False
+		return toret
+
+	
+	@staticmethod
+	def insert(addr_start, addr_end, name, inode, offset):
+		assert MemregionTracker.__find_overlap(addr_start, addr_end) == False
+		MemregionTracker.memregion[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, inode = inode, offset = offset)
+
+	@staticmethod
+	def remove_overlaps(addr_start, addr_end, whole_regions = False):
+		while True:
+			found_region = MemregionTracker.__find_overlap(addr_start, addr_end)
+			if found_region == False:
+				return
+
+			found_region = copy.deepcopy(found_region)
+			del MemregionTracker.memregion_map[found_region.addr_start]
+
+			if not whole_regions:
+				if(found_region.addr_start < addr_start):
+					new_region = copy.deepcopy(found_region)
+					new_region.addr_end = addr_start - 1
+					MemregionTracker.memregion_map[new_region.addr_start] = new_region
+				if(found_region.addr_start > addr_end):
+					new_region = copy.deepcopy(found_region)
+					new_region.addr_start = addr_end + 1
+					new_region.offset = (new_region.addr_start - found_region.addr_start) + found_region.offset
+					MemregionTracker.memregion_map[new_region.addr_start] = new_region
+
+	@staticmethod
+	def file_mapped(inode):
+		for region in MemregionTracker.memregion_map.values():
+			if region.inode == inode:
+				return True
+		return False
+
+	@staticmethod
+	def file_maps_set_dangerous(name): ## TO_CHANGE
+		for region in MemregionTracker.memregion_map.values():
+			region = copy.deepcopy(region)
+			if region.name == name:
+				del MemregionTracker.memregion_map[region.addr_start]
+			region.name = 'DANGEROUS'
+			MemregionTracker.memregion_map[region.addr_start] = region
+
+	@staticmethod
+	def resolve_range(addr_start, addr_end):
+		toret = []
+		overlap_regions = copy.deepcopy(MemregionTracker.__find_overlap(addr_start, addr_end, return_immediately = False))
+		overlap_regions = sorted(overlap_regions, key = lambda region: region.addr_start)
+		for region in overlap_regions:
+			if region.addr_start < addr_start:
+				assert addr_start <= region.addr_end
+				region.offset = (region.addr_start - addr_start) + region.offset
+				region.addr_start = addr_start
+			if region.addr_end > addr_end:
+				assert addr_end >= region.addr_start
+				region.addr_end = addr_end
+			assert region.addr_start >= addr_start
+			assert region.addr_end <= addr_end
+			toret.append(region)
+		return toret
+
 class FileStatus:
 	fd_details = {}
 
 	@staticmethod
-	def new_fd_mapping(fd, name, pos, attribs):
+	def new_fd_mapping(fd, name, pos, attribs, inode):
 		assert fd not in FileStatus.fd_details
-		FileStatus.fd_details[fd] = Struct(name = name, pos = pos, attribs = attribs)
+		FileStatus.fd_details[fd] = Struct(name = name, pos = pos, attribs = attribs, inode = inode)
 
 	@staticmethod
 	def remove_fd_mapping(fd):
@@ -211,6 +325,11 @@ class FileStatus:
 	def get_pos(fd):
 		assert fd in FileStatus.fd_details
 		return FileStatus.fd_details[fd].pos
+
+	@staticmethod
+	def get_inode(fd):
+		assert fd in FileStatus.fd_details
+		return FileStatus.fd_details[fd].inode
 
 	@staticmethod
 	def get_attribs(fd):
@@ -270,6 +389,7 @@ class Replayer:
 		self.saved[0] = (copy.deepcopy(self.micro_ops), self.__end_at)
 		self.short_outputs = ""
 		self.replay_count = 0
+		self.__cached_combos = {}
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
@@ -292,6 +412,38 @@ class Replayer:
 		assert int(i) in self.saved
 		(self.micro_ops, self.__end_at) = self.saved[int(i)]
 		self.micro_ops = copy.deepcopy(self.micro_ops)
+	def __combos(self, micro_ops, limit):
+		tuple_ops = tuple(micro_ops)
+		if tuple_ops in self.__cached_combos:
+			(combos, cached_limit) = self.__cached_combos[tuple_ops]
+			if cached_limit >= limit:
+				return combos[0 : limit]
+		combos = auto_test.get_combos(copy.deepcopy(micro_ops), limit)
+		self.__cached_combos[tuple_ops] = (combos, limit)
+		return combos
+	def auto_test(self, test_case = None, begin_at = None, limit = 100):
+		if begin_at == None:
+			begin_at = 0
+
+		pre = self.micro_ops[0 : begin_at]
+		middle = self.micro_ops[begin_at : self.__end_at + 1]
+		post = self.micro_ops[self.__end_at + 1 : ]
+
+		original_end_at = self.__end_at
+		middle_len = len(middle)
+
+		if test_case != None:
+			limit = test_case
+		combos = self.__combos(middle, limit)
+		assert(len(combos) != 0)
+		if test_case != None:
+			assert(test_case < len(combos))
+			combos = combos[test_case : test_case + 1]
+
+		for combo in combos:
+			self.micro_ops = copy.deepcopy(pre + combo + post)
+			self.__end_at = original_end_at - middle_len + len(combo)
+			self.replay_and_check()
 	def replay_and_check(self, summary_string = None):
 		# Replaying and checking
 		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
@@ -381,7 +533,7 @@ class Replayer:
 				os.system('mkdir -p /tmp/replay_outputs_long/')
 				f2 = open(args.orderings_script, 'r')
 				try:
-					exec(f2) in dict(inspect.getmembers(self))
+					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
 				except:
 					f2 = open('/tmp/replay_output', 'w+')
 					f2.write("Error during runprint\n")
@@ -401,17 +553,14 @@ class Replayer:
 			f = open('/tmp/fifo_out', 'w')
 			f.write("done")
 			f.close()
-		
+
 def replay_micro_ops(rows):
 	global args
 	os.system("rm -rf " + args.replayed_snapshot)
 	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
 	for line in rows:
 		if line.op == 'creat':
-			if line.mode:
-				fd = os.open(replayed_path(line.name), os.O_CREAT | os.O_WRONLY, eval(line.mode))
-			else:
-				fd = os.open(replayed_path(line.name), os.O_CREAT | os.O_WRONLY)
+			fd = os.open(replayed_path(line.name), os.O_CREAT | os.O_WRONLY, eval(line.mode))
 			assert fd > 0
 			os.close(fd)
 		elif line.op == 'unlink':
@@ -442,14 +591,30 @@ def replay_micro_ops(rows):
 			os.mkdir(replayed_path(line.name), eval(line.mode))
 		elif line.op == 'rmdir':
 			os.rmdir(replayed_path(line.name))
-		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range']:
+		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range', 'stdout', 'stderr']:
 			print line.op
 			assert False
 
+mtrace_recorded = []
 def get_micro_ops(rows):
 	global filename, args, ignore_syscalls
 	micro_operations = []
+	os.system("rm -rf " + args.replayed_snapshot)
+	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
+
+	def get_replayed_stat(path):
+		try:
+			return os.stat(replayed_path(path))
+		except OSError as err:
+			return False
+
+	def replayed_truncate(path, new_size):
+		tmp_fd = os.open(replayed_path(path), os.O_WRONLY)
+		os.ftruncate(tmp_fd, new_size)
+		os.close(tmp_fd)
+
 	for row in rows:
+		syscall_pid = row[0]
 		line = row[2]
 		line = line.strip()
 
@@ -475,55 +640,79 @@ def get_micro_ops(rows):
 					assert 'O_DIRECTORY' not in flags
 				fd = safe_string_to_int(parsed_line.ret);
 				if fd >= 0 and 'O_DIRECTORY' not in flags:
-					if not FileStatus.file_exists(name):
+					# Finished with most of the asserts and initialization. Actually handling the open() here.
+					if not get_replayed_stat(name):
 						assert 'O_CREAT' in flags
 						assert 'O_WRONLY' in flags or 'O_RDWR' in flags
 						assert len(FileStatus.get_fds(name)) == 0
-						new_op = Struct(op = 'creat', name = name, mode = mode)
+						assert mode
+						tmp_fd = os.open(replayed_path(name), os.O_CREAT | os.O_WRONLY, eval(mode))
+						assert tmp_fd > 0
+						os.close(tmp_fd)
+						inode = get_replayed_stat(name).st_ino
+						new_op = Struct(op = 'creat', name = name, mode = mode, inode = inode)
 						micro_operations.append(new_op)
-						FileStatus.set_size(name, 0)
-					assert FileStatus.file_exists(name)
+					else:
+						inode = get_replayed_stat(name).st_ino
+
 					if 'O_TRUNC' in flags:
 						assert 'O_WRONLY' in flags or 'O_RDWR' in flags
-						new_op = Struct(op = 'trunc', name = name, size = 0)
+						new_op = Struct(op = 'trunc', name = name, size = 0, inode = inode)
 						micro_operations.append(new_op)
-						FileStatus.set_size(name, 0)
+						replayed_truncate(name, 0)
+
 					o_sync_present = 'O_SYNC' in flags or 'O_DSYNC' in flags or 'O_RSYNC' in flags
+
 					if 'O_APPEND' in flags:
-						FileStatus.new_fd_mapping(fd, name, FileStatus.get_size(name), ['O_SYNC'] if o_sync_present else '')
+						FileStatus.new_fd_mapping(fd, name, get_replayed_stat(name).st_size, ['O_SYNC'] if o_sync_present else '', inode)
 					else:
-						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '')
+						FileStatus.new_fd_mapping(fd, name, 0, ['O_SYNC'] if o_sync_present else '', inode)
 		elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
 			fd = safe_string_to_int(parsed_line.args[0])
-			if FileStatus.is_watched(fd):
-				if parsed_line.syscall == 'write':
-					count = safe_string_to_int(parsed_line.args[2])
-					pos = FileStatus.get_pos(fd)
-				elif parsed_line.syscall == 'writev':
-					count = safe_string_to_int(parsed_line.args[3])
-					pos = FileStatus.get_pos(fd)
-				elif parsed_line.syscall == 'pwrite':
-					count = safe_string_to_int(parsed_line.args[2])
-					pos = safe_string_to_int(parsed_line.args[3])
-				elif parsed_line.syscall == 'pwritev':
-					count = safe_string_to_int(parsed_line.args[4])
-					pos = safe_string_to_int(parsed_line.args[3])
-				assert safe_string_to_int(parsed_line.ret) == count
+			if FileStatus.is_watched(fd) or fd in [1, 2]:
 				dump_file = eval(parsed_line.args[-2])
 				dump_offset = safe_string_to_int(parsed_line.args[-1])
-				name = FileStatus.get_name(fd)
-				size = FileStatus.get_size(name)
-				if(pos + count > size):
-					new_op = Struct(op = 'trunc', name = name, size = pos + count)
+				if fd in [1, 2]:
+					count = safe_string_to_int(parsed_line.args[2])
+					fd_data = os.open(dump_file, os.O_RDONLY)
+					os.lseek(fd_data, dump_offset, os.SEEK_SET)
+					buf = os.read(fd_data, count)
+					os.close(fd_data)
+					if fd == 1:
+						new_op = Struct(op = 'stdout', data = buf)
+					else:
+						new_op = Struct(op = 'stderr', data = buf)
 					micro_operations.append(new_op)
-					FileStatus.set_size(name, pos + count)
-				new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset)
-				micro_operations.append(new_op)
-				if 'O_SYNC' in FileStatus.get_attribs(fd):
-					new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count)
+				else:
+					if parsed_line.syscall == 'write':
+						count = safe_string_to_int(parsed_line.args[2])
+						pos = FileStatus.get_pos(fd)
+					elif parsed_line.syscall == 'writev':
+						count = safe_string_to_int(parsed_line.args[3])
+						pos = FileStatus.get_pos(fd)
+					elif parsed_line.syscall == 'pwrite':
+						count = safe_string_to_int(parsed_line.args[2])
+						pos = safe_string_to_int(parsed_line.args[3])
+					elif parsed_line.syscall == 'pwritev':
+						count = safe_string_to_int(parsed_line.args[4])
+						pos = safe_string_to_int(parsed_line.args[3])
+					assert safe_string_to_int(parsed_line.ret) == count
+					name = FileStatus.get_name(fd)
+					inode = FileStatus.get_inode(fd)
+					size = get_replayed_stat(name).st_size
+					if(pos + count > size):
+						new_op = Struct(op = 'trunc', name = name, size = pos + count, inode = inode)
+						micro_operations.append(new_op)
+						tmp_fd = os.open(replayed_path(name), os.O_WRONLY)
+						os.ftruncate(tmp_fd, 0)
+						os.close(tmp_fd)
+					new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset, inode = inode)
 					micro_operations.append(new_op)
-				if parsed_line.syscall not in ['pwrite', 'pwritev']:
-					FileStatus.set_pos(fd, pos + count)
+					if 'O_SYNC' in FileStatus.get_attribs(fd):
+						new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count, inode = inode)
+						micro_operations.append(new_op)
+					if parsed_line.syscall not in ['pwrite', 'pwritev']:
+						FileStatus.set_pos(fd, pos + count)
 		elif parsed_line.syscall == 'close':
 			assert int(parsed_line.ret) != -1
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -535,27 +724,59 @@ def get_micro_ops(rows):
 				dest = original_path(eval(parsed_line.args[1]))
 				if re.search(filename, source):
 					assert re.search(filename, dest)
-					assert len(FileStatus.get_fds(dest)) == 0
-					micro_operations.append(Struct(op = 'link', source = source, dest = dest))
-					FileStatus.set_size(dest, FileStatus.get_size(source))
+					assert len(FileStatus.get_fds(dest)) == 0 ## TO_CHANGE
+					assert get_replayed_stat(source)
+					source_inode = get_replayed_stat(source).st_ino
+					dest_inode = False
+					dest_hardlinks = 0
+					if get_replayed_stat(dest):
+						dest_inode = get_replayed_stat(dest).st_ino
+						dest_hardlinks = get_replayed_stat(dest).st_nlink
+					micro_operations.append(Struct(op = 'link', source = source, dest = dest, source_inode = source_inode, dest_inode = dest_inode, dest_hardlinks = dest_hardlinks))
+					os.link(replayed_path(source), replayed_path(dest))
 		elif parsed_line.syscall == 'rename':
 			if int(parsed_line.ret) != -1:
 				source = original_path(eval(parsed_line.args[0]))
 				dest = original_path(eval(parsed_line.args[1]))
 				if re.search(filename, source):
 					assert re.search(filename, dest)
-					assert len(FileStatus.get_fds(source)) == 0
-					assert len(FileStatus.get_fds(dest)) == 0
-					micro_operations.append(Struct(op = 'rename', source = source, dest = dest))
-					FileStatus.set_size(dest, FileStatus.get_size(source))
-					FileStatus.delete_file(source)
+					assert len(FileStatus.get_fds(source)) == 0 ## TO_CHANGE
+					assert len(FileStatus.get_fds(dest)) == 0 ## TO_CHANGE
+					assert MemregionTracker.file_mapped(source) == False ## TO_CHANGE
+					assert MemregionTracker.file_mapped(dest) == False ## TO_CHANGE
+					assert get_replayed_stat(source)
+					source_inode = get_replayed_stat(source).st_ino
+					source_hardlinks = get_replayed_stat(source).st_nlink
+					dest_inode = False
+					dest_hardlinks = 0
+					if get_replayed_stat(dest):
+						dest_inode = get_replayed_stat(dest).st_ino
+						dest_hardlinks = get_replayed_stat(dest).st_nlink
+					micro_operations.append(Struct(op = 'rename', source = source, dest = dest, source_inode = source_inode, dest_inode = dest_inode, source_hardlinks = source_hardlinks, dest_hardlinks = dest_hardlinks))
+					if dest_hardlinks == 1:
+						os.rename(replayed_path(dest), replayed_path(dest) + '.deleted_' + uuid.uuid1())
+					os.rename(replayed_path(source), replayed_path(dest))
 		elif parsed_line.syscall == 'unlink':
 			if int(parsed_line.ret) != -1:
 				name = original_path(eval(parsed_line.args[0]))
 				if re.search(filename, name):
-					assert len(FileStatus.get_fds(name)) == 0
-					micro_operations.append(Struct(op = 'unlink', name = name))
-					FileStatus.delete_file(name)
+					assert get_replayed_stat(name)
+					inode = get_replayed_stat(name).st_ino
+					hardlinks = get_replayed_stat(name).st_nlink
+					fds = FileStatus.get_fds(name) ## TO_CHANGE
+					for fd in fds: ## TO_CHANGE
+						FileStatus.remove_fd_mapping(fd)
+						FileStatus.new_fd_mapping(fd, 'DANGEROUS', 0, 0)
+						print "Warning: File unlinked while being open: " + name
+					if MemregionTracker.file_mapped(name): ## TO_CHANGE
+						print "Warning: File unlinked while being mapped: " + name
+						MemregionTracker.file_maps_set_dangerous(name)
+					micro_operations.append(Struct(op = 'unlink', name = name, inode = inode, hardlinks = hardlinks))
+					# A simple os.unlink might be sufficient, but making sure that the inode is not re-used.
+					if hardlinks > 1:
+						os.unlink(replayed_path(name))
+					else:
+						os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + uuid.uuid1())
 		elif parsed_line.syscall == 'lseek':
 			assert int(parsed_line.ret) != -1
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -566,50 +787,115 @@ def get_micro_ops(rows):
 			if parsed_line.syscall == 'truncate':
 				name = original_path(eval(parsed_line.args[0]))
 				interesting = re.search(filename, name)
+				if interesting:
+					assert get_replayed_stat(name)
+					inode = get_replayed_stat(name).st_ino
 			else:
 				fd = safe_string_to_int(parsed_line.args[0])
 				interesting = FileStatus.is_watched(fd)
-				if interesting: name = FileStatus.get_name(fd)
+				if interesting:
+					name = FileStatus.get_name(fd)
+					inode = FileStatus.get_inode(fd)
 			if interesting:
 				size = safe_string_to_int(parsed_line.args[1])
-				new_op = Struct(op = 'trunc', name = name, size = size)
+				new_op = Struct(op = 'trunc', name = name, size = size, inode = inode)
 				micro_operations.append(new_op)
-				FileStatus.set_size(name, size)
+				replayed_truncate(name, size)
 		elif parsed_line.syscall in ['fsync', 'fdatasync']:
 			assert int(parsed_line.ret) == 0
 			fd = safe_string_to_int(parsed_line.args[0])
 			if FileStatus.is_watched(fd):
 				name = FileStatus.get_name(fd)
-				micro_operations.append(Struct(op = parsed_line.syscall, name = name))
+				inode = FileStatus.get_inode(fd)
+				micro_operations.append(Struct(op = parsed_line.syscall, name = name, inode = inode))
 		elif parsed_line.syscall == 'mkdir':
 			if int(parsed_line.ret) != -1:
 				name = original_path(eval(parsed_line.args[0]))
 				mode = parsed_line.args[1]
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode))
+					os.mkdir(replayed_path(name), eval(mode))
 		elif parsed_line.syscall == 'rmdir':
 			if int(parsed_line.ret) != -1:
 				name = original_path(eval(parsed_line.args[0]))
 				if re.search(filename, name):
 					micro_operations.append(Struct(op = 'rmdir', name = name))
+					os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + uuid.uuid1())
 		elif parsed_line.syscall == 'chdir':
 			if int(parsed_line.ret) == 0:
 				current_original_path = original_path(eval(parsed_line.args[0]))
+		elif parsed_line.syscall == 'clone':
+			if int(parsed_line.ret) != -1:
+				flags_string = parsed_line.args[1]
+				assert(flags_string.startswith("flags="))
+				flags = flags_string[6:].split('|')
+				assert 'CLONE_VM' in flags
 		elif parsed_line.syscall in ['fcntl', 'fcntl64']:
 			fd = safe_string_to_int(parsed_line.args[0])
 			cmd = parsed_line.args[1]
 			if FileStatus.is_watched(fd):
 				assert cmd in ['F_GETFD', 'F_SETFD', 'F_GETFL', 'F_SETLK', 'F_SETLKW', 'F_GETLK', 'F_SETLK64', 'F_SETLKW64', 'F_GETLK64']
 		elif parsed_line.syscall in ['mmap', 'mmap2']:
-			fd = safe_string_to_int(parsed_line.args[4])
+			addr_start = safe_string_to_int(parsed_line.ret)
+			length = safe_string_to_int(parsed_line.args[1])
 			prot = parsed_line.args[2].split('|')
 			flags = parsed_line.args[3].split('|')
+			fd = safe_string_to_int(parsed_line.args[4])
+			offset = safe_string_to_int(parsed_line.args[5])
+			if parsed_line.syscall == 'mmap2':
+				offset = offset * 4096
+
+			if addr_start == -1:
+				return
+
+			addr_end = addr_start + length - 1
+			if 'MAP_FIXED' in flags:
+				given_addr = safe_string_to_int(parsed_line.args[0])
+				assert given_addr == addr_start
+				assert 'MAP_GROWSDOWN' not in flags
+				MemregionTracker.remove_overlaps(addr_start, addr_end)
+
+			
 			if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and \
-				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags:
-				assert 'PROT_WRITE' not in prot
-		elif parsed_line.syscall in ['mremap', 'msync', 'munmap']:
-			why_we_are_here = "These aren't totally innocent calls, and have to be dealt \
-			 with when we start caring about mmap(), but the calls are fine for now"
+				FileStatus.is_watched(fd) and 'MAP_SHARED' in flags and \
+				'PROT_WRITE' in prot:
+				assert syscall_pid in mtrace_recorded
+				assert 'MAP_GROWSDOWN' not in flags
+				MemregionTracker.insert(addr_start, addr_end, FileStatus.get_name(fd), FileStatus.get_inode(fd), offset)
+		elif parsed_line.syscall == 'munmap':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[1])
+			addr_end = addr_start + length - 1
+			ret = safe_string_to_int(parsed_line.ret)
+			if ret != -1:
+				MemregionTracker.remove_overlaps(addr_start, addr_end, whole_regions = True)
+		elif parsed_line.syscall == 'msync':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[1])
+			flags = parsed_line.args[2].split('|')
+			ret = safe_string_to_int(parsed_line.ret)
+
+			addr_end = addr_start + length - 1
+			if ret != -1:
+				regions = MemregionTracker.resolve_range(addr_start, addr_end)
+				for region in regions:
+					count = region.addr_end - region.addr_start + 1
+					new_op = Struct(op = 'file_sync_range', name = region.name, offset = region.offset, count = count)
+					micro_operations.append(new_op)
+		elif parsed_line.syscall == 'mwrite':
+			addr_start = safe_string_to_int(parsed_line.args[0])
+			length = safe_string_to_int(parsed_line.args[2])
+			dump_file = eval(parsed_line.args[3])
+			dump_offset = safe_string_to_int(parsed_line.args[4])
+
+			addr_end = addr_start + length - 1
+			regions = MemregionTracker.resolve_range(addr_start, addr_end)
+			for region in regions:
+				count = region.addr_end - region.addr_start + 1
+				cur_dump_offset = dump_offset + (region.addr_start - addr_start)
+				offset = region.offset
+				name = region.name
+				new_op = Struct(op = 'write', name = name, offset = offset, count = count, dump_file = dump_file, dump_offset = cur_dump_offset)
 		else:
 			assert parsed_line.syscall in innocent_syscalls
 	return micro_operations
@@ -622,6 +908,8 @@ for trace_file in files:
 	f = open(trace_file, 'r')
 	array = trace_file.split('.')
 	pid = int(array[len(array) - 1])
+	if array[-2] == 'mtrace':
+		mtrace_recorded.push(pid)
 	cnt = 0
 	dump_offset = 0
 	m = re.search(r'\.[^.]*$', trace_file)
@@ -632,7 +920,7 @@ for trace_file in files:
 			sys.stderr.write("   line " + str(cnt) + " done.\n")
 		parsed_line = parse_line(line)
 		if parsed_line:
-			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:
+			if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev', 'mwrite']:
 				if parsed_line.syscall == 'pwrite':
 					write_size = safe_string_to_int(parsed_line.args[-2])
 				else:
