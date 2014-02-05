@@ -403,6 +403,7 @@ class Replayer:
 	def set_zeros(self, i):
 		self.set_data(i, data = '0', randomize = True)
 	def export_disk_ops(self):
+		print diskops.get_disk_ops(self.micro_ops)
 		pickle.dump(diskops.get_disk_ops(self.micro_ops), open('/tmp/disk_ops', 'w'))
 	def split(self, i, count = None, sizes = None):
 		assert i < len(self.micro_ops)

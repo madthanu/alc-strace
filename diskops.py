@@ -1,6 +1,10 @@
 import random
 import string
 from mystruct import Struct
+
+TYPE_DIR = 0
+TYPE_FILE = 1
+
 def get_disk_ops(rows):
 	def trunc_disk_ops(inode, initial_size, final_size):
 		toret = []
@@ -12,21 +16,21 @@ def get_disk_ops(rows):
 			disk_op = Struct(op = 'truncate', inode = inode, initial_size = middle, final_size = final_size)
 			toret.append(disk_op)
 		return toret
-	def unlink_disk_ops(parent, inode, name, size, hardlinks = 2): # Default hardlinks set because of rmdir
+	def unlink_disk_ops(parent, inode, name, size, hardlinks, entry_type = TYPE_FILE):
 		toret = []
-		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name)
+		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode) # Inode stored, Vijay hack
 		toret.append(disk_op)
 		if hardlinks == 1:
 			toret += trunc_disk_ops(inode, size, 0)
 		return toret
-	def link_disk_ops(parent, name, inode, inode_mode = None):
+	def link_disk_ops(parent, inode, name, inode_mode = None, entry_type = TYPE_FILE):
 		return [Struct(op = 'create_dir_entry', parent = parent, entry = name, inode = inode, inode_mode = None)]
 
 	toret = []
 	micro_op_id = 0
 	for line in rows:
 		if line.op == 'creat':
-			line.hidden_disk_ops = link_disk_ops(line.parent, line.inode, line.name)
+			line.hidden_disk_ops = link_disk_ops(line.parent, line.inode, line.name, line.mode)
 		elif line.op == 'unlink':
 			line.hidden_disk_ops = unlink_disk_ops(line.parent, line.inode, line.name, line.size, line.hardlinks)
 		elif line.op == 'link':
@@ -61,9 +65,9 @@ def get_disk_ops(rows):
 				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = None, override_data = override_data)
 				line.hidden_disk_ops.append(disk_op)
 		elif line.op == 'mkdir':
-			line.hidden_disk_ops = link_disk_ops(line.parent, line.inode, line.name, eval(line.mode))
+			line.hidden_disk_ops = link_disk_ops(line.parent, line.inode, line.name, eval(line.mode), TYPE_DIR)
 		elif line.op == 'rmdir':
-			line.hidden_disk_ops = unlink_disk_ops(line.parent, line.name, 0)
+			line.hidden_disk_ops = unlink_disk_ops(line.parent, line.inode, line.name, 0, 0, TYPE_DIR)
 		elif line.op in ['fsync', 'fdatasync', 'file_sync_range']:
 			line.hidden_disk_ops = []
 			if line.op in ['fsync', 'fdatasync']:
@@ -85,3 +89,68 @@ def get_disk_ops(rows):
 		micro_op_id += 1
 
 	return toret
+
+def replay_disk_ops(intial_inode_paths_map, rows):
+	def get_stat(path):
+		try:
+			return os.stat(path)
+		except OSError as err:
+			return False
+
+	def get_inode_file(inode, mode = None):
+		if not get_stat(args.replayed_snapshot + '/.inodes/' + inode):
+			if mode == None:
+				mode = 0666
+			fd = os.open(args.replayed_snapshot + '/.inodes/' + inode, os.O_CREAT | os.O_WRONLY, mode)
+			assert fd > 0
+			os.close(fd)
+		return args.replayed_snapshot + '/.inodes/' + inode
+
+	os.system("rm -rf " + args.replayed_snapshot)
+	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
+	os.system("mkdir " + args.replayed_snapshot + '/.inodes')
+
+	inode_map = {}
+	for initial_inode in initial_inode_paths_map.keys():
+		paths = initial_inode_paths_map[initial_inode]
+		assert len(paths) > 0
+		final_inode = None
+		for path in paths:
+			assert get_stat(path)
+			if final_inode == None:
+				final_inode = get_stat(path).st_ino
+			else:
+				assert final_inode == get_stat(path).st_ino
+		inode_map[initial_inode] = final_inode
+
+	for line in rows:
+		if line.op == 'create_dir_entry':
+			if line.entry_type == TYPE_FILE:
+				os.link(get_inode_file(line.inode, line.mode), replayed_path(line.entry))
+			else:
+				assert False
+		elif line.op == 'delete_dir_entry':
+			if line.entry_type == TYPE_FILE:
+				if get_stat(replayed_path(line.entry)):
+					os.unlink(replayed_path(line.entry))
+			else:
+				assert False
+		elif line.op == 'truncate':
+			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+			assert fd > 0
+			os.ftruncate(fd, line.final_size)
+			os.close(fd)
+		elif line.op == 'write':
+			if line.dump_file == '':
+				buf = line.override_data
+			else:
+				fd = os.open(line.dump_file, os.O_RDONLY)
+				os.lseek(fd, line.dump_offset, os.SEEK_SET)
+				buf = os.read(fd, line.count)
+				os.close(fd)
+			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+			os.lseek(fd, line.offset, os.SEEK_SET)
+			os.write(fd, buf)
+			os.close(fd)
+			buf = ""
+
