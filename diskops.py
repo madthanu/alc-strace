@@ -41,7 +41,7 @@ def get_disk_ops(rows):
 		elif line.op == 'rename':
 			if line.dest_hardlinks >= 1:
 				line.hidden_disk_ops = unlink_disk_ops(line.dest_parent, line.dest_inode, line.dest, line.dest_size, line.dest_hardlinks)
-			line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, line.source_hardlinks)
+			line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2) # Setting hardlinks as 2 so that trunc does not happen
 			line.hidden_disk_ops += link_disk_ops(line.dest_parent, line.source_inode, line.dest)
 		elif line.op == 'trunc':
 			line.hidden_disk_ops = trunc_disk_ops(line.inode, line.initial_size, line.final_size)
