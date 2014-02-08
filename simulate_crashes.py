@@ -19,6 +19,7 @@ import uuid
 import diskops
 from mystruct import Struct
 from mystruct import colorize
+import myutils
 import mystruct
 
 innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
@@ -95,6 +96,7 @@ if 'starting_cwd' not in args.__dict__ or args.starting_cwd == False:
 	args.starting_cwd = args.base_path
 
 mystruct.args = args
+diskops.args = args
 
 
 # The input parameter must already have gone through original_path()
@@ -296,7 +298,7 @@ class FileStatus:
 		return result
 
 class Replayer:
-	def __init__(self, original_micro_ops):
+	def __init__(self, path_inode_map, original_micro_ops):
 		self.micro_ops = copy.deepcopy(original_micro_ops)
 		cnt = 0
 		for i in self.micro_ops:
@@ -309,6 +311,7 @@ class Replayer:
 		self.short_outputs = ""
 		self.replay_count = 0
 		self.__cached_combos = {}
+		self.path_inode_map = path_inode_map
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
@@ -319,6 +322,9 @@ class Replayer:
 				'\t' +
 				str(self.micro_ops[i]) +
 				 '\n')
+			if i <= self.__end_at and self.micro_ops[i].op not in ['stdout', 'stderr']:
+				for disk_op in self.micro_ops[i].hidden_disk_ops:
+					f.write('\t\t' + str(disk_op) + '\n')
 			if i == self.__end_at:
 				f.write('-------------------------------------\n')
 		f.close()
@@ -363,8 +369,12 @@ class Replayer:
 			self.micro_ops = copy.deepcopy(pre + combo + post)
 			self.__end_at = original_end_at - middle_len + len(combo)
 			self.replay_and_check()
-	def replay_and_check(self, summary_string = None):
+	def replay_and_check(self, summary_string = None, using_disk_ops = False):
 		# Replaying and checking
+		if using_disk_ops:
+			diskops.replay_disk_ops(path_inode_map, diskops.get_disk_ops(self.micro_ops[0 : self.__end_at + 1]))
+			os.system('rm -rf /tmp/replayed_snapshot_diskops')
+			os.system('mv /tmp/replayed_snapshot /tmp/replayed_snapshot_diskops')
 		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
 		f = open('/tmp/replay_output', 'w+')
 		subprocess.call(args.checker_tool + " " + args.replayed_snapshot, shell = True, stdout = f)
@@ -402,9 +412,6 @@ class Replayer:
 		self.set_data(i, randomize = True)
 	def set_zeros(self, i):
 		self.set_data(i, data = '0', randomize = True)
-	def export_disk_ops(self):
-		print diskops.get_disk_ops(self.micro_ops)
-		pickle.dump(diskops.get_disk_ops(self.micro_ops), open('/tmp/disk_ops', 'w'))
 	def split(self, i, count = None, sizes = None):
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
@@ -494,7 +501,7 @@ def replay_micro_ops(rows):
 		elif line.op == 'trunc':
 			fd = os.open(replayed_path(line.name), os.O_WRONLY)
 			assert fd > 0
-			os.ftruncate(fd, line.size)
+			os.ftruncate(fd, line.final_size)
 			os.close(fd)
 		elif line.op == 'write':
 			if line.dump_file == '':
@@ -521,8 +528,11 @@ mtrace_recorded = []
 def get_micro_ops(rows):
 	global filename, args, ignore_syscalls
 	micro_operations = []
+	
 	os.system("rm -rf " + args.replayed_snapshot)
 	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
+
+	path_inode_map = myutils.get_path_inode_map(args.replayed_snapshot)
 
 	def get_replayed_stat(path):
 		try:
@@ -563,9 +573,8 @@ def get_micro_ops(rows):
 			continue
 
 		### Known Issues:
-		###	1. Access time with read() kind of calls, modification times in general
-		###	2. Links (that are used as files while there are two dirents pointing
-		###	to the same inode, as opposed to just created and destroyed) don't work.
+		###	1. Access time with read() kind of calls, modification times in general, other attributes
+		###	2. Symlinks
 
 		if parsed_line.syscall == 'open' or \
 			(parsed_line.syscall == 'openat' and parsed_line.args[0] == 'AT_FDCWD'):
@@ -839,7 +848,7 @@ def get_micro_ops(rows):
 				new_op = Struct(op = 'write', name = name, inode = inode, offset = offset, count = count, dump_file = dump_file, dump_offset = cur_dump_offset)
 		else:
 			assert parsed_line.syscall in innocent_syscalls
-	return micro_operations
+	return (path_inode_map, micro_operations)
 
 files = commands.getoutput("ls " + args.prefix + ".* | grep -v byte_dump").split()
 rows = []
@@ -872,6 +881,6 @@ for trace_file in files:
 			if not parsed_line.syscall in ['gettid', 'clock_gettime', 'poll', 'recvfrom', 'gettimeofday']:
 				rows.append((pid, parsed_line.time, line))
 rows = sorted(rows, key = lambda row: row[1])
-micro_operations = get_micro_ops(rows)
-Replayer(micro_operations).listener_loop()
+(path_inode_map, micro_operations) = get_micro_ops(rows)
+Replayer(path_inode_map, micro_operations).listener_loop()
 

@@ -1,10 +1,13 @@
 import random
+import os
 import string
+import myutils
 from mystruct import Struct
 
 TYPE_DIR = 0
 TYPE_FILE = 1
 
+args = None
 def get_disk_ops(rows):
 	def trunc_disk_ops(inode, initial_size, final_size):
 		toret = []
@@ -18,13 +21,13 @@ def get_disk_ops(rows):
 		return toret
 	def unlink_disk_ops(parent, inode, name, size, hardlinks, entry_type = TYPE_FILE):
 		toret = []
-		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode) # Inode stored, Vijay hack
+		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode, entry_type = entry_type) # Inode stored, Vijay hack
 		toret.append(disk_op)
 		if hardlinks == 1:
 			toret += trunc_disk_ops(inode, size, 0)
 		return toret
-	def link_disk_ops(parent, inode, name, inode_mode = None, entry_type = TYPE_FILE):
-		return [Struct(op = 'create_dir_entry', parent = parent, entry = name, inode = inode, inode_mode = None)]
+	def link_disk_ops(parent, inode, name, mode = None, entry_type = TYPE_FILE):
+		return [Struct(op = 'create_dir_entry', parent = parent, entry = name, inode = inode, mode = mode, entry_type = entry_type)]
 
 	toret = []
 	micro_op_id = 0
@@ -50,19 +53,19 @@ def get_disk_ops(rows):
 				offset = line.offset
 				dump_offset = line.dump_offset
 				count = middle
-				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None)
-				line.hidden_disk_ops.append(disk_op)
 				override_data = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(count))
 				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = None, override_data = override_data)
+				line.hidden_disk_ops.append(disk_op)
+				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None)
 				line.hidden_disk_ops.append(disk_op)
 			if middle != line.count:
 				offset = line.offset + middle
 				dump_offset = line.dump_offset + middle
 				count = line.count - middle
-				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None)
-				line.hidden_disk_ops.append(disk_op)
 				override_data = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(count))
 				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = None, override_data = override_data)
+				line.hidden_disk_ops.append(disk_op)
+				disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None)
 				line.hidden_disk_ops.append(disk_op)
 		elif line.op == 'mkdir':
 			line.hidden_disk_ops = link_disk_ops(line.parent, line.inode, line.name, eval(line.mode), TYPE_DIR)
@@ -90,7 +93,8 @@ def get_disk_ops(rows):
 
 	return toret
 
-def replay_disk_ops(intial_inode_paths_map, rows):
+def replay_disk_ops(initial_paths_inode_map, rows):
+	global args
 	def get_stat(path):
 		try:
 			return os.stat(path)
@@ -98,50 +102,95 @@ def replay_disk_ops(intial_inode_paths_map, rows):
 			return False
 
 	def get_inode_file(inode, mode = None):
-		if not get_stat(args.replayed_snapshot + '/.inodes/' + inode):
+		assert type(inode) == int
+		if not get_stat(args.replayed_snapshot + '/.inodes/' + str(inode)):
 			if mode == None:
 				mode = 0666
-			fd = os.open(args.replayed_snapshot + '/.inodes/' + inode, os.O_CREAT | os.O_WRONLY, mode)
+			if type(mode) == str:
+				mode = int(mode)
+			fd = os.open(args.replayed_snapshot + '/.inodes/' + str(inode), os.O_CREAT | os.O_WRONLY, mode)
 			assert fd > 0
 			os.close(fd)
-		return args.replayed_snapshot + '/.inodes/' + inode
+		return args.replayed_snapshot + '/.inodes/' + str(inode)
+
+	dirinode_map = {} # From initial_inode to replayed_directory_path
+	def is_linked_inode_directory(inode):
+		assert type(inode) == int
+		if inode not in dirinode_map:
+			return False
+		if dirinode_map[inode] == args.replayed_snapshot + '/.inodes/' + str(inode):
+			return False
+		return True
+
+	def get_inode_directory(inode, mode = None):
+		assert type(inode) == int
+		if inode not in dirinode_map:
+			if mode == None:
+				mode = 0777
+			os.mkdir(args.replayed_snapshot + '/.inodes/' + str(inode), mode)
+			dirinode_map[inode] = args.replayed_snapshot + '/.inodes/' + str(inode)
+		return dirinode_map[inode]
+
+	def set_inode_directory(inode, dir_path):
+		assert type(inode) == int
+		dirinode_map[inode] = dir_path
+
+	def initialize_inode_links(initial_paths_inode_map):
+		final_paths_inode_map = myutils.get_path_inode_map(args.replayed_snapshot) # This map is used only for assertions
+		assert len(final_paths_inode_map) == len(initial_paths_inode_map)
+
+		# Asserting there are no hardlinks on the initial list - if there were, 'cp -R' wouldn't have worked correctly.
+		initial_inodes_list = [inode for (inode, entry_type) in initial_paths_inode_map.values()]
+		assert len(initial_inodes_list) == len(set(initial_inodes_list))
+
+		os.system("mkdir " + args.replayed_snapshot + '/.inodes')
+
+		for path in initial_paths_inode_map.keys():
+			assert path in final_paths_inode_map
+			(initial_inode, entry_type) = initial_paths_inode_map[path]
+			(tmp_final_inode, tmp_entry_type) = final_paths_inode_map[path]
+			assert entry_type == tmp_entry_type
+			if entry_type == 'd':
+				set_inode_directory(initial_inode, path)
+			else:
+				os.link(path, args.replayed_snapshot + '/.inodes/' + str(initial_inode))
 
 	os.system("rm -rf " + args.replayed_snapshot)
 	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
-	os.system("mkdir " + args.replayed_snapshot + '/.inodes')
-
-	inode_map = {}
-	for initial_inode in initial_inode_paths_map.keys():
-		paths = initial_inode_paths_map[initial_inode]
-		assert len(paths) > 0
-		final_inode = None
-		for path in paths:
-			assert get_stat(path)
-			if final_inode == None:
-				final_inode = get_stat(path).st_ino
-			else:
-				assert final_inode == get_stat(path).st_ino
-		inode_map[initial_inode] = final_inode
+	initialize_inode_links(initial_paths_inode_map)
 
 	for line in rows:
 		if line.op == 'create_dir_entry':
+			new_path = get_inode_directory(line.parent) + '/' + os.path.basename(line.entry)
+			print dirinode_map
+			print 'new_path == ' + new_path
+			print line.entry_type == TYPE_FILE
 			if line.entry_type == TYPE_FILE:
-				os.link(get_inode_file(line.inode, line.mode), replayed_path(line.entry))
+				print get_inode_file(line.inode, line.mode)
+				os.link(get_inode_file(line.inode, line.mode), new_path)
 			else:
-				assert False
+				assert not is_linked_inode_directory(line.inode) # According to the model, there might
+					# exist two links to the same directory after FS crash-recovery. However, Linux
+					# does not allow this to be simulated. Checking for that condition here - if this
+					# assert is ever triggered in a real workload, we'll have to handle this case
+					# somehow. Can potentially be handled using symlinks.
+				os.rename(get_inode_directory(line.inode, line.mode), new_path)
+				set_inode_directory(line.inode, new_path)
 		elif line.op == 'delete_dir_entry':
-			if line.entry_type == TYPE_FILE:
-				if get_stat(replayed_path(line.entry)):
-					os.unlink(replayed_path(line.entry))
-			else:
-				assert False
+			path = get_inode_directory(line.parent) + '/' + os.path.basename(line.entry)
+			if get_stat(path):
+				if line.entry_type == TYPE_FILE:
+					os.unlink(path)
+				else:
+					os.rename(path, args.replayed_snapshot + '/.inodes/' + str(line.inode)) # Deletion of
+						# directory is equivalent to moving it back into the '.inodes' directory.
 		elif line.op == 'truncate':
 			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
 			assert fd > 0
 			os.ftruncate(fd, line.final_size)
 			os.close(fd)
 		elif line.op == 'write':
-			if line.dump_file == '':
+			if line.dump_file == None:
 				buf = line.override_data
 			else:
 				fd = os.open(line.dump_file, os.O_RDONLY)
@@ -153,4 +202,8 @@ def replay_disk_ops(intial_inode_paths_map, rows):
 			os.write(fd, buf)
 			os.close(fd)
 			buf = ""
+		else:
+			assert line.op == 'sync'
+
+	os.system("rm -rf " + args.replayed_snapshot + '/.inodes')
 
