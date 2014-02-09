@@ -476,6 +476,8 @@ class Replayer:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		assert False
 	def dops_single(self, double):
+		if double == None:
+			return -1
 		seen_disk_ops = 0
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
@@ -486,6 +488,8 @@ class Replayer:
 			drop_list = [drop_list]
 		drop_list = [self.dops_single(double) for double in drop_list]
 		single_answers = sorted(self.test_suite.drop_list_of_ops(drop_list))
+		if len(single_answers) == 0:
+			return None
 		max_single_answers = single_answers[-1]
 		for j in range(0, max_single_answers):
 			assert j in drop_list or j in single_answers
