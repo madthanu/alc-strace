@@ -21,6 +21,7 @@ from mystruct import Struct
 from mystruct import colorize
 import myutils
 import mystruct
+import gc
 
 innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bdflush","bind","break","brk","cacheflush",
@@ -304,81 +305,64 @@ class Replayer:
 		for i in self.micro_ops:
 			i.hidden_id = str(cnt)
 			cnt = cnt + 1
-
-		self.__end_at = len(self.micro_ops)
+		self.__micro_end = len(self.micro_ops) - 1
+		self.__disk_end = 0 # Will be set during the dops_generate() call
+		self.dops_generate()
 		self.saved = dict()
-		self.saved[0] = (copy.deepcopy(self.micro_ops), self.__end_at)
+		self.saved[0] = (copy.deepcopy(self.micro_ops), self.__micro_end, self.__disk_end)
 		self.short_outputs = ""
 		self.replay_count = 0
-		self.__cached_combos = {}
 		self.path_inode_map = path_inode_map
+
+		to_replay = []
+		for micro_op in self.micro_ops:
+			to_replay += micro_op.hidden_disk_ops
+		self.test_suite = auto_test.ALCTestSuite(to_replay)
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
 			f.write(
-				colorize(str(i), 3 if i > self.__end_at else 2) +
+				colorize(str(i), 3 if i > self.__micro_end else 2) +
 				'\t' +
 				colorize(str(self.micro_ops[i].hidden_id), 3) + 
 				'\t' +
 				str(self.micro_ops[i]) +
 				 '\n')
-			if i <= self.__end_at and self.micro_ops[i].op not in ['stdout', 'stderr']:
-				for disk_op in self.micro_ops[i].hidden_disk_ops:
-					f.write('\t\t' + str(disk_op) + '\n')
-			if i == self.__end_at:
-				f.write('-------------------------------------\n')
+			for j in range(0, len(self.micro_ops[i].hidden_disk_ops)):
+				f.write('\t\t' + str(self.micro_ops[i].hidden_disk_ops[j]) + '\n')
+				if i == self.__micro_end and j == self.__disk_end:
+					f.write('-------------------------------------\n')
 		f.close()
-	def end_at(self, i):
-		self.__end_at = i
+	def end_at(self, i, j = None):
+		if type(i) == tuple:
+			assert j == None
+			j = i[1]
+			i = i[0]
+		if j == None:
+			j = len(self.micro_ops[i].hidden_disk_ops) - 1
+		self.__micro_end = i
+		self.__disk_end = j
 	def save(self, i):
 		assert int(i) != 0
-		self.saved[int(i)] = (copy.deepcopy(self.micro_ops), self.__end_at)
+		self.saved[int(i)] = copy.deepcopy((self.micro_ops, self.__micro_end, self.__disk_end))
 	def load(self, i):
 		assert int(i) in self.saved
-		(self.micro_ops, self.__end_at) = self.saved[int(i)]
-		self.micro_ops = copy.deepcopy(self.micro_ops)
-	def __combos(self, micro_ops, limit):
-		tuple_ops = tuple(micro_ops)
-		if tuple_ops in self.__cached_combos:
-			(combos, cached_limit) = self.__cached_combos[tuple_ops]
-			if cached_limit >= limit:
-				return combos[0 : limit]
-		combos = auto_test.get_combos(copy.deepcopy(micro_ops), limit)
-		self.__cached_combos[tuple_ops] = (combos, limit)
-		return combos
-	def auto_test(self, test_case = None, begin_at = None, limit = 100):
-		if begin_at == None:
-			begin_at = 0
-
-		pre = self.micro_ops[0 : begin_at]
-		middle = self.micro_ops[begin_at : self.__end_at + 1]
-		post = self.micro_ops[self.__end_at + 1 : ]
-
-		original_end_at = self.__end_at
-		middle_len = len(middle)
-
-		if test_case != None:
-			limit = test_case
-		combos = self.__combos(middle, limit)
-		assert(len(combos) != 0)
-		if test_case != None:
-			assert(test_case < len(combos))
-			combos = combos[test_case : test_case + 1]
-
-		for combo in combos:
-			self.micro_ops = copy.deepcopy(pre + combo + post)
-			self.__end_at = original_end_at - middle_len + len(combo)
-			self.replay_and_check()
-	def replay_and_check(self, summary_string = None, using_disk_ops = False):
+		(self.micro_ops, self.__micro_end, self.__disk_end) = copy.deepcopy(self.saved[int(i)])
+	def __replay_and_check(self, using_disk_ops = False, summary_string = None):
 		# Replaying and checking
 		if using_disk_ops:
-			diskops.replay_disk_ops(path_inode_map, diskops.get_disk_ops(self.micro_ops[0 : self.__end_at + 1]))
-			os.system('rm -rf /tmp/replayed_snapshot_diskops')
-			os.system('mv /tmp/replayed_snapshot /tmp/replayed_snapshot_diskops')
-		replay_micro_ops(self.micro_ops[0 : self.__end_at + 1])
+			to_replay = []
+			for i in range(0, self.__micro_end + 1):
+				micro_op = self.micro_ops[i]
+				till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
+				to_replay += micro_op.hidden_disk_ops[0 : till]
+			diskops.replay_disk_ops(self.path_inode_map, to_replay)
+		else:
+			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
 		subprocess.call(args.checker_tool + " " + args.replayed_snapshot, shell = True, stdout = f)
 		f.close()
+
 		# Storing output in all necessary locations
 		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
 		self.print_ops()
@@ -387,17 +371,24 @@ class Replayer:
 			summary_string = 'R' + str(self.replay_count)
 		else:
 			summary_string = str(summary_string)
+		tmp_short_output = '\n'
 		if os.path.isfile('/tmp/short_output'):
 			f = open('/tmp/short_output', 'r')
-			self.short_outputs += str(summary_string) + '\t' + f.read()
+			tmp_short_output = f.read()
 			f.close()
+		if tmp_short_output[-1] == '\n':
+			tmp_short_output = tmp_short_output[0 : -1]
+		self.short_outputs += str(summary_string) + '\t' + tmp_short_output + '\n'
+		print 'replay_check(' + summary_string + ') finished. ' + tmp_short_output
 		# Incrementing replay_count
 		self.replay_count += 1
-		print('replay_check(' + summary_string + ') finished.')
+
+	def replay_and_check(self, summary_string = None):
+		self.__replay_and_check(False, summary_string)
 	def remove(self, i):
 		assert i < len(self.micro_ops)
 		self.micro_ops.pop(i)
-		self.__end_at -= 1
+		self.__micro_end -= 1
 	def set_data(self, i, data = string.ascii_uppercase + string.digits, randomize = False):
 		data = str(data)
 		assert i < len(self.micro_ops)
@@ -417,7 +408,7 @@ class Replayer:
 		line = self.micro_ops[i]
 		assert line.op == 'write'
 		self.micro_ops.pop(i)
-		self.__end_at -= 1
+		self.__micro_end -= 1
 		current_offset = line.offset
 		remaining = line.count
 
@@ -443,8 +434,82 @@ class Replayer:
 			current_offset += new_line.count
 			self.micro_ops.insert(i, new_line)
 			i += 1
-			self.__end_at += 1
+			self.__micro_end += 1
+	def dops_generate(self, ids = None, splits = 3):
+		if type(ids) == int:
+			ids = [ids]
+		if ids == None:
+			ids = range(0, len(self.micro_ops))
+		for micro_op_id in ids:
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], micro_op_id, splits)
+			if micro_op_id == self.__micro_end:
+				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
+	def dops_remove(self, i, j = None):
+		if type(i) == tuple:
+			assert j == None
+			j = i[1]
+			i = i[0]
+		assert j != None
+		assert i < len(self.micro_ops)
+		assert 'hidden_disk_ops' in self.micro_ops[i].__dict__
+		assert j < len(self.micro_ops[i].hidden_disk_ops)
+		self.micro_ops[i].hidden_disk_ops.pop(j)
+		if i == self.__micro_end:
+			self.__disk_end -= 1
+	def dops_replay(self, summary_string = None):
+		self.__replay_and_check(True, summary_string)
+	def dops_len(self, i = None):
+		if i == None:
+			total = 0
+			for micro_op in self.micro_ops:
+				total += len(micro_op.hidden_disk_ops)
+			return total
+		assert i < len(self.micro_ops)
+		return len(self.micro_ops[i].hidden_disk_ops)
+	def dops_double(self, single):
+		i = 0
+		seen_disk_ops = 0
+		for i in range(0, len(self.micro_ops)):
+			micro_op = self.micro_ops[i]
+			if single < seen_disk_ops + len(micro_op.hidden_disk_ops):
+				return (i, single - seen_disk_ops)
+			seen_disk_ops += len(micro_op.hidden_disk_ops)
+		assert False
+	def dops_single(self, double):
+		seen_disk_ops = 0
+		for micro_op in self.micro_ops[0: double[0]]:
+			seen_disk_ops += len(micro_op.hidden_disk_ops)
+		return seen_disk_ops + double[1]
+	def dops_independent_till(self, drop_list):	
+		if type(drop_list) != list:
+			assert type(drop_list) == tuple
+			drop_list = [drop_list]
+		drop_list = [self.dops_single(double) for double in drop_list]
+		single_answers = sorted(self.test_suite.drop_list_of_ops(drop_list))
+		max_single_answers = single_answers[-1]
+		for j in range(0, max_single_answers):
+			assert j in drop_list or j in single_answers
+		return self.dops_double(max_single_answers)
+	def _dops_verify_replayer(self, i = None):
+		if i == None:
+			to_check = range(0, len(self.micro_ops))
+		else:
+			to_check = [i]
+		for till in to_check:
+			to_replay = []
+			for micro_op in self.micro_ops[0 : till + 1]:
+				for disk_op in micro_op.hidden_disk_ops:
+					to_replay.append(disk_op)
+			diskops.replay_disk_ops(self.path_inode_map, to_replay)
+			os.system("rm -rf /tmp/disk_ops_output")
+			os.system("cp -R " + args.replayed_snapshot + " /tmp/disk_ops_output")
 
+			replay_micro_ops(self.micro_ops[0 : till + 1])
+
+ 			subprocess.call("diff -ar " + args.replayed_snapshot + " /tmp/disk_ops_output > /tmp/replay_output", shell = True)
+			self.short_outputs += str(till) + '\t' + subprocess.check_output("diff -ar " + args.replayed_snapshot + " /tmp/disk_ops_output | wc -l", shell = True)
+			self.replay_count += 1
+			print('__dops_verify_replayer(' + str(till) + ') finished.')
 	def listener_loop(self):
 		os.system("rm -f /tmp/fifo_in")
 		os.system("rm -f /tmp/fifo_out")
@@ -459,6 +524,7 @@ class Replayer:
 				self.short_outputs = ""
 				self.replay_count = 0
 				os.system('rm -rf /tmp/replay_outputs_long/')
+				os.system('echo > /tmp/replay_output')
 				os.system('mkdir -p /tmp/replay_outputs_long/')
 				f2 = open(args.orderings_script, 'r')
 				try:

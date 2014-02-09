@@ -1,0 +1,557 @@
+#!/usr/bin/python2.7
+
+import argparse
+from collections import defaultdict
+import itertools
+import mystruct
+import pickle
+import pprint
+from sets import Set
+import sys
+
+# I use system call and operation interchangeably in the script. Both are used
+# to denote something like fsync(3) or write(4,"hello", 5) in the input trace
+# file.
+
+# TODO: Change script to work correctly with multiple threads. Right now script
+# parses thread value, but doesn't really use that value anywhere.
+
+# Parse input arguments. 
+parser = argparse.ArgumentParser()
+parser.add_argument('--op_file', dest = 'op_file', type = str, default = False)
+parser.add_argument("-b","--brute_force_verify", help="Verify combinations via\
+                    brute force", 
+                    action="store_true")
+parser.add_argument("-p","--print_dependencies", help="Print dependencies", 
+                    action="store_true")
+parser.add_argument("-v","--verbose", help="Print dependency calculations.", 
+                    action="store_true")
+parser.add_argument("-vv","--very_verbose", help="Print internal re-ordering calculations.", 
+                    action="store_true")
+#args = parser.parse_args()
+
+# This causes problems on my mac. Keeping for Thanu's repo.
+if __name__ == '__main__':
+	args = parser.parse_args()
+else:
+	args = parser.parse_args([])
+
+if args.very_verbose:
+    args.verbose = True
+
+# The list of syscalls we are interested in.
+calls_of_interest = ["write", "sync", "delete_dir_entry", "create_dir_entry", "truncate"]
+# The list of syscalls treated as ordering points.
+ordering_calls = ["sync"]
+# Metadata calls.
+metadata_calls = ["create_dir_entry", "delete_dir_entry"]
+
+# Number of operations of each type per file.
+num_ops_per_file = {}
+
+# Map of parent per file.
+parent_dir = {}
+
+# Map of children per parent.
+child_list = defaultdict(set)
+
+# Global list of operations.
+op_list = []
+
+# Creation op for each filename and generation.
+creation_op = {} 
+
+# Unlink op for each filename.
+unlink_op = {}
+
+# Current generation of each filename.
+current_gen = {}
+
+# Set of global ids for operations per filename, per generation.
+file_operation_set = defaultdict(Set)
+
+# Set of all files involved in the trace.
+filename_set = Set() 
+
+# Set of all current dirty writes for a file.
+dirty_write_ops = defaultdict(set) 
+dirty_write_ops_inode = defaultdict(set)
+
+# Latest fsync on a file.
+latest_fsync_op = {}
+
+# Latest global fsync (on any file).
+latest_fsync_on_any_file = None 
+
+# Number of links currently for this inode.
+num_links = {}
+
+# Map inodes to filenames (one inode can map to many names) and filenames to
+# inode,
+inode_to_filenames = defaultdict(set)
+filename_to_inode = {} 
+
+# Test whether the first path is a parent of the second.
+def is_parent(path_a, path_b):
+    return path_b.startswith(path_a)
+
+# Get the current gen of a file. Bootstrap if necessary.
+def get_current_gen(inode):
+    global current_gen
+    if inode not in current_gen:
+        current_gen[inode] = 0
+    return current_gen[inode]
+
+# Increment generation.
+def incr_current_gen(inode):
+    global current_gen
+    if inode not in current_gen:
+        current_gen[inode] = 0
+    current_gen[inode] += 1
+    return current_gen[inode]
+
+# Class to encapsulate operation details.
+class Operation:
+
+    # All the setup
+    def __init__(self, micro_op, micro_op_id):
+        global num_ops_per_file
+        global file_operation_set
+        global filename_set
+        #print(micro_op)
+        self.syscall = micro_op.op 
+        self.micro_op = micro_op
+        # Set of ops that depend on this op: dropping this op means dropping those ops
+        # also.
+        self.dependent_ops = Set()
+        self.inode = micro_op.inode
+        # Get the filename for metadata calls. 
+        if micro_op.op in metadata_calls:  
+            if micro_op.op in ["create_dir_entry", "delete_dir_entry"]:
+                self.parent = micro_op.parent
+            self.filename = micro_op.entry
+            filename_set.add(self.filename)
+            # Set up the maps
+            filename_to_inode[self.filename] = self.inode
+            inode_to_filenames[self.inode].add(self.filename)
+        else:
+            # Need to consult the map to get the filename.
+            # Note that an inode can be mapped to many names. We just get the
+            # first name in the list. It shouldn't matter for most operations.
+            for x in inode_to_filenames[self.inode]:
+                #print("setting filename to " + x) 
+                self.filename = x
+                break
+
+        # The file specific ID for each inode 
+        op_index = (self.inode, self.syscall)
+        self.op_id = num_ops_per_file[op_index] = num_ops_per_file.get(op_index, 0) + 1
+	self.micro_op_id = micro_op_id
+        # The global id for each operation
+        self.global_id = len(op_list)
+        # The set of ops that this is dependent on.
+        self.deps = Set()
+        # Process parental relationships.
+        #self.process_parental_relationship()
+        # Handle creation and unlink links. 
+        self.process_creation_and_unlinking()
+        # The generation of the file involved in this op. This comes last since
+        # generation can be updated by creation and unlinking.
+        self.file_gen = get_current_gen(self.inode) 
+        # Update the operation set for this file.
+        # file_operation_set[(self.filename, self.file_gen)].add(self)
+        # Update dirty write collection if required.
+        self.update_dirty_write_collection()
+        # If the file has a parent, add operation set for the parent as well.
+        # TODO: Make this work for multiple levels: currently only works for
+        # single level up.
+        '''
+        if self.filename in parent_dir:
+            parent_file = parent_dir[self.filename]
+            file_operation_set[(parent_file, self.file_gen)].add(self)
+        '''
+
+        # Finally, calculate dependencies
+        self.calculate_dependencies()
+        # Clear write dependencies if required.
+        self.clear_dirty_write_collection()
+
+    # This updates the dirty write collection.
+    def update_dirty_write_collection(self):
+        global dirty_write_ops
+        if self.syscall in ["write", "truncate"]:
+            dirty_write_ops_inode[self.inode].add(self)
+        # If this is a create/dir operation, the operation is actually on the
+        # parent inode.
+        if self.syscall in ["create_dir_entry", "delete_dir_entry"]:
+            dirty_write_ops_inode[self.parent].add(self)
+        
+    # Clears dirty write collection on fsync.
+    # TODO: handle file_sync_range correctly. Currently treating as 
+    # the same as fdatasync. 
+    def clear_dirty_write_collection(self):
+        global dirty_write_ops
+        global latest_fsync_op
+        global latest_fsync_on_any_file
+        if self.syscall in ["sync"]: 
+            dirty_write_ops_inode[self.inode].clear()
+            #latest_fsync_op[self.filename] = self
+            latest_fsync_on_any_file = self
+
+    # This sets up the parent child relationships.
+    def process_parental_relationship(self):
+        global filename_set
+        global parent_dir
+        global child_list
+        # Process parent and child information.
+        for f in filename_set:
+            if self.filename != f and is_parent(f, self.filename)\
+            and (self.filename not in parent_dir):
+                parent_dir[self.filename] = f
+                child_list[f].add(self.filename)
+            # Also check for self.dest
+            if self.syscall in ["link", "rename"]:
+                if self.dest != f and is_parent(f, self.dest)\
+                and (self.dest not in parent_dir):
+                    parent_dir[self.dest] = f
+                    child_list[f].add(self.dest)
+
+    # This handles creation and unlink relationships.
+    def process_creation_and_unlinking(self):
+        global creation_op
+        global unlink_op
+        if self.syscall in ["create_dir_entry"]:
+            gen = incr_current_gen(self.inode)
+            fg_key = (self.filename, gen)
+            creation_op[fg_key] = self 
+        elif self.syscall in "del_dir_entry": 
+            gen = get_current_gen(self.inode)
+            fg_key = (self.filename, gen)
+            unlink_op[fg_key] = self 
+
+    # This method returns a nice short representation of the operation. This
+    # needs to be updated as we support new operations. See design doc for what
+    # the representation is.
+    def get_short_string(self):
+        rstr = ""
+        if self.syscall == "write":
+            rstr += "W"
+        elif self.syscall == "create_dir_entry":
+            rstr += "L"
+        elif self.syscall == "delete_dir_entry":
+            rstr += "U"
+        elif self.syscall in ["sync"]: 
+            rstr += "F"
+        elif self.syscall == "truncate":
+            rstr += "T"
+
+        rstr += str(self.op_id)
+        if self.syscall in ["create_dir_entry"]:
+            rstr += "(p= " + str(self.parent) + ", " + self.filename + ", c=" + str(self.inode)
+        elif self.syscall in ["delete_dir_entry"]:
+            rstr += "(p= " + str(self.parent) + ", " + self.filename + ", c=" + str(self.inode)
+        else:        
+            rstr += "(" + str(self.inode)
+
+        rstr += ")"
+        return rstr
+
+    # This method calculates the existential dependencies of an operation:
+    # basically, we can only include this operation in an combination if one of
+    # the conditions for this operation evaluates to true. 
+    def calculate_dependencies(self):
+        global op_list
+    
+        # If this is an fsync, then it depends on all the dirty writes to this
+        # file previously.
+        if self.syscall in ordering_calls:
+            for wop in dirty_write_ops_inode[self.inode]:
+                self.deps = self.deps | wop.deps
+                self.deps.add(wop)
+
+        # The fsync dependency.
+        # Each operation on a file depends on the last fsync to the file. The
+        # reasoning is that this operation could not have happened without that
+        # fsync happening.
+        # CLARIFY: does the op depend on the last fsync *on the same file* or
+        # just the last fsync (on any file) in the thread?
+        '''
+        if self.filename in latest_fsync_op:
+            fop = latest_fsync_op[self.filename]
+            self.deps = self.deps | fop.deps
+            self.deps.add(fop)
+        '''
+        if latest_fsync_on_any_file:
+            self.deps = self.deps | latest_fsync_on_any_file.deps
+            self.deps.add(latest_fsync_on_any_file)
+
+# Process deps to form populate dependent_ops.
+for op in op_list:
+    for dep in op.deps():
+        dep.dependent_ops.add(op)	
+
+def test_validity(op_list):
+    valid = True
+    # Dependence check
+    op_set = Set(op_list)
+    for op in op_list:
+        if not op.deps <= op_set:
+            return False
+    return True
+
+# Print the whole thing on one line instead of as a list.
+def print_op_string(op_combo):
+    str = ""
+    for x in op_combo:
+        str += x.get_short_string() + " "
+    print(str)
+
+# The brute force method.
+def try_all_combos(op_list, limit = None, limit_tested = 10000000):
+    ans_list = []
+    clist = op_list[:]
+    total_size = len(op_list) 
+    set_count = 0
+    o_count = 0
+    for i in range(1, total_size + 1):
+        for op_combo in itertools.combinations(op_list, i):
+            o_count += 1
+            assert(o_count <= limit_tested)
+            if limit != None and set_count >= limit:
+                return ans_list
+            if test_validity(op_combo):
+                mop_list = []
+                for xx in op_combo:
+                    mop_list.append(xx.micro_op)
+                #ans_list.append(mop_list)
+                ans_list.append(op_combo)
+                set_count += 1
+    return get_micro_ops_set(ans_list)
+
+# Globals for combo generation.
+generated_combos = set()
+max_combo_limit = None
+max_combos_tested = 10000000
+num_recursive_calls = 0
+
+def get_micro_ops_set(vijayops_set):
+    return [[x.micro_op for x in combo] for combo in vijayops_set]
+
+# Second external interface. Test if a given micro_combos 
+
+# Class to contain all the test class suites.
+class ALCTestSuite:
+    # Load it up with a list of micro ops 
+    def __init__(self, micro_op_list):
+        self.op_list = [] 
+        self.generated_combos = set()
+        self.max_combo_limit = None
+        self.max_combos_tested = 10000000
+        self.num_recursive_calls = 0
+        self.total_len = 0
+        self.id_to_micro_op_map = {}
+
+        for micro_op in micro_op_list:
+            #print(micro_op)
+            assert(micro_op.op in calls_of_interest)
+            x = Operation(micro_op, len(self.op_list))
+            self.id_to_micro_op_map[len(self.op_list)] = x
+            self.op_list.append(x)
+
+        self.total_len = len(self.op_list)
+
+    # == External ==
+    # Test if this combo is valid. Combo is specified using the id numbers of
+    # the operations in the combo.
+    # 
+    # Input: combo ids (set or list of operation ids)
+    # Output: Boolean as to whether this is a valid combo. 
+    def test_combo_validity(self, combo):
+        combo_to_test = []
+        for op_id in combo:
+            combo_to_test.append(self.id_to_micro_op_map[op_id])
+        validity = test_validity(combo_to_test)
+        return validity
+
+    # The recursive function that calculates all the combos.
+    # The op_list is treated as a global constant.
+    # Each invocation of the function has the prefix (0 to n-1) that has been
+    # processed plus the ops that have been dropped in that prefix.
+    def generate_combos(self, start, end, drop_set):
+        # Check limits
+        self.num_recursive_calls += 1
+        assert(self.num_recursive_calls <= self.max_combos_tested)
+        # Return if we have enough combos.
+        if self.max_combo_limit and len(self.generated_combos) >= self.max_combo_limit:
+            return
+
+        # Create the combo set.
+        op_set_so_far = Set(self.op_list[start:(end+1)]) - drop_set
+        op_set_so_far = sorted(op_set_so_far, key=lambda Operation: Operation.global_id)
+        if len(op_set_so_far):
+            self.generated_combos.add(tuple(op_set_so_far))
+
+        # Return if we are at the end of the op_list.
+        if end == (self.total_len - 1):
+            return
+
+        # Build up a local drop_set
+        local_drop_set = drop_set.copy()
+
+        # Look for candidates beyond the end position.
+        for i in range(end + 1, self.total_len):
+            if len(self.op_list[i].deps & local_drop_set) == 0:
+                # Can be included
+                self.generate_combos(start, i, local_drop_set)
+                # Add this op to the local drop set for the next iteration.
+                local_drop_set.add(self.op_list[i])
+
+    # == External ==
+    # Get all the combos.  
+    # 
+    # Input: maximum number of combos to be returned (limit) and tested (limit_tested) 
+    # Output: list of items - each item is a combo (array of micro ops)
+    def get_combos(self, limit = None, limit_tested = 10000000):
+        # Set limits
+        self.max_combo_limit = limit
+        self.max_combos_tested = limit_tested
+        self.num_recursive_calls = 0
+
+        # Generate all the combos
+        self.total_len = len(self.op_list)
+        self.generate_combos(0, -1, Set())
+
+        # If we want to debug, return the op list (not micro ops)
+        if args.very_verbose:
+            return self.generated_combos
+        else:
+            return get_micro_ops_set(self.generated_combos)
+
+    # == External ==
+    # Drop a list of operations from the combination. This can result in
+    # needing to drop more operations (which depended on the operations we just
+    # dropped). 
+    # 
+    # Input: list of operation ids to drop 
+    # Output: list of micro-ops that result after dropping the input list.
+    def drop_list_of_ops(self, op_id_list):
+        op_set = Set(self.op_list) 
+        drop_set = Set()
+        for op_id in op_id_list:
+            # Drop op and its dep
+            drop_op = self.id_to_micro_op_map[op_id]
+            drop_set.add(drop_op)
+        # Recurse until no new ops are added to drop_set.
+        prevlen = len(drop_set)
+        droplen = 0
+        while droplen != prevlen:
+            prevlen = len(drop_set)
+            for op in op_set:
+                if op.deps & drop_set:
+                    drop_set.add(op)
+            droplen = len(drop_set)
+        new_op_set = op_set - drop_set
+        # assert(test_validity(new_op_set))
+        # Return as micro op list
+        return [x.micro_op_id for x in new_op_set] 
+
+    # == External ==
+    # Keep a list of operations in the combination. This can result in needing
+    # to keep all their dependencies.
+    # 
+    # Input: list of operation ids to keep
+    # Output: list of micro-ops that are needed to keep the input list.
+    def keep_list_of_ops(self, op_id_list):
+        op_set = Set(self.op_list) 
+        keep_set = Set()
+        for op_id in op_id_list:
+            # Drop op and its dep
+            keep_op = self.id_to_micro_op_map[op_id]
+            keep_set.add(keep_op)
+        # Get all the deps of all the ops in the keep set. 
+        dep_set = Set()
+        for op in keep_set:
+            dep_set = dep_set | op.deps
+        keep_set = keep_set | dep_set
+        assert(test_validity(keep_set))
+        # Return as micro op list
+        return [x.micro_op_id for x in new_op_set] 
+
+    # Pretty print an op list with the representation for each operation.
+    def print_op_list(self):
+        for op in self.op_list:
+            print(op.get_short_string())
+
+    # Print deps.
+    def print_deps(self):
+        for op in self.op_list:
+            print(op.get_short_string() + "depends on:")
+            print_op_string(op.deps)
+
+# Driver main showing how the code is meant to be used.
+if __name__ == '__main__':
+    micro_op_list = pickle.load(open(args.op_file, 'r'))
+
+    testSuite = ALCTestSuite(micro_op_list) 
+    combos = testSuite.get_combos(100)
+    print("Number of combos: " + str(len(combos)))
+
+    if args.very_verbose:
+        for x in combos:
+            print_op_string(x)
+
+    # Test case of how to use test_combo_validity
+    combo_list = [1, 2, 51]
+    print(testSuite.test_combo_validity(combo_list))
+    combo_list = [1, 2, 3]
+    print(testSuite.test_combo_validity(combo_list))
+
+    # Testing out the drop list functionality for single item list.
+    for i in range(0, len(testSuite.op_list)):
+        op_id_list = []
+        op_id_list.append(i)
+        result_set = testSuite.drop_list_of_ops(op_id_list)
+        print(str(i) + ": " + str(len(result_set)))
+
+    # Test for random combos. 
+    op_id_list = []
+    op_id_list.append(2)
+    op_id_list.append(5)
+    op_id_list.append(40)
+    result_set = testSuite.drop_list_of_ops(op_id_list)
+    print(str(len(result_set)))
+
+    # Testing out the drop list functionality for single item list.
+    for i in range(0, len(testSuite.op_list)):
+        op_id_list = []
+        op_id_list.append(i)
+        result_set = testSuite.keep_list_of_ops(op_id_list)
+        print(str(i) + ": " + str(len(result_set)))
+
+    # Testing keep list functionality.
+    op_id_list = []
+    op_id_list.append(2)
+    op_id_list.append(5)
+    op_id_list.append(40)
+    result_set = testSuite.keep_list_of_ops(op_id_list)
+    print(str(len(result_set)))
+
+    # Print out the list of operations
+    if args.very_verbose:
+        print("List of operations:")
+        testSuite.print_op_list()
+
+    if args.print_dependencies or args.very_verbose:
+        testSuite.print_deps()
+
+    if args.brute_force_verify:
+        all_combos = try_all_combos(op_list) 
+        mismatch_flag = False
+        print("Mis-matches:")
+        for x in combos:
+            if x not in all_combos:
+                print_op_string(x)
+                mismatch_flag = True
+          
+            if not mismatch_flag:
+                print("Perfect Match!")
