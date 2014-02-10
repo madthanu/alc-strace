@@ -47,6 +47,12 @@ def coded_colorize(s, s2 = None):
 		s2 = s
 	return colorize(s, colors[hash(s2) % len(colors)])
 
+def colors_test(fname):
+	f = open(fname, 'w')
+	for i in range(0, 30):
+		f.write(colorize(str(i), i) + '\n')
+	f.close()
+
 def short_path(name):
 	if not name.startswith(args.base_path):
 		return name

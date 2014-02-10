@@ -107,6 +107,8 @@ def get_disk_ops(line, micro_op_id, splits):
 	else:
 		assert False
 
+	for disk_op in line.hidden_disk_ops:
+		disk_op.hidden_omitted = False
 	return line.hidden_disk_ops
 
 def replay_disk_ops(initial_paths_inode_map, rows):
@@ -181,6 +183,7 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 			if line.entry_type == TYPE_FILE:
 				if os.path.exists(new_path):
 					os.unlink(new_path)
+				assert not os.path.exists(new_path)
 				os.link(get_inode_file(line.inode, line.mode), new_path)
 			else:
 				assert not is_linked_inode_directory(line.inode) # According to the model, there might

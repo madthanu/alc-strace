@@ -318,6 +318,7 @@ class Replayer:
 		for micro_op in self.micro_ops:
 			to_replay += micro_op.hidden_disk_ops
 		self.test_suite = auto_test.ALCTestSuite(to_replay)
+		self.test_suite_initialized = True
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
@@ -329,18 +330,16 @@ class Replayer:
 				str(self.micro_ops[i]) +
 				 '\n')
 			for j in range(0, len(self.micro_ops[i].hidden_disk_ops)):
-				f.write('\t\t' + str(self.micro_ops[i].hidden_disk_ops[j]) + '\n')
+				disk_op_str = str(self.micro_ops[i].hidden_disk_ops[j])
+				if self.micro_ops[i].hidden_disk_ops[j].hidden_omitted:
+					disk_op_str = colorize(disk_op_str, 3)
+				f.write('\t' + str(j) + '\t' + disk_op_str + '\n')
 				if i == self.__micro_end and j == self.__disk_end:
 					f.write('-------------------------------------\n')
 		f.close()
-	def end_at(self, i, j = None):
-		if type(i) == tuple:
-			assert j == None
-			j = i[1]
-			i = i[0]
-		if j == None:
-			j = len(self.micro_ops[i].hidden_disk_ops) - 1
-		self.__micro_end = i
+	def end_at(self, i):
+		j = len(self.micro_ops[i].hidden_disk_ops) - 1
+		self.self.__micro_end = i
 		self.__disk_end = j
 	def save(self, i):
 		assert int(i) != 0
@@ -355,7 +354,9 @@ class Replayer:
 			for i in range(0, self.__micro_end + 1):
 				micro_op = self.micro_ops[i]
 				till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
-				to_replay += micro_op.hidden_disk_ops[0 : till]
+				for j in range(0, till):
+					if not micro_op.hidden_disk_ops[j].hidden_omitted:
+						to_replay.append(micro_op.hidden_disk_ops[j])
 			diskops.replay_disk_ops(self.path_inode_map, to_replay)
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
@@ -386,10 +387,12 @@ class Replayer:
 	def replay_and_check(self, summary_string = None):
 		self.__replay_and_check(False, summary_string)
 	def remove(self, i):
+		self.test_suite_initialized = False
 		assert i < len(self.micro_ops)
 		self.micro_ops.pop(i)
 		self.__micro_end -= 1
 	def set_data(self, i, data = string.ascii_uppercase + string.digits, randomize = False):
+		self.test_suite_initialized = False
 		data = str(data)
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
@@ -404,6 +407,7 @@ class Replayer:
 	def set_zeros(self, i):
 		self.set_data(i, data = '0', randomize = True)
 	def split(self, i, count = None, sizes = None):
+		self.test_suite_initialized = False
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
 		assert line.op == 'write'
@@ -435,7 +439,19 @@ class Replayer:
 			self.micro_ops.insert(i, new_line)
 			i += 1
 			self.__micro_end += 1
+	def dops_end_at(self, i, j = None):
+		if type(i) == tuple:
+			assert j == None
+			j = i[1]
+			i = i[0]
+		assert j != None
+		self.__micro_end = i
+		self.__disk_end = j
+	def dops_set_legal(self):
+		self.test_suite = auto_test.ALCTestSuite(to_replay)
+		self.test_suite_initialized = True
 	def dops_generate(self, ids = None, splits = 3):
+		self.test_suite_initialized = False
 		if type(ids) == int:
 			ids = [ids]
 		if ids == None:
@@ -444,7 +460,7 @@ class Replayer:
 			diskops.get_disk_ops(self.micro_ops[micro_op_id], micro_op_id, splits)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
-	def dops_remove(self, i, j = None):
+	def __dops_get_i_j(self, i, j):
 		if type(i) == tuple:
 			assert j == None
 			j = i[1]
@@ -453,9 +469,17 @@ class Replayer:
 		assert i < len(self.micro_ops)
 		assert 'hidden_disk_ops' in self.micro_ops[i].__dict__
 		assert j < len(self.micro_ops[i].hidden_disk_ops)
+		return (i, j)
+
+	def dops_remove(self, i, j = None):
+		self.test_suite_initialized = False
+		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops.pop(j)
 		if i == self.__micro_end:
 			self.__disk_end -= 1
+	def dops_omit(self, i, j = None):
+		(i, j) = self.__dops_get_i_j(i, j)
+		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
 	def dops_replay(self, summary_string = None):
 		self.__replay_and_check(True, summary_string)
 	def dops_len(self, i = None):
@@ -482,7 +506,8 @@ class Replayer:
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
-	def dops_independent_till(self, drop_list):	
+	def dops_independent_till(self, drop_list):
+		assert self.test_suite_initialized
 		if type(drop_list) != list:
 			assert type(drop_list) == tuple
 			drop_list = [drop_list]
