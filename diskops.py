@@ -11,15 +11,25 @@ TYPE_FILE = 1
 args = None
 
 def get_disk_ops(line, micro_op_id, splits):
-	def trunc_disk_ops(inode, initial_size, final_size):
+	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
 		toret = []
-		
+
+		# If we are making the file smaller, follow the same algorithm
+		# as making the file bigger. But, exchange the initial_size and
+		# final_size in the beginning, and then reverse the final
+		# output list.
 		invert = False
 		if initial_size > final_size:
 			t = initial_size
 			initial_size = final_size
 			final_size = t
 			invert = True
+
+		if append_micro_op:
+			assert not invert
+			assert append_micro_op.inode == inode
+			assert append_micro_op.offset == initial_size
+			assert append_micro_op.count == (final_size - initial_size)
 
 		start = initial_size
 		remaining = final_size - initial_size
@@ -31,6 +41,18 @@ def get_disk_ops(line, micro_op_id, splits):
 			end = count + start
 			disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end)
 			toret.append(disk_op)
+			# If the file is becoming bigger, that area might end up containing garbage data or zeros.
+			if not invert:
+				override_data = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(count))
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = override_data)
+				# TODO: Currently not writing zeros explicitly, since this will be simulated by simple truncates. However, unsure of this' impact on the heuristics.
+				toret.append(disk_op)
+
+			if append_micro_op:
+				dump_offset = append_micro_op.dump_offset + (start - append_micro_op.offset)
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = dump_offset, count = count, dump_file = append_micro_op.dump_file, override_data = None)
+				toret.append(disk_op)
+	
 			remaining -= count
 			start = end
 
@@ -68,6 +90,8 @@ def get_disk_ops(line, micro_op_id, splits):
 		line.hidden_disk_ops += link_disk_ops(line.dest_parent, line.source_inode, line.dest)
 	elif line.op == 'trunc':
 		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.initial_size, line.final_size)
+	elif line.op == 'append':
+		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
 	elif line.op == 'write':
 		assert line.count > 0
 		line.hidden_disk_ops = []
@@ -79,13 +103,8 @@ def get_disk_ops(line, micro_op_id, splits):
 		while remaining > 0:
 			dump_offset = line.dump_offset + (offset - line.offset)
 			count = min(per_slice_size, remaining)
-
-			override_data = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(count))
-			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = None, override_data = override_data)
-			line.hidden_disk_ops.append(disk_op)
 			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None)
 			line.hidden_disk_ops.append(disk_op)
-
 			remaining -= count
 			offset += count
 	elif line.op == 'mkdir':

@@ -309,16 +309,16 @@ class Replayer:
 		self.__disk_end = 0 # Will be set during the dops_generate() call
 		self.dops_generate()
 		self.saved = dict()
-		self.saved[0] = (copy.deepcopy(self.micro_ops), self.__micro_end, self.__disk_end)
 		self.short_outputs = ""
 		self.replay_count = 0
 		self.path_inode_map = path_inode_map
 
-		to_replay = []
+		all_diskops = []
 		for micro_op in self.micro_ops:
-			to_replay += micro_op.hidden_disk_ops
-		self.test_suite = auto_test.ALCTestSuite(to_replay)
+			all_diskops += micro_op.hidden_disk_ops
+		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
+		self.save(0)
 	def print_ops(self):
 		f = open('/tmp/current_orderings', 'w+')
 		for i in range(0, len(self.micro_ops)):
@@ -342,11 +342,19 @@ class Replayer:
 		self.self.__micro_end = i
 		self.__disk_end = j
 	def save(self, i):
-		assert int(i) != 0
-		self.saved[int(i)] = copy.deepcopy((self.micro_ops, self.__micro_end, self.__disk_end))
+		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
+							micro_end = self.__micro_end,
+							disk_end = self.__disk_end,
+							test_suite = self.test_suite,
+							test_suite_initialized = self.test_suite_initialized))
 	def load(self, i):
 		assert int(i) in self.saved
-		(self.micro_ops, self.__micro_end, self.__disk_end) = copy.deepcopy(self.saved[int(i)])
+		retrieved = copy.deepcopy(self.saved[int(i)])
+		self.micro_ops = retrieved.micro_ops
+		self.__micro_end = retrieved.micro_end
+		self.__disk_end = retrieved.disk_end
+		self.test_suite = retrieved.test_suite
+		self.test_suite_initialized = retrieved.test_suite_initialized
 	def __replay_and_check(self, using_disk_ops = False, summary_string = None):
 		# Replaying and checking
 		if using_disk_ops:
@@ -396,7 +404,7 @@ class Replayer:
 		data = str(data)
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
-		assert line.op == 'write'
+		assert line.op == 'write' or line.op == 'append'
 		if randomize:
 			data = ''.join(random.choice(data) for x in range(line.count))
 		assert len(data) == line.count
@@ -410,7 +418,7 @@ class Replayer:
 		self.test_suite_initialized = False
 		assert i < len(self.micro_ops)
 		line = self.micro_ops[i]
-		assert line.op == 'write'
+		assert line.op == 'write' or line.op == 'append'
 		self.micro_ops.pop(i)
 		self.__micro_end -= 1
 		current_offset = line.offset
@@ -448,7 +456,10 @@ class Replayer:
 		self.__micro_end = i
 		self.__disk_end = j
 	def dops_set_legal(self):
-		self.test_suite = auto_test.ALCTestSuite(to_replay)
+		all_diskops = []
+		for micro_op in self.micro_ops:
+			all_diskops += micro_op.hidden_disk_ops
+		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
 	def dops_generate(self, ids = None, splits = 3):
 		self.test_suite_initialized = False
@@ -579,6 +590,11 @@ class Replayer:
 			f.close()
 
 def replay_micro_ops(rows):
+	def replay_trunc(name, size):
+		fd = os.open(replayed_path(line.name), os.O_WRONLY)
+		assert fd > 0
+		os.ftruncate(fd, line.final_size)
+		os.close(fd)
 	global args
 	os.system("rm -rf " + args.replayed_snapshot)
 	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
@@ -594,11 +610,10 @@ def replay_micro_ops(rows):
 		elif line.op == 'rename':
 			os.rename(replayed_path(line.source), replayed_path(line.dest))
 		elif line.op == 'trunc':
-			fd = os.open(replayed_path(line.name), os.O_WRONLY)
-			assert fd > 0
-			os.ftruncate(fd, line.final_size)
-			os.close(fd)
-		elif line.op == 'write':
+			replay_trunc(line.name, line.final_size)
+		elif line.op == 'append' or line.op == 'write':
+			if line.op == 'append':
+				replay_trunc(line.name, line.offset + line.count)
 			if line.dump_file == '':
 				buf = line.override_data
 			else:
@@ -744,12 +759,20 @@ def get_micro_ops(rows):
 					name = FileStatus.get_name(fd)
 					inode = FileStatus.get_inode(fd)
 					size = get_replayed_stat(name).st_size
+					overwrite_size = 0
+					if pos < size:
+						overwrite_size = min(count, pos + count - size)
+						new_op = Struct(op = 'write', name = name, offset = pos, count = overwrite_size, dump_file = dump_file, dump_offset = dump_offset, inode = inode)
+						micro_operations.append(new_op)
+					pos += overwrite_size
+					count -= overwrite_size
+					dump_offset += overwrite_size
+
 					if(pos + count > size):
-						new_op = Struct(op = 'trunc', name = name, initial_size = size, final_size = pos + count, inode = inode)
+						assert pos == size
+						new_op = Struct(op = 'append', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset, inode = inode)
 						micro_operations.append(new_op)
 						replayed_truncate(name, pos + count)
-					new_op = Struct(op = 'write', name = name, offset = pos, count = count, dump_file = dump_file, dump_offset = dump_offset, inode = inode)
-					micro_operations.append(new_op)
 					if 'O_SYNC' in FileStatus.get_attribs(fd):
 						new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count, inode = inode)
 						micro_operations.append(new_op)
