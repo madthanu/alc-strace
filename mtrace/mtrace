@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ ! -f $MTRACE_HOME/pin-2.13-62732-gcc.4.4.7-linux/pin ] || [ ! -f $MTRACE_HOME/mtrace.so ]
+then
+	echo "ERROR: MTRACE_HOME not set, or doesn't have all required files."
+	exit 1
+fi
+
+$MTRACE_HOME/pin-2.13-62732-gcc.4.4.7-linux/pin -injection child -t $MTRACE_HOME/mtrace.so "$@"
