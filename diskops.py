@@ -1,14 +1,12 @@
 import random
 import os
 import string
-import myutils
 import math
 from mystruct import Struct
+from myutils import *
 
 TYPE_DIR = 0
 TYPE_FILE = 1
-
-args = None
 
 def get_disk_ops(line, micro_op_id, splits):
 	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
@@ -43,14 +41,13 @@ def get_disk_ops(line, micro_op_id, splits):
 			toret.append(disk_op)
 			# If the file is becoming bigger, that area might end up containing garbage data or zeros.
 			if not invert:
-				override_data = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(count))
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = override_data)
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'GARBAGE')
 				# TODO: Currently not writing zeros explicitly, since this will be simulated by simple truncates. However, unsure of this' impact on the heuristics.
 				toret.append(disk_op)
 
 			if append_micro_op:
 				dump_offset = append_micro_op.dump_offset + (start - append_micro_op.offset)
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = dump_offset, count = count, dump_file = append_micro_op.dump_file, override_data = None)
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = dump_offset, count = count, dump_file = append_micro_op.dump_file, special_write = None)
 				toret.append(disk_op)
 	
 			remaining -= count
@@ -84,8 +81,9 @@ def get_disk_ops(line, micro_op_id, splits):
 	elif line.op == 'link':
 		line.hidden_disk_ops = link_disk_ops(line.dest_parent, line.source_inode, line.dest)
 	elif line.op == 'rename':
+		line.hidden_disk_ops = []
 		if line.dest_hardlinks >= 1:
-			line.hidden_disk_ops = unlink_disk_ops(line.dest_parent, line.dest_inode, line.dest, line.dest_size, line.dest_hardlinks)
+			line.hidden_disk_ops += unlink_disk_ops(line.dest_parent, line.dest_inode, line.dest, line.dest_size, line.dest_hardlinks)
 		line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2) # Setting hardlinks as 2 so that trunc does not happen
 		line.hidden_disk_ops += link_disk_ops(line.dest_parent, line.source_inode, line.dest)
 	elif line.op == 'trunc':
@@ -103,7 +101,7 @@ def get_disk_ops(line, micro_op_id, splits):
 		while remaining > 0:
 			dump_offset = line.dump_offset + (offset - line.offset)
 			count = min(per_slice_size, remaining)
-			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None)
+			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None, special_write = None)
 			line.hidden_disk_ops.append(disk_op)
 			remaining -= count
 			offset += count
@@ -131,7 +129,6 @@ def get_disk_ops(line, micro_op_id, splits):
 	return line.hidden_disk_ops
 
 def replay_disk_ops(initial_paths_inode_map, rows):
-	global args
 	def get_stat(path):
 		try:
 			return os.stat(path)
@@ -140,22 +137,22 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 
 	def get_inode_file(inode, mode = None):
 		assert type(inode) == int
-		if not get_stat(args.replayed_snapshot + '/.inodes/' + str(inode)):
+		if not get_stat(cmdline().replayed_snapshot + '/.inodes/' + str(inode)):
 			if mode == None:
 				mode = 0666
 			if type(mode) == str:
-				mode = int(mode)
-			fd = os.open(args.replayed_snapshot + '/.inodes/' + str(inode), os.O_CREAT | os.O_WRONLY, mode)
+				mode = safe_string_to_int(mode)
+			fd = os.open(cmdline().replayed_snapshot + '/.inodes/' + str(inode), os.O_CREAT | os.O_WRONLY, mode)
 			assert fd > 0
 			os.close(fd)
-		return args.replayed_snapshot + '/.inodes/' + str(inode)
+		return cmdline().replayed_snapshot + '/.inodes/' + str(inode)
 
 	dirinode_map = {} # From initial_inode to replayed_directory_path
 	def is_linked_inode_directory(inode):
 		assert type(inode) == int
 		if inode not in dirinode_map:
 			return False
-		if dirinode_map[inode] == args.replayed_snapshot + '/.inodes/' + str(inode):
+		if dirinode_map[inode] == cmdline().replayed_snapshot + '/.inodes/' + str(inode):
 			return False
 		return True
 
@@ -164,8 +161,8 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 		if inode not in dirinode_map:
 			if mode == None:
 				mode = 0777
-			os.mkdir(args.replayed_snapshot + '/.inodes/' + str(inode), mode)
-			dirinode_map[inode] = args.replayed_snapshot + '/.inodes/' + str(inode)
+			os.mkdir(cmdline().replayed_snapshot + '/.inodes/' + str(inode), mode)
+			dirinode_map[inode] = cmdline().replayed_snapshot + '/.inodes/' + str(inode)
 		return dirinode_map[inode]
 
 	def set_inode_directory(inode, dir_path):
@@ -173,14 +170,14 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 		dirinode_map[inode] = dir_path
 
 	def initialize_inode_links(initial_paths_inode_map):
-		final_paths_inode_map = myutils.get_path_inode_map(args.replayed_snapshot) # This map is used only for assertions
+		final_paths_inode_map = get_path_inode_map(cmdline().replayed_snapshot) # This map is used only for assertions
 		assert len(final_paths_inode_map) == len(initial_paths_inode_map)
 
 		# Asserting there are no hardlinks on the initial list - if there were, 'cp -R' wouldn't have worked correctly.
 		initial_inodes_list = [inode for (inode, entry_type) in initial_paths_inode_map.values()]
 		assert len(initial_inodes_list) == len(set(initial_inodes_list))
 
-		os.system("mkdir " + args.replayed_snapshot + '/.inodes')
+		os.system("mkdir " + cmdline().replayed_snapshot + '/.inodes')
 
 		for path in initial_paths_inode_map.keys():
 			assert path in final_paths_inode_map
@@ -190,10 +187,10 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 			if entry_type == 'd':
 				set_inode_directory(initial_inode, path)
 			else:
-				os.link(path, args.replayed_snapshot + '/.inodes/' + str(initial_inode))
+				os.link(path, cmdline().replayed_snapshot + '/.inodes/' + str(initial_inode))
 
-	os.system("rm -rf " + args.replayed_snapshot)
-	os.system("cp -R " + args.initial_snapshot + " " + args.replayed_snapshot)
+	os.system("rm -rf " + cmdline().replayed_snapshot)
+	os.system("cp -R " + cmdline().initial_snapshot + " " + cmdline().replayed_snapshot)
 	initialize_inode_links(initial_paths_inode_map)
 
 	for line in rows:
@@ -218,7 +215,7 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 				if line.entry_type == TYPE_FILE:
 					os.unlink(path)
 				else:
-					os.rename(path, args.replayed_snapshot + '/.inodes/' + str(line.inode)) # Deletion of
+					os.rename(path, cmdline().replayed_snapshot + '/.inodes/' + str(line.inode)) # Deletion of
 						# directory is equivalent to moving it back into the '.inodes' directory.
 		elif line.op == 'truncate':
 			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
@@ -226,20 +223,74 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 			os.ftruncate(fd, line.final_size)
 			os.close(fd)
 		elif line.op == 'write':
-			if line.dump_file == None:
-				buf = line.override_data
+			if line.special_write != None:
+				print line
+				if line.special_write == 'GARBAGE' and line.count > 4096:
+					if line.count > 4 * 1024 * 1024:
+						BLOCK_SIZE = 1024 * 1024
+					else:
+						BLOCK_SIZE = 4096
+					blocks_byte_offset = int(math.ceil(float(line.offset) / BLOCK_SIZE)) * BLOCK_SIZE
+					blocks_byte_count = max(0, (line.offset + line.count) - blocks_byte_offset)
+					blocks_count = int(math.floor(float(blocks_byte_count) / BLOCK_SIZE))
+					blocks_byte_count = blocks_count * BLOCK_SIZE
+					blocks_offset = blocks_byte_offset / BLOCK_SIZE
+
+					pre_blocks_offset = line.offset
+					pre_blocks_count = blocks_byte_offset - line.offset
+					if pre_blocks_count > line.count:
+						assert blocks_byte_count == 0
+						pre_blocks_count = line.count
+					assert pre_blocks_count >= 0
+
+					post_blocks_count = 0
+					if pre_blocks_count < line.count:
+						post_blocks_offset = (blocks_byte_offset + blocks_byte_count)
+						assert post_blocks_offset % BLOCK_SIZE == 0
+						post_blocks_count = line.offset + line.count - post_blocks_offset
+
+					assert pre_blocks_count >= 0
+					assert blocks_count >= 0
+					assert post_blocks_count >= 0
+					assert pre_blocks_count + blocks_count * BLOCK_SIZE + post_blocks_count == line.count
+					assert pre_blocks_offset == line.offset
+					if pre_blocks_count < line.count:
+						assert blocks_offset * BLOCK_SIZE == pre_blocks_offset + pre_blocks_count
+					if post_blocks_count > 0:
+						assert (blocks_offset + blocks_count) * BLOCK_SIZE == post_blocks_offset
+
+					cmd = "dd if=/dev/urandom of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat "
+					if pre_blocks_count > 0:
+						subprocess.check_call(cmd + 'seek=' + str(pre_blocks_offset) + ' count=' + str(pre_blocks_count) + ' bs=1', shell=True)
+					if blocks_count > 0:
+						subprocess.check_call(cmd + 'seek=' + str(blocks_offset) + ' count=' + str(blocks_count) + ' bs=' + str(BLOCK_SIZE), shell=True)
+					if post_blocks_count > 0:
+						subprocess.check_call(cmd + 'seek=' + str(post_blocks_offset) + ' count=' + str(post_blocks_count) + ' bs=1', shell=True)
+				elif line.special_write == 'GARBAGE':
+					data = string.ascii_uppercase + string.digits
+					buf = ''.join(random.choice(data) for x in range(line.count))
+					fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+					os.lseek(fd, line.offset, os.SEEK_SET)
+					os.write(fd, buf)
+					os.close(fd)
+					buf = ""
+				else:
+					assert False
 			else:
-				fd = os.open(line.dump_file, os.O_RDONLY)
-				os.lseek(fd, line.dump_offset, os.SEEK_SET)
-				buf = os.read(fd, line.count)
+				if line.dump_file == None:
+					buf = line.override_data
+				else:
+					fd = os.open(line.dump_file, os.O_RDONLY)
+					os.lseek(fd, line.dump_offset, os.SEEK_SET)
+					buf = os.read(fd, line.count)
+					os.close(fd)
+				fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+				os.lseek(fd, line.offset, os.SEEK_SET)
+				os.write(fd, buf)
 				os.close(fd)
-			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
-			os.lseek(fd, line.offset, os.SEEK_SET)
-			os.write(fd, buf)
-			os.close(fd)
-			buf = ""
+				buf = ""
 		else:
 			assert line.op == 'sync'
 
-	os.system("rm -rf " + args.replayed_snapshot + '/.inodes')
+	os.system("rm -rf " + cmdline().replayed_snapshot + '/.inodes')
 
