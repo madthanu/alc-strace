@@ -69,7 +69,7 @@ class Replayer:
 		f.close()
 	def end_at(self, i):
 		j = len(self.micro_ops[i].hidden_disk_ops) - 1
-		self.self.__micro_end = i
+		self.__micro_end = i
 		self.__disk_end = j
 	def save(self, i):
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
