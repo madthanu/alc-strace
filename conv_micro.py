@@ -272,6 +272,13 @@ class ProcessTracker:
 		for fd in fds_to_remove:
 			self.fdtracker_unwatched.remove_fd_mapping(fd)
 
+		self.memtracker = MemregionTracker()
+
+		for child_tid in self.child_tids:
+			ProcessTracker.trackers_map[child_tid] = None
+		self.child_tids = []
+
+
 	def set_cwd(self, path):
 		self.cwd = path
 
@@ -738,14 +745,25 @@ def __get_micro_op(syscall_tid, line):
 			source = proctracker.original_path(eval(parsed_line.args[0]))
 			dest = proctracker.original_path(eval(parsed_line.args[1]))
 			if re.search(cmdline().interesting_path_string, dest) or re.search(cmdline().interesting_path_string, source):
-				print 'Warning: ' + line
+				print 'WARNING: ' + line
 			if re.search(cmdline().interesting_path_string, dest):
-				tmp_fd = os.open(replayed_path(dest), os.O_CREAT | os.O_WRONLY, 0666)
-				assert tmp_fd > 0
-				os.close(tmp_fd)
-				inode = __replayed_stat(name).st_ino
-				new_op = Struct(op = 'creat', name = dest, mode = mode, inode = inode, parent = __parent_inode(dest))
-				micro_operations.append(new_op)
+				source_is_dir = False
+				if source.begins_with(cmdline().base_path):
+					if os.path.isdir(replayed_path(source)):
+						source_is_dir = True
+				else:
+					print 'WARNING: symlink source outside base path. Assuming file link.'
+				if source_is_dir == True:
+					os.mkdir(replayed_path(dest), 0777)
+					inode = __replayed_stat(dest).st_ino
+					micro_operations.append(Struct(op = 'mkdir', name = dest, mode = 0777, inode = inode, parent = __parent_inode(dest)))
+				else:
+					tmp_fd = os.open(replayed_path(dest), os.O_CREAT | os.O_WRONLY, 0666)
+					assert tmp_fd > 0
+					os.close(tmp_fd)
+					inode = __replayed_stat(name).st_ino
+					new_op = Struct(op = 'creat', name = dest, mode = mode, inode = inode, parent = __parent_inode(dest))
+					micro_operations.append(new_op)
 	elif parsed_line.syscall == 'mremap':
 		ret_address = safe_string_to_int(parsed_line.ret)
 		if ret_address != -1:
@@ -765,10 +783,13 @@ def __get_micro_op(syscall_tid, line):
 def get_micro_ops():
 	global innocent_syscalls
 
-	print 'WARNING: FD_CLOEXEC composed for all FDs referring to the same open file description.'
-	print 'WARNING: aspects of execve.'
-	print 'WARNING: Truncate garbage/zeros are not simulated correctly.'
-	print 'WARNING: Fallocate garbage/zeros.'
+	print '-------------------------------------------------------'
+	print 'WARNING: The following aspects of this script are still in the TODO list because the developer is lazy:'
+	print '    * FD_CLOEXEC composed for all FDs referring to the same open file description.'
+	print '    * Truncate garbage/zeros implementation will not produce desired results with the omit_range heuristic search.'
+	print '    * Garbage and zeros handling in the fallocate() call is funny.'
+	print '    * Various system calls that generate warnings while the script is run.'
+	print '-------------------------------------------------------'
 
 	if cmdline().micro_cache_file and os.path.exists(cmdline().micro_cache_file):
 		print 'Using micro cached file ...'

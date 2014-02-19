@@ -322,9 +322,9 @@ class Replayer:
 
 def replay_micro_ops(rows):
 	def replay_trunc(name, size):
-		fd = os.open(replayed_path(line.name), os.O_WRONLY)
+		fd = os.open(replayed_path(name), os.O_WRONLY)
 		assert fd > 0
-		os.ftruncate(fd, line.final_size)
+		os.ftruncate(fd, size)
 		os.close(fd)
 	os.system("rm -rf " + cmdline().replayed_snapshot)
 	os.system("cp -R " + cmdline().initial_snapshot + " " + cmdline().replayed_snapshot)

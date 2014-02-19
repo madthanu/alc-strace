@@ -161,6 +161,8 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 		if inode not in dirinode_map:
 			if mode == None:
 				mode = 0777
+			if type(mode) == str:
+				mode = safe_string_to_int(mode)
 			os.mkdir(cmdline().replayed_snapshot + '/.inodes/' + str(inode), mode)
 			dirinode_map[inode] = cmdline().replayed_snapshot + '/.inodes/' + str(inode)
 		return dirinode_map[inode]
@@ -224,7 +226,6 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 			os.close(fd)
 		elif line.op == 'write':
 			if line.special_write != None:
-				print line
 				if line.special_write == 'GARBAGE' and line.count > 4096:
 					if line.count > 4 * 1024 * 1024:
 						BLOCK_SIZE = 1024 * 1024
