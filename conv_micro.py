@@ -771,7 +771,7 @@ def __get_micro_op(syscall_tid, line):
 			end_addr = start_addr + safe_string_to_int(parsed_line.args[1]) - 1
 			assert(len(memtracker.resolve_range(start_addr, end_addr)) == 0)
 	else:
-		if parsed_line.syscall not in innocent_syscalls:
+		if parsed_line.syscall not in innocent_syscalls and not parsed_line.syscall.startswith("ignore_"):
 			raise Exception("Unhandled system call: " + parsed_line.syscall)
 	
 	for op in micro_operations:
