@@ -419,6 +419,9 @@ def __get_micro_op(syscall_tid, line):
 					new_op = Struct(op = 'write', name = name, offset = pos, count = overwrite_size, dump_file = dump_file, dump_offset = dump_offset, inode = inode)
 					assert new_op.count > 0
 					micro_operations.append(new_op)
+					if 'O_SYNC' in fdtracker.get_attribs(fd):
+						new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = overwrite_size, inode = inode)
+						micro_operations.append(new_op)
 				pos += overwrite_size
 				count -= overwrite_size
 				dump_offset += overwrite_size
@@ -434,9 +437,9 @@ def __get_micro_op(syscall_tid, line):
 					micro_operations.append(new_op)
 					__replayed_truncate(name, pos + count)
 
-				if 'O_SYNC' in fdtracker.get_attribs(fd):
-					new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count, inode = inode)
-					micro_operations.append(new_op)
+					if 'O_SYNC' in fdtracker.get_attribs(fd):
+						new_op = Struct(op = 'file_sync_range', name = name, offset = pos, count = count, inode = inode)
+						micro_operations.append(new_op)
 				if parsed_line.syscall not in ['pwrite', 'pwritev']:
 					fdtracker.set_pos(fd, pos + count)
 	elif parsed_line.syscall == 'close':
