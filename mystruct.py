@@ -1,6 +1,5 @@
 import re
-
-args = None
+from myutils import *
 
 class Struct:
 	def __init__(self, **entries): self.__dict__.update(entries)
@@ -37,24 +36,4 @@ class Struct:
 		return not self.__eq__(other)
 	def __hash__(self):
 		return hash(str(self.__dict__))
-
-def colorize(s, i):
-	return '\033[00;' + str(30 + i) + 'm' + s + '\033[0m'
-
-def coded_colorize(s, s2 = None):
-	colors=[1,3,5,6,11,12,14,15]
-	if s2 == None:
-		s2 = s
-	return colorize(s, colors[hash(s2) % len(colors)])
-
-def colors_test(fname):
-	f = open(fname, 'w')
-	for i in range(0, 30):
-		f.write(colorize(str(i), i) + '\n')
-	f.close()
-
-def short_path(name):
-	if not name.startswith(args.base_path):
-		return name
-	return name.replace(re.sub(r'//', r'/', args.base_path + '/'), '', 1)
 
