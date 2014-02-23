@@ -58,9 +58,10 @@ def parse_line(line):
 		m = re.search(r'^([0-9:\.]+) ([^(]+)(\(.*\)) += ([xa-f\-0-9]+|\?) ?(E[^ ]* \([^\(\)]*\)|\([^\(\)]*\))?$', line)
 
 		# Convert time into a numerical value
-		time = line[m.start(1) : m.end(1)].split(':')
-		toret.time = int(time[0]) * 24 * 60.0 + int(time[1]) * 60.0 + float(time[2])
+		time = line[m.start(1) : m.end(1)]
 		toret.str_time = time
+		time = time.split(':')
+		toret.time = int(time[0]) * 24 * 60.0 + int(time[1]) * 60.0 + float(time[2])
 
 		toret.syscall = line[m.start(2) : m.end(2)]
 		toret.ret = line[m.start(4) : m.end(4)]
