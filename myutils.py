@@ -25,6 +25,7 @@ def init_cmdline():
 	parser.add_argument('--omit_stderr', dest = 'omit_stderr', type = bool, default = False)
 	parser.add_argument('--hide_diskops', dest = 'hide_diskops', type = bool, default = False)
 	parser.add_argument('--show_tids', dest = 'show_tids', type = bool, default = False)
+	parser.add_argument('--show_time', dest = 'show_time', type = bool, default = False)
 	__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:

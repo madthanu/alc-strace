@@ -60,6 +60,7 @@ def parse_line(line):
 		# Convert time into a numerical value
 		time = line[m.start(1) : m.end(1)].split(':')
 		toret.time = int(time[0]) * 24 * 60.0 + int(time[1]) * 60.0 + float(time[2])
+		toret.str_time = time
 
 		toret.syscall = line[m.start(2) : m.end(2)]
 		toret.ret = line[m.start(4) : m.end(4)]
@@ -776,6 +777,7 @@ def __get_micro_op(syscall_tid, line):
 	
 	for op in micro_operations:
 		op.hidden_tid = syscall_tid
+		op.hidden_time = parsed_line.str_time
 		op.hidden_pid = proctracker.pid
 	return micro_operations
 

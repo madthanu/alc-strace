@@ -57,6 +57,8 @@ class Replayer:
 			tid_info = ''
 			if cmdline().show_tids:
 				tid_info = str(self.micro_ops[i].hidden_pid) + '\t' + str(self.micro_ops[i].hidden_tid) + '\t'
+			if cmdline().show_time:
+				tid_info += self.micro_ops[i].hidden_time + '\t'
 			f.write(micro_id + '\t' + orig_id + '\t' + tid_info + str(self.micro_ops[i]) + '\n')
 			for j in range(0, len(self.micro_ops[i].hidden_disk_ops)):
 				disk_op_str = str(self.micro_ops[i].hidden_disk_ops[j])
