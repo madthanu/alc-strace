@@ -262,11 +262,11 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 
 					cmd = "dd if=/dev/urandom of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat "
 					if pre_blocks_count > 0:
-						subprocess.check_call(cmd + 'seek=' + str(pre_blocks_offset) + ' count=' + str(pre_blocks_count) + ' bs=1', shell=True)
+						subprocess.check_call(cmd + 'seek=' + str(pre_blocks_offset) + ' count=' + str(pre_blocks_count) + ' bs=1 &> /dev/null', shell=True, )
 					if blocks_count > 0:
-						subprocess.check_call(cmd + 'seek=' + str(blocks_offset) + ' count=' + str(blocks_count) + ' bs=' + str(BLOCK_SIZE), shell=True)
+						subprocess.check_call(cmd + 'seek=' + str(blocks_offset) + ' count=' + str(blocks_count) + ' bs=' + str(BLOCK_SIZE) + '  &> /dev/null', shell=True)
 					if post_blocks_count > 0:
-						subprocess.check_call(cmd + 'seek=' + str(post_blocks_offset) + ' count=' + str(post_blocks_count) + ' bs=1', shell=True)
+						subprocess.check_call(cmd + 'seek=' + str(post_blocks_offset) + ' count=' + str(post_blocks_count) + ' bs=1 &> /dev/null', shell=True)
 				elif line.special_write == 'GARBAGE':
 					data = string.ascii_uppercase + string.digits
 					buf = ''.join(random.choice(data) for x in range(line.count))

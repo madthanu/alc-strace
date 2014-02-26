@@ -753,7 +753,7 @@ def __get_micro_op(syscall_tid, line):
 				print 'WARNING: ' + line
 			if re.search(cmdline().interesting_path_string, dest):
 				source_is_dir = False
-				if source.begins_with(cmdline().base_path):
+				if source.startswith(cmdline().base_path):
 					if os.path.isdir(replayed_path(source)):
 						source_is_dir = True
 				else:
@@ -766,8 +766,8 @@ def __get_micro_op(syscall_tid, line):
 					tmp_fd = os.open(replayed_path(dest), os.O_CREAT | os.O_WRONLY, 0666)
 					assert tmp_fd > 0
 					os.close(tmp_fd)
-					inode = __replayed_stat(name).st_ino
-					new_op = Struct(op = 'creat', name = dest, mode = mode, inode = inode, parent = __parent_inode(dest))
+					inode = __replayed_stat(dest).st_ino
+					new_op = Struct(op = 'creat', name = dest, mode = 0666, inode = inode, parent = __parent_inode(dest))
 					micro_operations.append(new_op)
 	elif parsed_line.syscall == 'mremap':
 		ret_address = safe_string_to_int(parsed_line.ret)
