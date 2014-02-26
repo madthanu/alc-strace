@@ -2,6 +2,7 @@ import random
 import os
 import string
 import math
+import pprint
 from mystruct import Struct
 from myutils import *
 
@@ -128,7 +129,7 @@ def get_disk_ops(line, micro_op_id, splits):
 		disk_op.hidden_omitted = False
 	return line.hidden_disk_ops
 
-def replay_disk_ops(initial_paths_inode_map, rows):
+def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 	def get_stat(path):
 		try:
 			return os.stat(path)
@@ -137,22 +138,22 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 
 	def get_inode_file(inode, mode = None):
 		assert type(inode) == int
-		if not get_stat(cmdline().replayed_snapshot + '/.inodes/' + str(inode)):
+		if not get_stat(replay_dir + '/.inodes/' + str(inode)):
 			if mode == None:
 				mode = 0666
 			if type(mode) == str:
 				mode = safe_string_to_int(mode)
-			fd = os.open(cmdline().replayed_snapshot + '/.inodes/' + str(inode), os.O_CREAT | os.O_WRONLY, mode)
+			fd = os.open(replay_dir + '/.inodes/' + str(inode), os.O_CREAT | os.O_WRONLY, mode)
 			assert fd > 0
 			os.close(fd)
-		return cmdline().replayed_snapshot + '/.inodes/' + str(inode)
+		return replay_dir + '/.inodes/' + str(inode)
 
 	dirinode_map = {} # From initial_inode to replayed_directory_path
 	def is_linked_inode_directory(inode):
 		assert type(inode) == int
 		if inode not in dirinode_map:
 			return False
-		if dirinode_map[inode] == cmdline().replayed_snapshot + '/.inodes/' + str(inode):
+		if dirinode_map[inode] == replay_dir + '/.inodes/' + str(inode):
 			return False
 		return True
 
@@ -163,8 +164,8 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 				mode = 0777
 			if type(mode) == str:
 				mode = safe_string_to_int(mode)
-			os.mkdir(cmdline().replayed_snapshot + '/.inodes/' + str(inode), mode)
-			dirinode_map[inode] = cmdline().replayed_snapshot + '/.inodes/' + str(inode)
+			os.mkdir(replay_dir + '/.inodes/' + str(inode), mode)
+			dirinode_map[inode] = replay_dir + '/.inodes/' + str(inode)
 		return dirinode_map[inode]
 
 	def set_inode_directory(inode, dir_path):
@@ -172,27 +173,28 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 		dirinode_map[inode] = dir_path
 
 	def initialize_inode_links(initial_paths_inode_map):
-		final_paths_inode_map = get_path_inode_map(cmdline().replayed_snapshot) # This map is used only for assertions
+		final_paths_inode_map = get_path_inode_map(replay_dir) # This map is used only for assertions
 		assert len(final_paths_inode_map) == len(initial_paths_inode_map)
 
 		# Asserting there are no hardlinks on the initial list - if there were, 'cp -R' wouldn't have worked correctly.
 		initial_inodes_list = [inode for (inode, entry_type) in initial_paths_inode_map.values()]
 		assert len(initial_inodes_list) == len(set(initial_inodes_list))
 
-		os.system("mkdir " + cmdline().replayed_snapshot + '/.inodes')
+		os.system("mkdir " + replay_dir + '/.inodes')
 
 		for path in initial_paths_inode_map.keys():
-			assert path in final_paths_inode_map
+			final_path = path.replace(cmdline().replayed_snapshot, replay_dir, 1)
+			assert final_path in final_paths_inode_map
 			(initial_inode, entry_type) = initial_paths_inode_map[path]
-			(tmp_final_inode, tmp_entry_type) = final_paths_inode_map[path]
+			(tmp_final_inode, tmp_entry_type) = final_paths_inode_map[final_path]
 			assert entry_type == tmp_entry_type
 			if entry_type == 'd':
-				set_inode_directory(initial_inode, path)
+				set_inode_directory(initial_inode, final_path)
 			else:
-				os.link(path, cmdline().replayed_snapshot + '/.inodes/' + str(initial_inode))
+				os.link(final_path, replay_dir + '/.inodes/' + str(initial_inode))
 
-	os.system("rm -rf " + cmdline().replayed_snapshot)
-	os.system("cp -R " + cmdline().initial_snapshot + " " + cmdline().replayed_snapshot)
+	os.system("rm -rf " + replay_dir)
+	os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
 	initialize_inode_links(initial_paths_inode_map)
 
 	for line in rows:
@@ -217,7 +219,7 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 				if line.entry_type == TYPE_FILE:
 					os.unlink(path)
 				else:
-					os.rename(path, cmdline().replayed_snapshot + '/.inodes/' + str(line.inode)) # Deletion of
+					os.rename(path, replay_dir + '/.inodes/' + str(line.inode)) # Deletion of
 						# directory is equivalent to moving it back into the '.inodes' directory.
 		elif line.op == 'truncate':
 			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
@@ -293,5 +295,5 @@ def replay_disk_ops(initial_paths_inode_map, rows):
 		else:
 			assert line.op == 'sync'
 
-	os.system("rm -rf " + cmdline().replayed_snapshot + '/.inodes')
+	os.system("rm -rf " + replay_dir + '/.inodes')
 

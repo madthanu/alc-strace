@@ -15,11 +15,62 @@ import diskops
 import conv_micro
 import pdb
 import cProfile
+import Queue
+import threading
 from mystruct import Struct
 from myutils import *
 import gc
 
 init_cmdline()
+
+class MultiThreadedReplayer(threading.Thread):
+	queue = Queue.Queue()
+	short_outputs = {}
+	path_inode_map = None
+	
+	def __init__(self, queue):
+		threading.Thread.__init__(self)
+		self.queue = MultiThreadedReplayer.queue
+
+	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string):
+		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
+
+		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
+		tmp_short_output = subprocess.check_output(cmdline().checker_tool + " " + replay_dir, shell = True)
+
+		if summary_string == None:
+			summary_string = 'R' + str(replay_count)
+		else:
+			summary_string = str(summary_string)
+		if tmp_short_output[-1] == '\n':
+			tmp_short_output = tmp_short_output[0 : -1]
+		MultiThreadedReplayer.short_outputs[replay_count] = str(summary_string) + '\t' + tmp_short_output + '\n'
+		print 'replay_check(' + summary_string + ') finished. ' + tmp_short_output
+		os.system('rm -rf ' + replay_dir)
+
+	def run(self):
+		while True:
+			task = self.queue.get()
+			self.__threaded_replay_and_check(*task)
+			self.queue.task_done()
+
+	@staticmethod
+	def replay_and_check(to_replay, replay_count, summary_string):
+		MultiThreadedReplayer.queue.put((to_replay, replay_count, summary_string))
+
+	@staticmethod
+	def reset():
+		os.system("rm -rf " + cmdline().replayed_snapshot)
+		os.system("mkdir -p " + cmdline().replayed_snapshot)
+		assert MultiThreadedReplayer.queue.empty()
+
+	@staticmethod
+	def wait_and_write_outputs(fname):
+		f = open(fname, 'w+')
+		MultiThreadedReplayer.queue.join()
+		for i in MultiThreadedReplayer.short_outputs:
+			f.write(str(MultiThreadedReplayer.short_outputs[i]))
+		f.close()
 
 class Replayer:
 	def __init__(self, path_inode_map, original_micro_ops):
@@ -39,6 +90,8 @@ class Replayer:
 		self.replay_count = 0
 		self.path_inode_map = path_inode_map
 
+		if cmdline().replayer_threads > 0:
+			MultiThreadedReplayer.path_inode_map = path_inode_map
 
 		if cmdline().debug_level >= 1: print "Initializing dops legalization ..."
 		all_diskops = []
@@ -87,9 +140,23 @@ class Replayer:
 		self.__disk_end = retrieved.disk_end
 		self.test_suite = retrieved.test_suite
 		self.test_suite_initialized = retrieved.test_suite_initialized
-	def __replay_and_check(self, using_disk_ops = False, summary_string = None):
+
+	def __multithreaded_replay(self, summary_string = None):
+		assert cmdline().replayer_threads > 0
+		to_replay = []
+		for i in range(0, self.__micro_end + 1):
+			micro_op = self.micro_ops[i]
+			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
+			for j in range(0, till):
+				if not micro_op.hidden_disk_ops[j].hidden_omitted:
+					to_replay.append(micro_op.hidden_disk_ops[j])
+		MultiThreadedReplayer.replay_and_check(to_replay, self.replay_count, summary_string)
+		self.replay_count += 1
+
+
+	def __replay_and_check(self, using_disk_op = False, summary_string = None):
 		# Replaying and checking
-		if using_disk_ops:
+		if using_disk_op:
 			to_replay = []
 			for i in range(0, self.__micro_end + 1):
 				micro_op = self.micro_ops[i]
@@ -97,7 +164,7 @@ class Replayer:
 				for j in range(0, till):
 					if not micro_op.hidden_disk_ops[j].hidden_omitted:
 						to_replay.append(micro_op.hidden_disk_ops[j])
-			diskops.replay_disk_ops(self.path_inode_map, to_replay)
+			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot)
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
@@ -125,6 +192,7 @@ class Replayer:
 		self.replay_count += 1
 
 	def replay_and_check(self, summary_string = None):
+		assert cmdline().replayer_threads == 0
 		self.__replay_and_check(False, summary_string)
 	def remove(self, i):
 		self.test_suite_initialized = False
@@ -224,7 +292,10 @@ class Replayer:
 		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
 	def dops_replay(self, summary_string = None):
-		self.__replay_and_check(True, summary_string)
+		if cmdline().replayer_threads > 0:
+			self.__multithreaded_replay(summary_string)
+		else:
+			self.__replay_and_check(True, summary_string)
 	def dops_len(self, i = None):
 		if i == None:
 			total = 0
@@ -298,6 +369,8 @@ class Replayer:
 				os.system('rm -rf /tmp/replay_outputs_long/')
 				os.system('echo > /tmp/replay_output')
 				os.system('mkdir -p /tmp/replay_outputs_long/')
+				if cmdline().replayer_threads > 0:
+					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
 				try:
 					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
@@ -306,10 +379,14 @@ class Replayer:
 					f2.write("Error during runprint\n")
 					f2.write(traceback.format_exc())
 					f2.close()
-					
+
+				if cmdline().replayer_threads > 0:
+					MultiThreadedReplayer.wait_and_write_outputs('/tmp/replay_output')
+
 				self.print_ops()
 				f2.close()
-				if(self.replay_count > 1):
+
+				if(self.replay_count > 1 and cmdline().replayer_threads == 0):
 					f2 = open('/tmp/replay_output', 'w+')
 					f2.write(self.short_outputs)
 					f2.close()
@@ -365,6 +442,11 @@ def replay_micro_ops(rows):
 		elif line.op not in ['fsync', 'fdatasync', 'file_sync_range', 'stdout', 'stderr']:
 			print line.op
 			assert False
+
+for i in range(0, cmdline().replayer_threads + 1):
+	t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
+	t.setDaemon(False)
+	t.start()
 
 (path_inode_map, micro_operations) = conv_micro.get_micro_ops()
 Replayer(path_inode_map, micro_operations).listener_loop()
