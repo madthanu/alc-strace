@@ -445,7 +445,7 @@ def replay_micro_ops(rows):
 
 for i in range(0, cmdline().replayer_threads + 1):
 	t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
-	t.setDaemon(False)
+	t.setDaemon(True)
 	t.start()
 
 (path_inode_map, micro_operations) = conv_micro.get_micro_ops()
