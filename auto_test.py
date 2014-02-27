@@ -40,8 +40,15 @@ if args.very_verbose:
     args.verbose = True
 
 # The list of syscalls we are interested in.
+# Interesting parameters.
+# write:    offset, count
+# sync:     offset, count
+# truncate: initial_size, final_size  
 calls_of_interest = ["write", "sync", "delete_dir_entry", "create_dir_entry", "truncate"]
 # The list of syscalls treated as ordering points.
+# Sync parameters.
+# Offset, count (bytes)
+# fsync: offset = 0, count = full size of file.
 ordering_calls = ["sync"]
 # Metadata calls.
 metadata_calls = ["create_dir_entry", "delete_dir_entry"]
@@ -142,6 +149,12 @@ class Operation:
                 #print("setting filename to " + x) 
                 self.filename = x
                 break
+        # Set offset and count for certain system calls.
+        if micro_op.op in ["write", "sync"]:
+            self.offset = micro_op.offset
+            self.count  = micro_op.count
+        if micro_op.op in ["truncate"]:
+            self.final_size = micro_op.final_size
 
         # The file specific ID for each inode 
         op_index = (self.inode, self.syscall)
@@ -176,9 +189,27 @@ class Operation:
         # Clear write dependencies if required.
         self.clear_dirty_write_collection()
 
+    # Check if this operation falls into a sync range.
+    def is_included_in_sync_range(self, offset, count):
+        start = offset
+        end = start + count
+
+        if self.syscall == "write":
+            write_start = self.offset
+            write_end = self.offset + self.count
+            if write_start >= start and write_end <= end:
+                return True
+
+        if self.syscall == "truncate":
+            if self.final_size >= start and self.final_size <= end:
+                return True
+
+        return False 
+
     # This updates the dirty write collection.
     def update_dirty_write_collection(self):
         global dirty_write_ops
+        global dirty_write_ops_inode
         if self.syscall in ["write", "truncate"]:
             dirty_write_ops_inode[self.inode].add(self)
         # If this is a create/dir operation, the operation is actually on the
@@ -191,10 +222,19 @@ class Operation:
     # the same as fdatasync. 
     def clear_dirty_write_collection(self):
         global dirty_write_ops
+        global dirty_write_ops_inode
         global latest_fsync_op
         global latest_fsync_on_any_file
         if self.syscall in ["sync"]: 
-            dirty_write_ops_inode[self.inode].clear()
+            # Remove the dirty writes which will be flushed by this sync.
+            set_of_dops_to_remove = set() 
+            for dop in dirty_write_ops_inode[self.inode]:
+                if dop.is_included_in_sync_range(self.offset, self.count):
+                    set_of_dops_to_remove.add(dop)
+
+            for dop in set_of_dops_to_remove:
+                dirty_write_ops_inode[self.inode].remove(dop) 
+
             #latest_fsync_op[self.filename] = self
             latest_fsync_on_any_file = self
 
@@ -263,11 +303,12 @@ class Operation:
         global op_list
     
         # If this is an fsync, then it depends on all the dirty writes to this
-        # file previously.
-        if self.syscall in ordering_calls:
+        # file previously, which fall within the sync range.
+        if self.syscall in ["sync"]:
             for wop in dirty_write_ops_inode[self.inode]:
-                self.deps = self.deps | wop.deps
-                self.deps.add(wop)
+                if wop.is_included_in_sync_range(self.offset, self.count):
+                    self.deps = self.deps | wop.deps
+                    self.deps.add(wop)
 
         # The fsync dependency.
         # Each operation on a file depends on the last fsync to the file. The
@@ -281,6 +322,7 @@ class Operation:
             self.deps = self.deps | fop.deps
             self.deps.add(fop)
         '''
+        # fsync: offset = 0, count = full size of file.
         if latest_fsync_on_any_file:
             self.deps = self.deps | latest_fsync_on_any_file.deps
             self.deps.add(latest_fsync_on_any_file)
@@ -336,8 +378,6 @@ num_recursive_calls = 0
 
 def get_micro_ops_set(vijayops_set):
     return [[x.micro_op for x in combo] for combo in vijayops_set]
-
-# Second external interface. Test if a given micro_combos 
 
 # Class to contain all the test class suites.
 class ALCTestSuite:
@@ -475,7 +515,7 @@ class ALCTestSuite:
         keep_set = keep_set | dep_set
         assert(test_validity(keep_set))
         # Return as micro op list
-        return [x.micro_op_id for x in new_op_set] 
+        return [x.micro_op_id for x in keep_set] 
 
     # Pretty print an op list with the representation for each operation.
     def print_op_list(self):
@@ -519,9 +559,9 @@ if __name__ == '__main__':
     op_id_list.append(5)
     op_id_list.append(40)
     result_set = testSuite.drop_list_of_ops(op_id_list)
-    print(str(len(result_set)))
+    print("Drop list answer: " + str(len(result_set)))
 
-    # Testing out the drop list functionality for single item list.
+    # Testing out the keep list functionality for single item list.
     for i in range(0, len(testSuite.op_list)):
         op_id_list = []
         op_id_list.append(i)
@@ -534,7 +574,7 @@ if __name__ == '__main__':
     op_id_list.append(5)
     op_id_list.append(40)
     result_set = testSuite.keep_list_of_ops(op_id_list)
-    print(str(len(result_set)))
+    print("Keep list answer: " + str(len(result_set)))
 
     # Print out the list of operations
     if args.very_verbose:
