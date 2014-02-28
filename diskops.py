@@ -45,6 +45,10 @@ def get_disk_ops(line, micro_op_id, splits):
 				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'GARBAGE')
 				# TODO: Currently not writing zeros explicitly, since this will be simulated by simple truncates. However, unsure of this' impact on the heuristics.
 				toret.append(disk_op)
+				if not append_micro_op:
+					disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
+					toret.append(disk_op)
+
 
 			if append_micro_op:
 				dump_offset = append_micro_op.dump_offset + (start - append_micro_op.offset)
@@ -228,7 +232,7 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 			os.close(fd)
 		elif line.op == 'write':
 			if line.special_write != None:
-				if line.special_write == 'GARBAGE' and line.count > 4096:
+				if (line.special_write == 'GARBAGE' or line.special_write == 'ZEROS') and line.count > 4096:
 					if line.count > 4 * 1024 * 1024:
 						BLOCK_SIZE = 1024 * 1024
 					else:
@@ -262,15 +266,21 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 					if post_blocks_count > 0:
 						assert (blocks_offset + blocks_count) * BLOCK_SIZE == post_blocks_offset
 
-					cmd = "dd if=/dev/urandom of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat "
+					if line.special_write == 'GARBAGE':
+						cmd = "dd if=/dev/urandom of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat status=noxfer "
+					else:
+						cmd = "dd if=/dev/zero of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat status=noxfer "
 					if pre_blocks_count > 0:
-						subprocess.check_call(cmd + 'seek=' + str(pre_blocks_offset) + ' count=' + str(pre_blocks_count) + ' bs=1 &> /dev/null', shell=True, )
+						subprocess.check_call(cmd + 'seek=' + str(pre_blocks_offset) + ' count=' + str(pre_blocks_count) + ' bs=1 2>/dev/null', shell=True, )
 					if blocks_count > 0:
-						subprocess.check_call(cmd + 'seek=' + str(blocks_offset) + ' count=' + str(blocks_count) + ' bs=' + str(BLOCK_SIZE) + '  &> /dev/null', shell=True)
+						subprocess.check_call(cmd + 'seek=' + str(blocks_offset) + ' count=' + str(blocks_count) + ' bs=' + str(BLOCK_SIZE) + '  2>/dev/null', shell=True)
 					if post_blocks_count > 0:
-						subprocess.check_call(cmd + 'seek=' + str(post_blocks_offset) + ' count=' + str(post_blocks_count) + ' bs=1 &> /dev/null', shell=True)
-				elif line.special_write == 'GARBAGE':
-					data = string.ascii_uppercase + string.digits
+						subprocess.check_call(cmd + 'seek=' + str(post_blocks_offset) + ' count=' + str(post_blocks_count) + ' bs=1 2>/dev/null', shell=True)
+				elif line.special_write == 'GARBAGE' or line.special_write == 'ZEROS':
+					if line.special_write == 'GARBAGE':
+						data = string.ascii_uppercase + string.digits
+					else:
+						data = '0'
 					buf = ''.join(random.choice(data) for x in range(line.count))
 					fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
 					os.lseek(fd, line.offset, os.SEEK_SET)
