@@ -35,16 +35,18 @@ class MultiThreadedReplayer(threading.Thread):
 	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string, checker_params):
 		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
 
-		args = [cmdline().checker_tool, replay_dir]
+		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
+
 		if checker_params:
+			args = [cmdline().checker_tool, replay_dir]
 			for x in checker_params:
 				if type(x) != str:
 					args.append(repr(x))
 				else:
 					args.append(x)
-
-		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
-		tmp_short_output = subprocess.check_output(args)
+			tmp_short_output = subprocess.check_output(args)
+		else:
+			tmp_short_output = subprocess.check_output(cmdline().checker_tool + " " + replay_dir, shell = True)
 
 		if summary_string == None:
 			summary_string = 'R' + str(replay_count)
@@ -177,15 +179,16 @@ class Replayer:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
 
-		args = [cmdline().checker_tool, cmdline().replayed_snapshot]
 		if checker_params:
+			args = [cmdline().checker_tool, cmdline().replayed_snapshot]
 			for x in checker_params:
 				if type(x) != str:
 					args.append(repr(x))
 				else:
 					args.append(x)
-
-		subprocess.call(args, stdout = f)
+			subprocess.call(args, stdout = f)
+		else:
+			subprocess.call(cmdline().checker_tool + " " + cmdline().replayed_snapshot, shell = True, stdout = f)
 		f.close()
 
 		# Storing output in all necessary locations
