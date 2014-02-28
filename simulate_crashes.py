@@ -32,11 +32,14 @@ class MultiThreadedReplayer(threading.Thread):
 		threading.Thread.__init__(self)
 		self.queue = MultiThreadedReplayer.queue
 
-	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string):
+	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string, checker_params):
 		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
 
+		args = [cmdline().checker_tool, replay_dir]
+		if checker_params: args += checker_params
+
 		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
-		tmp_short_output = subprocess.check_output(cmdline().checker_tool + " " + replay_dir, shell = True)
+		tmp_short_output = subprocess.check_output(args)
 
 		if summary_string == None:
 			summary_string = 'R' + str(replay_count)
@@ -55,8 +58,8 @@ class MultiThreadedReplayer(threading.Thread):
 			self.queue.task_done()
 
 	@staticmethod
-	def replay_and_check(to_replay, replay_count, summary_string):
-		MultiThreadedReplayer.queue.put((to_replay, replay_count, summary_string))
+	def replay_and_check(to_replay, replay_count, summary_string, checker_params = None):
+		MultiThreadedReplayer.queue.put((to_replay, replay_count, summary_string, checker_params))
 
 	@staticmethod
 	def reset():
@@ -154,7 +157,7 @@ class Replayer:
 		self.replay_count += 1
 
 
-	def __replay_and_check(self, using_disk_op = False, summary_string = None):
+	def __replay_and_check(self, using_disk_op = False, summary_string = None, checker_params = None):
 		# Replaying and checking
 		if using_disk_op:
 			to_replay = []
@@ -168,7 +171,11 @@ class Replayer:
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
-		subprocess.call(cmdline().checker_tool + " " + cmdline().replayed_snapshot, shell = True, stdout = f)
+
+		args = [cmdline().checker_tool, cmdline().replayed_snapshot]
+		if checker_params: args += checker_params
+
+		subprocess.call(args, stdout = f)
 		f.close()
 
 		# Storing output in all necessary locations
@@ -191,9 +198,9 @@ class Replayer:
 		# Incrementing replay_count
 		self.replay_count += 1
 
-	def replay_and_check(self, summary_string = None):
+	def replay_and_check(self, summary_string = None, checker_params = None):
 		assert cmdline().replayer_threads == 0
-		self.__replay_and_check(False, summary_string)
+		self.__replay_and_check(False, summary_string, checker_params)
 	def remove(self, i):
 		self.test_suite_initialized = False
 		assert i < len(self.micro_ops)
@@ -214,6 +221,9 @@ class Replayer:
 		self.set_data(i, randomize = True)
 	def set_zeros(self, i):
 		self.set_data(i, data = '0', randomize = True)
+	def get_op(self, i):
+		assert i <= len(self.micro_ops)
+		return copy.deepcopy(self.micro_ops[i])
 	def split(self, i, count = None, sizes = None):
 		self.test_suite_initialized = False
 		assert i < len(self.micro_ops)
@@ -291,11 +301,14 @@ class Replayer:
 	def dops_omit(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
-	def dops_replay(self, summary_string = None):
+	def dops_replay(self, summary_string = None, checker_params = None):
 		if cmdline().replayer_threads > 0:
-			self.__multithreaded_replay(summary_string)
+			self.__multithreaded_replay(summary_string, checker_params)
 		else:
-			self.__replay_and_check(True, summary_string)
+			self.__replay_and_check(True, summary_string, checker_params)
+	def dops_get_op(self, i, j = None):
+		(i, j) = self.__dops_get_i_j(i, j)
+		return copy.deepcopy(self.micro_ops[i].hidden_disk_ops[j])
 	def dops_len(self, i = None):
 		if i == None:
 			total = 0
@@ -320,6 +333,24 @@ class Replayer:
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
+	def dops_implied_stdout(self, i, j = None):
+		(i, j) = self.__dops_get_i_j(i, j)
+		# Finding the last stdout/stderr micro_op that whose durability is implied by this disk_op
+		x = i + 1
+		if j == len(self.micro_ops[i].hidden_disk_ops) - 1:
+			while(True):
+				if x == len(self.micro_ops) or self.micro_ops[x] not in ['stdout', 'stderr']:
+					break
+				x += 1
+		x -= 1
+		stdout = ''
+		stderr = ''
+		for y in range(0, x):
+			if self.micro_ops[i].op == 'stdout':
+				stdout += self.micro_ops[i].data
+			elif self.micro_ops[i].op == 'stderr':
+				stderr += self.micro_ops[i].data
+		return (x, stdout, stderr)
 	def dops_independent_till(self, drop_list):
 		assert self.test_suite_initialized
 		if type(drop_list) != list:
