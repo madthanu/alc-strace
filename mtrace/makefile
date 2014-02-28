@@ -19,7 +19,9 @@ all: mtrace.so
 /usr/bin/mtrace: all
 	echo "Installing mtrace:"
 	cp $(OBJDIR)mtrace.so ./
-	echo "MTRACE_HOME=$(PWD)" > /usr/bin/mtrace
+	echo "#!/bin/bash" > /usr/bin/mtrace
+	echo "MTRACE_HOME=$(PWD)" >> /usr/bin/mtrace
 	cat mtrace >> /usr/bin/mtrace
+	chmod +x /usr/bin/mtrace
 
 install: /usr/bin/mtrace
