@@ -1,18 +1,30 @@
 import webbrowser, os.path
 from optparse import OptionParser
 import re
-import HTML
 from operator import itemgetter
 from collections import OrderedDict
 
-def prefix(inputfilepath, outputfilepath, keyword):
-    inputstr = ''
-    with open(inputfilepath) as fp:
-        for line in fp:
-            line = line.rstrip('\n')
-            inputstr += line
+def color_cell(color):
+	assert type(color) == str
+	return '<td bgcolor=\'' + color + '\' width=\'15\'></td>'
 
-    tuples = inputstr.split('###');
+def prefix(delimiter, converter, legend = None, inputfilepath = None, outputfilepath = None):
+    global options
+
+    assert type(delimiter) == str
+    assert callable(converter)
+
+    if inputfilepath == None:
+        inputfilepath = options.inputfilepath
+
+    if outputfilepath == None:
+        outputputfilepath = options.outputfilepath
+
+    fp = open(inputfilepath, 'r')
+    inputstr = fp.read()
+    fp.close()
+
+    tuples = inputstr.split(delimiter);
 
     rows = []
     header_row = []
@@ -31,24 +43,30 @@ def prefix(inputfilepath, outputfilepath, keyword):
             prefixlabel = find_between( st, "(", ")" )
             msg = st[end_index+1:len(st)]
 
-            if keyword in msg:
-                htmlcode += '<tr><td bgcolor=\'Red\'>'+prefixlabel+'</td></tr>'
-            else:
-                htmlcode += '<tr><td bgcolor=\'Green\'>'+prefixlabel+'</td></tr>'
+            htmlcode += '<tr><td>' + prefixlabel + '</td>' + converter(msg) + '</tr>'
         except:
             print st
 
     htmlcode += '</table></html>'
     browseLocal(htmlcode, outputfilepath)
 
-def omitone(inputfilepath, outputfilepath, keyword):
-    inputstr = ''
-    with open(inputfilepath) as fp:
-        for line in fp:
-            line = line.rstrip('\n')
-            inputstr += line
+def omitone(delimiter, converter, legend = None, inputfilepath = None, outputfilepath = None):
+    global options
 
-    tuples = inputstr.split('###');
+    assert type(delimiter) == str
+    assert callable(converter)
+
+    if inputfilepath == None:
+        inputfilepath = options.inputfilepath
+
+    if outputfilepath == None:
+        outputputfilepath = options.outputfilepath
+
+    fp = open(inputfilepath, 'r')
+    inputstr = fp.read()
+    fp.close()
+
+    tuples = inputstr.split(delimiter);
 
     rows = []
     header_row = []
@@ -109,7 +127,7 @@ def omitone(inputfilepath, outputfilepath, keyword):
         if not first:
             for k in destList.keys():
                 if not destList[k]:
-                    griddict[str(c[0]),k] = 'NOTAPPLICABLE'
+                    griddict[str(c[0]),k] = None
 
             for k in destList.keys():
                 destList[k] = False
@@ -140,41 +158,49 @@ def omitone(inputfilepath, outputfilepath, keyword):
 
         if k[0] != prevKey:
             if prevKey is None:
-                htmlcode += '<tr><td bgcolor=\'Yellow\'>'+k[0]
+                htmlcode += '<tr><td bgcolor=\'Yellow\'>'+k[0] + '</td>'
             else:
-                htmlcode += '</tr><tr><td bgcolor=\'Yellow\'>'+k[0]
+                htmlcode += '</tr><tr><td bgcolor=\'Yellow\'>'+k[0] + '</td>'
 
         prevKey = k[0]
-        if v == 'NOTAPPLICABLE':
-            htmlcode += '<td bgcolor=\'Grey\' width=\'15\'>'
-        elif keyword not in v:
-            htmlcode += '<td bgcolor=\'Green\' width=\'15\'>'#+k[1]
-            total += 1
-        else:
-            htmlcode += '<td bgcolor=\'Red\' width=\'15\'>'#+k[1]
-            total += 1
-            failed += 1
 
-        htmlcode += '</td>'
+        if v == None:
+            htmlcode += '<td bgcolor=\'White\' width=\'15\'></td>'
+        else:
+            htmlcode += converter(v)
 
     htmlcode += '</tr>'
     htmlcode += '</table>'
 
-    htmlcode += '<br>Legend: <table><tr><td bgcolor=\'Yellow\'>Omitted Operation</td></tr> <tr><td bgcolor=\'Green\'>Checker success</td></tr> <tr><td bgcolor=\'Red\'>Checker failure</td></tr> <tr><td bgcolor=\'Grey\'>NA</td></tr></table>'
-    htmlcode += '<br> Total:'+ str(total)
-    htmlcode += '<br> Failed:'+ str(failed)
+    if not legend:
+        htmlcode += '<br>Legend: <table><tr><td bgcolor=\'Yellow\'>Omitted Operation</td></tr> <tr><td bgcolor=\'Green\'>Checker success</td></tr> <tr><td bgcolor=\'Red\'>Checker failure</td></tr> <tr><td bgcolor=\'White\'>NA</td></tr></table>'
+    else:
+        htmlcode += '<br>Legend: <table>'
+        for x in legend:
+            htmlcode += '<tr>' + legend[x] + '<td>' + x + '</td></tr>'
+        htmlcode += '</table>'
+
     htmlcode += '</html>'
 
     browseLocal(htmlcode, outputfilepath)
 
-def omitrange(inputfilepath, outputfilepath, keyword):
-    inputstr = ''
-    with open(inputfilepath) as fp:
-        for line in fp:
-            line = line.rstrip('\n')
-            inputstr += line
+def omitrange(delimiter, converter, legend = None, inputfilepath = None, outputfilepath = None):
+    global options
 
-    tuples = inputstr.split('###');
+    assert type(delimiter) == str
+    assert callable(converter)
+
+    if inputfilepath == None:
+        inputfilepath = options.inputfilepath
+
+    if outputfilepath == None:
+        outputputfilepath = options.outputfilepath
+
+    fp = open(inputfilepath, 'r')
+    inputstr = fp.read()
+    fp.close()
+
+    tuples = inputstr.split(delimiter);
 
     rows = []
     header_row = []
@@ -236,7 +262,7 @@ def omitrange(inputfilepath, outputfilepath, keyword):
         if not first:
             for k in destList.keys():
                 if not destList[k]:
-                    griddict[str(c[0]),k] = 'NOTAPPLICABLE'
+                    griddict[str(c[0]),k] = None
 
             for k in destList.keys():
                 destList[k] = False
@@ -265,29 +291,27 @@ def omitrange(inputfilepath, outputfilepath, keyword):
 
         if k[0] != prevKey:
             if prevKey is None:
-                htmlcode += '<tr><td bgcolor=\'Yellow\'>'+k[0]
+                htmlcode += '<tr><td bgcolor=\'Yellow\'>'+k[0] + '</td>'
             else:
-                htmlcode += '</tr><tr><td bgcolor=\'Yellow\'>'+k[0]
+                htmlcode += '</tr><tr><td bgcolor=\'Yellow\'>'+k[0] + '</td>'
 
         prevKey = k[0]
-        if v == 'NOTAPPLICABLE':
-            htmlcode += '<td bgcolor=\'Grey\' width=\'10\'>'
-        elif keyword not in v:
-            htmlcode += '<td bgcolor=\'Green\' width=\'10\'>'#+k[1]
-            total += 1
+        if v == None:
+            htmlcode += '<td bgcolor=\'White\' width=\'15\'></td>'
         else:
-            htmlcode += '<td bgcolor=\'Red\' width=\'10\'>' #+k[1]
-            total += 1
-            failed += 1
-
-        htmlcode += '</td>'
+            htmlcode += converter(v)
 
     htmlcode += '</tr>'
     htmlcode += '</table>'
 
-    htmlcode += '<br>Legend: <table><tr><td bgcolor=\'Yellow\'>Omitted range</td></tr> <tr><td bgcolor=\'Green\'>Checker success</td></tr> <tr><td bgcolor=\'Red\'>Checker failure</td></tr> <tr><td bgcolor=\'Grey\'>NA</td></tr></table>'
-    htmlcode += '<br> Total:'+ str(total)
-    htmlcode += '<br> Failed:'+ str(failed)
+    if not legend:
+        htmlcode += '<br>Legend: <table><tr><td bgcolor=\'Yellow\'>Omitted Operation</td></tr> <tr><td bgcolor=\'Green\'>Checker success</td></tr> <tr><td bgcolor=\'Red\'>Checker failure</td></tr> <tr><td bgcolor=\'White\'>NA</td></tr></table>'
+    else:
+        htmlcode += '<br>Legend: <table>'
+        for x in legend:
+            htmlcode += '<tr>' + legend[x] + '<td>' + x + '</td></tr>'
+        htmlcode += '</table>'
+
     htmlcode += '</html>'
 
     browseLocal(htmlcode, outputfilepath)
@@ -316,24 +340,42 @@ def find_nth(haystack, needle, n):
         n -= 1
     return start
 
-parser = OptionParser(usage="Usage: %prog [options] filename", description="...")
+options = None
+args = None
+def init_cmdline():
+	global options, args
+	parser = OptionParser(usage="Usage: %prog [options]", description="...")
+	parser.add_option("-i", "--inputfilepath", dest="inputfilepath", type="string", default='/tmp/replay_output',help="Path to the replay output file")
+	parser.add_option("-o", "--outputfilepath", dest="outputfilepath", type="string", default="/tmp/replay_table.html",help="Output html file")
+	parser.add_option("-k", "--keyword", dest="keyword", type="string", default="Irrecoverable",help="keyword to look for in the checker output")
+	parser.add_option("-e", "--heuristic", dest="heuristic", type="string", default=None,help="heuristic")
+	(options, args) = parser.parse_args()
 
-parser.add_option("-i", "--inputfilepath", dest="inputfilepath", type="string", default='/tmp/replay_output',help="Path to the replay output file")
-parser.add_option("-o", "--outputfilepath", dest="outputfilepath", type="string", default="/tmp/replay_table.html",help="Output html file")
-parser.add_option("-k", "--keyword", dest="keyword", type="string", default="Irrecoverable",help="keyword to look for in the checker output")
-parser.add_option("-e", "--heuristic", dest="heuristic", type="string", default="omitrange",help="heuristic used to run simulate_crashes")
+def visualize(delimiter, converter, legend = None, inputfilepath = None, outputfilepath = None):
+	global options
+	if inputfilepath == None:
+		inputfilepath = options.inputfilepath
 
-(options, args) = parser.parse_args()
+	if options and options.heuristic != None:
+		return eval(options.heuristic)(delimiter, converter, legend, inputfilepath, outputfilepath)
 
-#initialize local from command args
-inputfilepath = options.inputfilepath
-outputfilepath = options.outputfilepath
-keyword = options.keyword
-heuristic = options.heuristic
+	## Guess the heuristic:
+	fp = open(inputfilepath, 'r')
+	first_line = fp.read()
+	fp.close()
 
-if heuristic == 'omitone':
-    omitone(inputfilepath, outputfilepath, keyword)
-elif heuristic == 'prefix':
-    prefix(inputfilepath, outputfilepath, keyword)
-else:
-    omitrange(inputfilepath, outputfilepath, keyword)
+	test_case_indicator = first_line.split(delimiter)[0]
+	braces_count = test_case_indicator.count('(')
+	heuristics_array = [prefix, omitone, omitrange]
+	heuristic = heuristics_array[braces_count - 1]
+	return heuristic(delimiter, converter, legend, inputfilepath, outputfilepath)
+
+if __name__ == "__main__":
+	init_cmdline()
+	def converter(msg):
+		global options
+		if options.keyword not in msg:
+			return '<td bgcolor=\'Green\' width=\'15\'>'
+		else:
+			return '<td bgcolor=\'Red\' width=\'15\'>'
+	visualize('###', converter)
