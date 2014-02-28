@@ -333,6 +333,12 @@ class Replayer:
 		for j in range(0, max_single_answers):
 			assert j in drop_list or j in single_answers
 		return self.dops_double(max_single_answers)
+	def _dops_export(self, fname):
+		to_export = []
+		for micro_op in self.micro_ops:
+			for disk_op in micro_op.hidden_disk_ops:
+				to_export.append(disk_op)
+		pickle.dump(to_export, open(fname, 'w'))
 	def _dops_verify_replayer(self, i = None):
 		if i == None:
 			to_check = range(0, len(self.micro_ops))

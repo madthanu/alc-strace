@@ -112,7 +112,7 @@ class MemregionTracker:
 	
 	def insert(self, addr_start, addr_end, name, inode, offset):
 		assert self.__find_overlap(addr_start, addr_end) == False
-		self.memregion[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, inode = inode, offset = offset)
+		self.memregion_map[addr_start] = Struct(addr_start = addr_start, addr_end = addr_end, name = name, inode = inode, offset = offset)
 
 	def remove_overlaps(self, addr_start, addr_end, whole_regions = False):
 		while True:
@@ -147,7 +147,7 @@ class MemregionTracker:
 		for region in overlap_regions:
 			if region.addr_start < addr_start:
 				assert addr_start <= region.addr_end
-				region.offset = (region.addr_start - addr_start) + region.offset
+				region.offset = (addr_start - region.addr_start) + region.offset
 				region.addr_start = addr_start
 			if region.addr_end > addr_end:
 				assert addr_end >= region.addr_start
@@ -307,7 +307,7 @@ class ProcessTracker:
 		assert toret.pid == tid or tid in toret.child_tids
 		return toret
 
-def __get_micro_op(syscall_tid, line):
+def __get_micro_op(syscall_tid, line, mtrace_recorded):
 	micro_operations = []
 
 	assert type(syscall_tid) == int
@@ -652,10 +652,13 @@ def __get_micro_op(syscall_tid, line):
 			assert 'MAP_GROWSDOWN' not in flags
 			memtracker.remove_overlaps(addr_start, addr_end)
 
-		
 		if 'MAP_ANON' not in flags and 'MAP_ANONYMOUS' not in flags and \
 			fdtracker.is_watched(fd) and 'MAP_SHARED' in flags and \
 			'PROT_WRITE' in prot:
+
+			name = fdtracker.get_name(fd)
+			file_size = __replayed_stat(name).st_size
+			assert file_size <= offset + length
 			assert syscall_tid in mtrace_recorded
 			assert 'MAP_GROWSDOWN' not in flags
 			memtracker.insert(addr_start, addr_end, fdtracker.get_name(fd), fdtracker.get_inode(fd), offset)
@@ -818,7 +821,7 @@ def get_micro_ops():
 			array = trace_file.split('.')
 			pid = int(array[len(array) - 1])
 			if array[-2] == 'mtrace':
-				mtrace_recorded.push(pid)
+				mtrace_recorded.append(pid)
 			cnt = 0
 			dump_offset = 0
 			m = re.search(r'\.[^.]*$', trace_file)
@@ -854,7 +857,7 @@ def get_micro_ops():
 		line = row[2]
 		line = line.strip()
 		try:
-			micro_operations += __get_micro_op(syscall_tid, line)
+			micro_operations += __get_micro_op(syscall_tid, line, mtrace_recorded)
 
 		except:
 			traceback.print_exc()
@@ -867,4 +870,3 @@ def get_micro_ops():
 	if cmdline().micro_cache_file:
 		pickle.dump((path_inode_map, micro_operations), open(cmdline().micro_cache_file, 'wb'), 2)
 	return (path_inode_map, micro_operations)
-
