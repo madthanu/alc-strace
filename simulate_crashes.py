@@ -36,7 +36,12 @@ class MultiThreadedReplayer(threading.Thread):
 		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
 
 		args = [cmdline().checker_tool, replay_dir]
-		if checker_params: args += checker_params
+		if checker_params:
+			for x in checker_params:
+				if type(x) != str:
+					args.append(repr(x))
+				else:
+					args.append(x)
 
 		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
 		tmp_short_output = subprocess.check_output(args)
@@ -173,7 +178,12 @@ class Replayer:
 		f = open('/tmp/replay_output', 'w+')
 
 		args = [cmdline().checker_tool, cmdline().replayed_snapshot]
-		if checker_params: args += checker_params
+		if checker_params:
+			for x in checker_params:
+				if type(x) != str:
+					args.append(repr(x))
+				else:
+					args.append(x)
 
 		subprocess.call(args, stdout = f)
 		f.close()
@@ -342,15 +352,14 @@ class Replayer:
 				if x == len(self.micro_ops) or self.micro_ops[x] not in ['stdout', 'stderr']:
 					break
 				x += 1
-		x -= 1
 		stdout = ''
 		stderr = ''
 		for y in range(0, x):
-			if self.micro_ops[i].op == 'stdout':
-				stdout += self.micro_ops[i].data
-			elif self.micro_ops[i].op == 'stderr':
-				stderr += self.micro_ops[i].data
-		return (x, stdout, stderr)
+			if self.micro_ops[y].op == 'stdout':
+				stdout += self.micro_ops[y].data
+			elif self.micro_ops[y].op == 'stderr':
+				stderr += self.micro_ops[y].data
+		return (x - 1, stdout, stderr)
 	def dops_independent_till(self, drop_list):
 		assert self.test_suite_initialized
 		if type(drop_list) != list:
@@ -487,4 +496,3 @@ for i in range(0, cmdline().replayer_threads + 1):
 
 (path_inode_map, micro_operations) = conv_micro.get_micro_ops()
 Replayer(path_inode_map, micro_operations).listener_loop()
-
