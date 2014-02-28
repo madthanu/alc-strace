@@ -144,7 +144,7 @@ class Replayer:
 		self.test_suite = retrieved.test_suite
 		self.test_suite_initialized = retrieved.test_suite_initialized
 
-	def __multithreaded_replay(self, summary_string = None):
+	def __multithreaded_replay(self, summary_string = None, checker_params = None):
 		assert cmdline().replayer_threads > 0
 		to_replay = []
 		for i in range(0, self.__micro_end + 1):
@@ -153,7 +153,7 @@ class Replayer:
 			for j in range(0, till):
 				if not micro_op.hidden_disk_ops[j].hidden_omitted:
 					to_replay.append(micro_op.hidden_disk_ops[j])
-		MultiThreadedReplayer.replay_and_check(to_replay, self.replay_count, summary_string)
+		MultiThreadedReplayer.replay_and_check(to_replay, self.replay_count, summary_string, checker_params)
 		self.replay_count += 1
 
 
