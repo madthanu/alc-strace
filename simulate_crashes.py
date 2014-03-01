@@ -52,7 +52,7 @@ class MultiThreadedReplayer(threading.Thread):
 			summary_string = 'R' + str(replay_count)
 		else:
 			summary_string = str(summary_string)
-		if tmp_short_output[-1] == '\n':
+		if len(tmp_short_output) > 0 and tmp_short_output[-1] == '\n':
 			tmp_short_output = tmp_short_output[0 : -1]
 		MultiThreadedReplayer.short_outputs[replay_count] = str(summary_string) + '\t' + tmp_short_output + '\n'
 		print 'replay_check(' + summary_string + ') finished. ' + tmp_short_output
@@ -109,7 +109,11 @@ class Replayer:
 			all_diskops += micro_op.hidden_disk_ops
 		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
+		for i in range(0, len(all_diskops)):
+			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i])))
+			all_diskops[i].hidden_requires.remove(i)
 		if cmdline().debug_level >= 1: print "... done."
+		self.__cached_stdout_implied = None
 		self.test_suite_initialized = True
 		self.save(0)
 	def print_ops(self):
@@ -150,6 +154,7 @@ class Replayer:
 		self.__disk_end = retrieved.disk_end
 		self.test_suite = retrieved.test_suite
 		self.test_suite_initialized = retrieved.test_suite_initialized
+		self.__cached_stdout_implied = None
 
 	def __multithreaded_replay(self, summary_string = None, checker_params = None):
 		assert cmdline().replayer_threads > 0
@@ -204,7 +209,7 @@ class Replayer:
 			f = open('/tmp/short_output', 'r')
 			tmp_short_output = f.read()
 			f.close()
-		if tmp_short_output[-1] == '\n':
+		if len(tmp_short_output) > 0 and tmp_short_output[-1] == '\n':
 			tmp_short_output = tmp_short_output[0 : -1]
 		self.short_outputs += str(summary_string) + '\t' + tmp_short_output + '\n'
 		print 'replay_check(' + summary_string + ') finished. ' + tmp_short_output
@@ -283,6 +288,10 @@ class Replayer:
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
+		for i in range(0, len(all_diskops)):
+			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i]) - [i]))
+			all_diskops[i].hidden_requires.remove(i)
+		self.__cached_stdout_implied = None
 		self.test_suite_initialized = True
 	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
 		self.test_suite_initialized = False
@@ -346,9 +355,47 @@ class Replayer:
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
-	def dops_implied_stdout(self, i, j = None):
-		(i, j) = self.__dops_get_i_j(i, j)
-		# Finding the last stdout/stderr micro_op that whose durability is implied by this disk_op
+	def dops_implied_stdout(self, keep_list):
+		assert self.test_suite_initialized
+
+		if type(keep_list) != list:
+			if type(keep_list) == tuple:
+				keep_list = set([self.dops_single(keep_list)])
+			else:
+				assert type(keep_list) == int
+				keep_list = set([keep_list])
+		else:
+			if type(keep_list[0]) == tuple:
+				keep_list = set([self.dops_single(double) for double in keep_list])
+			else:
+				assert type(keep_list[0]) == int
+				keep_list = set(keep_list)
+
+		# Finding the timestamp till which you are allowed to proceed by sending only the current list to the disk
+		if self.__cached_stdout_implied:
+			(cached_keep_list, cached_answer) = self.__cached_stdout_implied
+			if cached_keep_list <= keep_list:
+				(i, j) = cached_answer
+		else:
+			(i, j) = self.dops_double(max(keep_list))
+
+		for x in range(i, len(self.micro_ops)):
+			start_y = 0
+			if x == i:
+				start_y = j + 1
+			time_stamp_found = False
+			for y in range(start_y, len(self.micro_ops[x].hidden_disk_ops)):
+				if self.micro_ops[x].hidden_disk_ops[y].hidden_requires <= keep_list:
+					(i, j) = (x, y)
+				else:
+					time_stamp_found = True
+					break
+			if time_stamp_found:
+				break
+
+		self.__cached_stdout_implied = copy.deepcopy((keep_list, (i, j)))
+
+		# Finding the last stdout corresponding to the found timestamp
 		x = i + 1
 		if j == len(self.micro_ops[i].hidden_disk_ops) - 1:
 			while(True):
@@ -366,9 +413,16 @@ class Replayer:
 	def dops_independent_till(self, drop_list):
 		assert self.test_suite_initialized
 		if type(drop_list) != list:
-			assert type(drop_list) == tuple
-			drop_list = [drop_list]
-		drop_list = [self.dops_single(double) for double in drop_list]
+			if type(drop_list) == tuple:
+				drop_list = [self.dops_single(drop_list)]
+			else:
+				assert type(drop_list) == int
+				drop_list = [drop_list]
+		else:
+			if type(drop_list[0]) == tuple:
+				drop_list = [self.dops_single(double) for double in drop_list]
+			else:
+				assert type(drop_list[0]) == int
 		single_answers = sorted(self.test_suite.drop_list_of_ops(drop_list))
 		if len(single_answers) == 0:
 			return None
