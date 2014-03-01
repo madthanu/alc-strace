@@ -493,8 +493,7 @@ class ALCTestSuite:
         new_op_set = op_set - drop_set
         # assert(test_validity(new_op_set))
         # Return as micro op list
-        #return [x.micro_op_id for x in new_op_set] 
-        return [x.micro_op for x in new_op_set] 
+        return [x.micro_op_id for x in new_op_set] 
 
     # == External ==
     # Keep a list of operations in the combination. This can result in needing
@@ -516,8 +515,7 @@ class ALCTestSuite:
         keep_set = keep_set | dep_set
         assert(test_validity(keep_set))
         # Return as micro op list
-        #return [x.micro_op_id for x in keep_set] 
-        return [x.micro_op for x in keep_set] 
+        return [x.micro_op_id for x in keep_set] 
 
     # Pretty print an op list with the representation for each operation.
     def print_op_list(self):
