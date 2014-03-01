@@ -9,7 +9,8 @@ from myutils import *
 TYPE_DIR = 0
 TYPE_FILE = 1
 
-def get_disk_ops(line, micro_op_id, splits):
+def get_disk_ops(line, micro_op_id, splits, split_mode):
+	assert split_mode in ['aligned', 'count']
 	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
 		toret = []
 
@@ -32,11 +33,15 @@ def get_disk_ops(line, micro_op_id, splits):
 
 		start = initial_size
 		remaining = final_size - initial_size
-		per_slice_size = int(math.ceil(float(remaining) / splits))
+		if split_mode == 'count':
+			per_slice_size = int(math.ceil(float(remaining) / splits))
 
 		end = 0
 		while remaining > 0:
-			count = min(per_slice_size, remaining)
+			if split_mode == 'aligned':
+				count = min(splits - (start % splits), remaining)
+			else:
+				count = min(per_slice_size, remaining)
 			end = count + start
 			disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end)
 			toret.append(disk_op)
@@ -101,11 +106,16 @@ def get_disk_ops(line, micro_op_id, splits):
 
 		offset = line.offset
 		remaining = line.count
-		per_slice_size = int(math.ceil(float(line.count) / splits))
+		if split_mode == 'count':
+			per_slice_size = int(math.ceil(float(line.count) / splits))
 
 		while remaining > 0:
+			if split_mode == 'aligned':
+				count = min(splits - (offset % splits), remaining)
+			else:
+				count = min(per_slice_size, remaining)
+
 			dump_offset = line.dump_offset + (offset - line.offset)
-			count = min(per_slice_size, remaining)
 			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None, special_write = None)
 			line.hidden_disk_ops.append(disk_op)
 			remaining -= count

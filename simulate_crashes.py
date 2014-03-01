@@ -284,14 +284,14 @@ class Replayer:
 			all_diskops += micro_op.hidden_disk_ops
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
-	def dops_generate(self, ids = None, splits = 3):
+	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
 		self.test_suite_initialized = False
 		if type(ids) == int:
 			ids = [ids]
 		if ids == None:
 			ids = range(0, len(self.micro_ops))
 		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], micro_op_id, splits)
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], micro_op_id, splits, split_mode)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
 	def __dops_get_i_j(self, i, j):
