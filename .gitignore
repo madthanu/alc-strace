@@ -1,0 +1,7 @@
+test/tmp
+test/workload_dir
+mtrace/pin-2.13-62732-gcc.4.4.7-linux/
+mtrace/pin-2.13-62732-gcc.4.4.7-linux.tar.gz
+mtrace/mtrace.so
+mtrace/obj*
+test/tmp/initial_snapshot

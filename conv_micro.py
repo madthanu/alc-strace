@@ -808,7 +808,7 @@ def get_micro_ops():
 
 	if cmdline().filter_cache_file and os.path.exists(cmdline().filter_cache_file):
 		print 'Using filter cached file ...'
-		rows = pickle.load(open(cmdline().filter_cache_file, 'r'))
+		(mtrace_recorded, rows) = pickle.load(open(cmdline().filter_cache_file, 'r'))
 		print 'loaded cache.'
 	else:
 		files = commands.getoutput("ls " + cmdline().prefix + ".* | grep -v byte_dump").split()
@@ -844,7 +844,7 @@ def get_micro_ops():
 						rows.append((pid, parsed_line.time, line))
 		rows = sorted(rows, key = lambda row: row[1])
 		if cmdline().filter_cache_file:
-			pickle.dump(rows, open(cmdline().filter_cache_file, 'wb'), 2)
+			pickle.dump((mtrace_recorded, rows), open(cmdline().filter_cache_file, 'wb'), 2)
 	
 	os.system("rm -rf " + cmdline().replayed_snapshot)
 	os.system("cp -R " + cmdline().initial_snapshot + " " + cmdline().replayed_snapshot)
