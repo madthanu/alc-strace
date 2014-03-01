@@ -289,7 +289,7 @@ class Replayer:
 			all_diskops += micro_op.hidden_disk_ops
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		for i in range(0, len(all_diskops)):
-			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i]) - [i]))
+			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i])))
 			all_diskops[i].hidden_requires.remove(i)
 		self.__cached_stdout_implied = None
 		self.test_suite_initialized = True
