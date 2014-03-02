@@ -9,7 +9,7 @@ from myutils import *
 TYPE_DIR = 0
 TYPE_FILE = 1
 
-def get_disk_ops(line, micro_op_id, splits, split_mode):
+def get_disk_ops(line, splits, split_mode):
 	assert split_mode in ['aligned', 'count']
 	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
 		toret = []
@@ -139,8 +139,12 @@ def get_disk_ops(line, micro_op_id, splits, split_mode):
 	else:
 		assert False
 
+	cnt = 0
 	for disk_op in line.hidden_disk_ops:
 		disk_op.hidden_omitted = False
+		disk_op.hidden_id = cnt
+		disk_op.hidden_micro_op = line
+		cnt += 1
 	return line.hidden_disk_ops
 
 def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
@@ -290,7 +294,7 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 					if line.special_write == 'GARBAGE':
 						data = string.ascii_uppercase + string.digits
 					else:
-						data = '0'
+						data = '\0'
 					buf = ''.join(random.choice(data) for x in range(line.count))
 					fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
 					os.lseek(fd, line.offset, os.SEEK_SET)

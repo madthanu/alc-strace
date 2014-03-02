@@ -238,7 +238,7 @@ class Replayer:
 	def set_garbage(self, i):
 		self.set_data(i, randomize = True)
 	def set_zeros(self, i):
-		self.set_data(i, data = '0', randomize = True)
+		self.set_data(i, data = '\0', randomize = True)
 	def get_op(self, i):
 		assert i <= len(self.micro_ops)
 		return copy.deepcopy(self.micro_ops[i])
@@ -300,7 +300,7 @@ class Replayer:
 		if ids == None:
 			ids = range(0, len(self.micro_ops))
 		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], micro_op_id, splits, split_mode)
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
 	def __dops_get_i_j(self, i, j):
