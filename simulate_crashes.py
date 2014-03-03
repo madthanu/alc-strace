@@ -17,6 +17,7 @@ import pdb
 import cProfile
 import Queue
 import threading
+import time
 from mystruct import Struct
 from myutils import *
 import gc
@@ -467,6 +468,7 @@ class Replayer:
 			string = f.read()
 			if string == "runprint" or string == "runprint\n":
 				print "Command: runprint"
+				start_time = time.time()
 				self.short_outputs = ""
 				self.replay_count = 0
 				os.system('rm -rf /tmp/replay_outputs_long/')
@@ -493,7 +495,7 @@ class Replayer:
 					f2 = open('/tmp/replay_output', 'w+')
 					f2.write(self.short_outputs)
 					f2.close()
-				print "Finished command: runprint"
+				print "Finished command: runprint (in " + str(time.time() - start_time) + " seconds)"
 			else:
 				print "This is the string obtained from fifo: |" + string + "|"
 				assert False
