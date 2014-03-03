@@ -332,7 +332,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 		name = proctracker.original_path(eval(parsed_line.args[0]))
 		mode = parsed_line.args[2] if len(parsed_line.args) == 3 else False
 		fd = safe_string_to_int(parsed_line.ret);
-		if re.search(cmdline().interesting_path_string, name):
+		if is_interesting(name):
 			if 'O_WRONLY' in flags or 'O_RDWR' in flags:
 				assert 'O_ASYNC' not in flags
 				assert 'O_DIRECTORY' not in flags
@@ -457,21 +457,21 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 		if int(parsed_line.ret) != -1:
 			source = proctracker.original_path(eval(parsed_line.args[0]))
 			dest = proctracker.original_path(eval(parsed_line.args[1]))
-			if re.search(cmdline().interesting_path_string, source):
-				assert re.search(cmdline().interesting_path_string, dest)
+			if is_interesting(source):
+				assert is_interesting(dest)
 				assert not __replayed_stat(dest)
 				assert __replayed_stat(source)
 				source_inode = __replayed_stat(source).st_ino
 				micro_operations.append(Struct(op = 'link', source = source, dest = dest, source_inode = source_inode, source_parent = __parent_inode(source), dest_parent = __parent_inode(dest)))
 				os.link(replayed_path(source), replayed_path(dest))
 			else:
-				assert not re.search(cmdline().interesting_path_string, dest)
+				assert not is_interesting(dest)
 	elif parsed_line.syscall == 'rename':
 		if int(parsed_line.ret) != -1:
 			source = proctracker.original_path(eval(parsed_line.args[0]))
 			dest = proctracker.original_path(eval(parsed_line.args[1]))
-			if re.search(cmdline().interesting_path_string, source):
-				assert re.search(cmdline().interesting_path_string, dest)
+			if is_interesting(source):
+				assert is_interesting(dest)
 				assert __replayed_stat(source)
 				source_inode = __replayed_stat(source).st_ino
 				source_hardlinks = __replayed_stat(source).st_nlink
@@ -492,7 +492,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 	elif parsed_line.syscall == 'unlink':
 		if int(parsed_line.ret) != -1:
 			name = proctracker.original_path(eval(parsed_line.args[0]))
-			if re.search(cmdline().interesting_path_string, name):
+			if is_interesting(name):
 				assert __replayed_stat(name)
 				inode = __replayed_stat(name).st_ino
 				hardlinks = __replayed_stat(name).st_nlink
@@ -516,7 +516,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 		assert int(parsed_line.ret) != -1
 		if parsed_line.syscall == 'truncate':
 			name = proctracker.original_path(eval(parsed_line.args[0]))
-			interesting = re.search(cmdline().interesting_path_string, name)
+			interesting = is_interesting(name)
 			if interesting:
 				assert __replayed_stat(name)
 				inode = __replayed_stat(name).st_ino
@@ -567,14 +567,14 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 		if int(parsed_line.ret) != -1:
 			name = proctracker.original_path(eval(parsed_line.args[0]))
 			mode = parsed_line.args[1]
-			if re.search(cmdline().interesting_path_string, name):
+			if is_interesting(name):
 				os.mkdir(replayed_path(name), eval(mode))
 				inode = __replayed_stat(name).st_ino
 				micro_operations.append(Struct(op = 'mkdir', name = name, mode = mode, inode = inode, parent = __parent_inode(name)))
 	elif parsed_line.syscall == 'rmdir':
 		if int(parsed_line.ret) != -1:
 			name = proctracker.original_path(eval(parsed_line.args[0]))
-			if re.search(cmdline().interesting_path_string, name):
+			if is_interesting(name):
 				inode = __replayed_stat(name).st_ino
 				micro_operations.append(Struct(op = 'rmdir', name = name, inode = inode, parent = __parent_inode(name)))
 				os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + str(uuid.uuid1()))
@@ -723,7 +723,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 				print 'WARNING: UMASK'
 		else:
 			name = proctracker.original_path(eval(parsed_line.args[0]))
-			if re.search(cmdline().interesting_path_string, name):
+			if is_interesting(name):
 				print 'WARNING: ' + line
 	elif parsed_line.syscall == 'ioctl':
 		fd = int(parsed_line.args[0])
@@ -752,9 +752,9 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 		if eval(parsed_line.ret) != -1:
 			source = proctracker.original_path(eval(parsed_line.args[0]))
 			dest = proctracker.original_path(eval(parsed_line.args[1]))
-			if re.search(cmdline().interesting_path_string, dest) or re.search(cmdline().interesting_path_string, source):
+			if is_interesting(dest) or is_interesting(source):
 				print 'WARNING: ' + line
-			if re.search(cmdline().interesting_path_string, dest):
+			if is_interesting(dest):
 				source_is_dir = False
 				if source.startswith(cmdline().base_path):
 					if os.path.isdir(replayed_path(source)):

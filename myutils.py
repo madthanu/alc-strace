@@ -27,6 +27,7 @@ def init_cmdline():
 	parser.add_argument('--show_tids', dest = 'show_tids', type = bool, default = False)
 	parser.add_argument('--show_time', dest = 'show_time', type = bool, default = False)
 	parser.add_argument('--replayer_threads', dest = 'replayer_threads', type = int, default = 0)
+	parser.add_argument('--interesting_path_function', dest = 'interesting_path_function', type = str, default = None)
 	__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:
@@ -112,3 +113,7 @@ def safe_string_to_int(s):
 		print s
 		raise err
 
+def is_interesting(path):
+	if __cmdline.interesting_path_function != None:
+		return __cmdline.interesting_path_function(path)
+	return re.search(cmdline().interesting_path_string, path)
