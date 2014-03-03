@@ -43,7 +43,7 @@ def prefix(delimiter, converter, legend = None, inputfilepath = None, outputfile
             prefixlabel = find_between( st, "(", ")" )
             msg = st[end_index+1:len(st)]
 
-            htmlcode += '<tr><td>' + prefixlabel + '</td>' + converter(msg) + '</tr>'
+            htmlcode += '<tr><td>' + prefixlabel + '</td>' + converter(msg, end_index) + '</tr>'
         except:
             print st
 
@@ -157,6 +157,7 @@ def omitone(delimiter, converter, legend = None, inputfilepath = None, outputfil
     for k,v in sortedgrid.items():
 
         if k[0] != prevKey:
+            col = 0
             if prevKey is None:
                 htmlcode += '<tr><td bgcolor=\'Yellow\'>'+k[0] + '</td>'
             else:
@@ -167,7 +168,9 @@ def omitone(delimiter, converter, legend = None, inputfilepath = None, outputfil
         if v == None:
             htmlcode += '<td bgcolor=\'White\' width=\'15\'></td>'
         else:
-            htmlcode += converter(v)
+            situation = 'R' + k[0] + ' E' + destList.keys()[col]
+            htmlcode += converter(v, situation)
+	col += 1
 
     htmlcode += '</tr>'
     htmlcode += '</table>'
@@ -372,7 +375,7 @@ def visualize(delimiter, converter, legend = None, inputfilepath = None, outputf
 
 if __name__ == "__main__":
 	init_cmdline()
-	def converter(msg):
+	def converter(msg, situation):
 		global options
 		if options.keyword not in msg:
 			return '<td bgcolor=\'Green\' width=\'15\'>'
