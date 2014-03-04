@@ -47,7 +47,14 @@ def prefix(delimiter, converter, legend = None, inputfilepath = None, outputfile
         except:
             print st
 
+    if legend:
+        htmlcode += '</table><br>Legend: <table>'
+        for x in legend:
+            htmlcode += '<tr>' + legend[x] + '<td>' + x + '</td></tr>'
+
     htmlcode += '</table></html>'
+
+
     browseLocal(htmlcode, outputfilepath)
 
 def omitone(delimiter, converter, legend = None, inputfilepath = None, outputfilepath = None):
