@@ -333,7 +333,6 @@ def strToFile(text, filename):
 
 def browseLocal(webpageText, filename):
     strToFile(webpageText, filename)
-    webbrowser.open("file:///" + os.path.abspath(filename))
 
 def find_between( s, first, last ):
     try:
@@ -375,7 +374,9 @@ def visualize(delimiter, converter, legend = None, inputfilepath = None, outputf
 	fp.close()
 
 	test_case_indicator = first_line.split(delimiter)[0]
-	braces_count = test_case_indicator.count('(')
+
+	m = re.search(r'^([ RE0-9,\(\)\t]*)[^ RE0-9,\(\)\t]', test_case_indicator)
+	braces_count = test_case_indicator[m.start(1) : m.end(1)].count('(')
 	heuristics_array = [prefix, omitone, omitrange]
 	heuristic = heuristics_array[braces_count - 1]
 	return heuristic(delimiter, converter, legend, inputfilepath, outputfilepath)
