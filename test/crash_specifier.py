@@ -3,7 +3,7 @@ load(0)
 
 # NOTE: There is one important distinction between the remove() calls and the
 # omit() calls. While removing, you actually end up changing the index number
-# of every disk_op/micro_op after the current one. Omitting leaves the index
+## of every disk_op/micro_op after the current one. Omitting leaves the index
 # numbers as such. Thus, "dops_remove(31); dops_remove(31); dops_remove(31);"
 # removes three separate disk operations. However, "dops_omit(31);
 # dops_omit(31); dops_omit(31);" omits only one oepration.
@@ -88,6 +88,9 @@ def example_calls():
 	# micro-ops. Also, if this call is used, dops_generate() should be used
 	# to generate the corresponding disk-ops.
 
+    # dops_generate(splits = 4096, split_mode='aligned')
+
+
 	dops_generate(splits = 4) # Generate disk ops from micro op, splitting each append, write, and truncate micro-op into four disk ops
 	dops_generate(4, splits = 10) # Split micro-op with index 4 into ten disk ops 
 	dops_generate([8, 9, 10], splits = 1) # Generate disk ops from the micro-ops with index 8, 9, and 10, without any splitting
@@ -100,5 +103,12 @@ def example_calls():
 	dops_end_at(dops_double(2))
 	dops_replay()
 
-prefix_run()
+#prefix_run()
 
+
+
+#dops_omit((7, 2))
+#dops_end_at((90, 0))
+#dops_end_at(dops_double(dops_len() -1))
+#dops_end_at((0,0))
+#dops_replay()

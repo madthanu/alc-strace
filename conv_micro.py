@@ -50,6 +50,7 @@ innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","
 "vhangup","vm86old","vserver","wait4","waitid","waitpid", "mount"]
 
 innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
+innocent_syscalls += ['shmget', 'shmat', 'shmdt', 'shmctl']
 
 def parse_line(line):
 	try:
@@ -740,9 +741,9 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 				debug_level = 2
 			if cmdline().debug_level >= debug_level:
 				print 'WARNING: ' + line + ' name = ' + str(name)
-	elif parsed_line.syscall in ['shmget', 'shmat', 'shmdt', 'shmctl']:
-		if parsed_line.syscall == 'shmget':
-			assert parsed_line.args[0] == 'IPC_PRIVATE'
+	#elif parsed_line.syscall in ['shmget', 'shmat', 'shmdt', 'shmctl']:
+		#if parsed_line.syscall == 'shmget':
+			#assert parsed_line.args[0] == 'IPC_PRIVATE'
 	elif parsed_line.syscall == 'execve':
 		proctracker.record_execve()
 	elif parsed_line.syscall in ['io_setup', 'aio_read', 'io_getevents', 'io_destroy']:
