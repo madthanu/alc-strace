@@ -204,6 +204,9 @@ class Operation:
             if self.final_size >= start and self.final_size <= end:
                 return True
 
+	if self.syscall in ["create_dir_entry", "delete_dir_entry"]:
+		return True
+
         return False 
 
     # This updates the dirty write collection.
