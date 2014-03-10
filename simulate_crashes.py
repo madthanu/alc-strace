@@ -35,9 +35,6 @@ class MultiThreadedReplayer(threading.Thread):
 
 	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string, checker_params):
 		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
-
-		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
-
 		if checker_params:
 			args = [cmdline().checker_tool, replay_dir]
 			for x in checker_params:
@@ -67,6 +64,11 @@ class MultiThreadedReplayer(threading.Thread):
 
 	@staticmethod
 	def replay_and_check(to_replay, replay_count, summary_string, checker_params = None):
+		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
+		if replay_count % cmdline().replayer_threads == 0:
+			time.sleep(0)
+
+		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir, use_cached = True)
 		MultiThreadedReplayer.queue.put((to_replay, replay_count, summary_string, checker_params))
 
 	@staticmethod

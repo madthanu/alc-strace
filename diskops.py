@@ -3,6 +3,7 @@ import os
 import string
 import math
 import pprint
+import copy
 from mystruct import Struct
 from myutils import *
 
@@ -147,7 +148,11 @@ def get_disk_ops(line, splits, split_mode):
 		cnt += 1
 	return line.hidden_disk_ops
 
-def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
+cached_rows = None
+cached_dirinode_map = {}
+
+# use_cached works only on a single thread
+def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, use_cached = False):
 	def get_stat(path):
 		try:
 			return os.stat(path)
@@ -211,11 +216,29 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 			else:
 				os.link(final_path, replay_dir + '/.inodes/' + str(initial_inode))
 
-	os.system("rm -rf " + replay_dir)
-	os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
-	initialize_inode_links(initial_paths_inode_map)
+
+	global cached_rows, cached_dirinode_map
+	if use_cached:
+		original_replay_dir = replay_dir
+		replay_dir = '/tmp/cached_replay_dir'
+		dirinode_map = cached_dirinode_map
+		if cached_rows and len(cached_rows) <= len(rows) and rows[0:len(cached_rows)] == cached_rows:
+			rows = copy.deepcopy(rows[len(cached_rows):])
+			cached_rows += rows
+		else:
+			cached_rows = copy.deepcopy(rows)
+			cached_dirinode_map = {}
+			dirinode_map = cached_dirinode_map
+			os.system("rm -rf " + replay_dir)
+			os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
+			initialize_inode_links(initial_paths_inode_map)
+	else:
+		os.system("rm -rf " + replay_dir)
+		os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
+		initialize_inode_links(initial_paths_inode_map)
 
 	for line in rows:
+	#	print line
 		if line.op == 'create_dir_entry':
 			new_path = get_inode_directory(line.parent) + '/' + os.path.basename(line.entry)
 			if line.entry_type == TYPE_FILE:
@@ -318,6 +341,12 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 				buf = ""
 		else:
 			assert line.op == 'sync'
+
+	if use_cached:
+		os.system('rm -rf ' + original_replay_dir)
+		os.system('cp -a ' + replay_dir + ' ' + original_replay_dir)
+		replay_dir = original_replay_dir
+		cached_dirinode_map = copy.deepcopy(dirinode_map)
 
 	os.system("rm -rf " + replay_dir + '/.inodes')
 

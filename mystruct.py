@@ -28,10 +28,32 @@ class Struct:
 			return '%s(%s)' % (colored_op, ', '.join(args))
 	        args = ['%s=%s' % (k, repr(v)) for (k,v) in vars(self).items() if k[0:7] != 'hidden_']
 	        return 'Struct(%s)' % ', '.join(args)
+	def superficial_eq(self, other):
+		if type(self) != type(other):
+			return False
+		# return str(self.__dict__) == str(other.__dict__)
+		for k in self.__dict__:
+			if not type(self.__dict__[k]) == type(self) and type(self.__dict__[k]) != list and type(self.__dict__[k]) != set:
+				if k not in other.__dict__:
+					return False
+				if self.__dict__[k] != other.__dict__[k]:
+					return False
+		return True
 	def __eq__(self, other):
 		if type(self) != type(other):
 			return False
-		return str(self.__dict__) == str(other.__dict__)
+		# return str(self.__dict__) == str(other.__dict__)
+		for k in self.__dict__:
+			if k not in other.__dict__:
+				return False
+			if not type(self.__dict__[k]) == type(self):
+				if self.__dict__[k] != other.__dict__[k]:
+					return False
+			else:
+				if not self.__dict__[k].superficial_eq(other.__dict__[k]):
+					return False
+		return True
+		# return self.__dict__ == other.__dict__
 	def __ne__(self, other):
 		return not self.__eq__(other)
 	def __hash__(self):
