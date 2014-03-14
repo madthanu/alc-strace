@@ -477,13 +477,13 @@ class Replayer:
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
-				try:
-					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
-				except:
-					f2 = open('/tmp/replay_output', 'w+')
-					f2.write("Error during runprint\n")
-					f2.write(traceback.format_exc())
-					f2.close()
+				#try:
+				exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
+				#except:
+				#	f2 = open('/tmp/replay_output', 'w+')
+				#	f2.write("Error during runprint\n")
+				#	f2.write(traceback.format_exc())
+				#	f2.close()
 
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.wait_and_write_outputs('/tmp/replay_output')
