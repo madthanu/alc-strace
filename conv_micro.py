@@ -376,20 +376,39 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			fdtracker_unwatched.new_fd_mapping(fd, name, 0, fd_flags, 0)
 	elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
 		fd = safe_string_to_int(parsed_line.args[0])
-		if fdtracker.is_watched(fd) or fd in [1, 2]:
+		special_stdout = False
+		name = None
+		if fdtracker_unwatched.is_watched(fd):
+			name = fdtracker_unwatched.get_name(fd)
+		elif fdtracker.is_watched(fd):
+			name = fdtracker.get_name(fd)
+		if name and name == cmdline().special_stdout:
+			special_stdout = True
+		if fdtracker.is_watched(fd) or fd in [1, 2] or special_stdout:
 			dump_file = eval(parsed_line.args[-2])
 			dump_offset = safe_string_to_int(parsed_line.args[-1])
-			if fd in [1, 2]:
+			if fd in [1, 2] or special_stdout:
 				count = safe_string_to_int(parsed_line.args[2])
 				fd_data = os.open(dump_file, os.O_RDONLY)
 				os.lseek(fd_data, dump_offset, os.SEEK_SET)
 				buf = os.read(fd_data, count)
 				os.close(fd_data)
-				if fd == 1:
+				if special_stdout:
+					starting = 0
+					ending = len(buf) - 1
+					if cmdline().special_stdout_prefix:
+						starting = buf.find(cmdline().special_stdout_prefix)
+					if cmdline().special_stdout_suffix:
+						ending = buf.find(cmdline().special_stdout_suffix) - 1
+					if starting < 0 or ending < 0:
+						special_stdout = False
+					else:
+						buf = buf[starting  + len(cmdline().special_stdout_prefix) : ending + 1]
+				if fd == 1 or special_stdout:
 					if not cmdline().omit_stdout:
 						new_op = Struct(op = 'stdout', data = buf)
 						micro_operations.append(new_op)
-				else:
+				elif fd == 2:
 					if not cmdline().omit_stderr:
 						new_op = Struct(op = 'stderr', data = buf)
 						micro_operations.append(new_op)

@@ -28,6 +28,9 @@ def init_cmdline():
 	parser.add_argument('--show_time', dest = 'show_time', type = bool, default = False)
 	parser.add_argument('--replayer_threads', dest = 'replayer_threads', type = int, default = 0)
 	parser.add_argument('--interesting_path_function', dest = 'interesting_path_function', type = str, default = None)
+	parser.add_argument('--special_stdout', dest = 'special_stdout', type = str, default = None)
+	parser.add_argument('--special_stdout_prefix', dest = 'special_stdout_prefix', type = str, default = None)
+	parser.add_argument('--special_stdout_suffix', dest = 'special_stdout_suffix', type = str, default = None)
 	__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:
