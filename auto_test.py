@@ -1,6 +1,7 @@
 #!/usr/bin/python2.7
 
 import argparse
+import BitVector
 from collections import defaultdict
 import itertools
 import mystruct
@@ -132,6 +133,7 @@ class Operation:
         # also.
         self.dependent_ops = Set()
         self.inode = micro_op.inode
+        self.total_num_combos = 0
         # Get the filename for metadata calls. 
         if micro_op.op in metadata_calls:  
             if micro_op.op in ["create_dir_entry", "delete_dir_entry"]:
@@ -159,7 +161,7 @@ class Operation:
         # The file specific ID for each inode 
         op_index = (self.inode, self.syscall)
         self.op_id = num_ops_per_file[op_index] = num_ops_per_file.get(op_index, 0) + 1
-	self.micro_op_id = micro_op_id
+        self.micro_op_id = micro_op_id
         # The global id for each operation
         self.global_id = len(op_list)
         # The set of ops that this is dependent on.
@@ -330,6 +332,13 @@ class Operation:
             self.deps = self.deps | latest_fsync_on_any_file.deps
             self.deps.add(latest_fsync_on_any_file)
 
+    # Store the notation of dependencies as a bit vector.
+    def store_deps_as_bit_vector(self, total_len):            
+        self.deps_vector = BitVector.BitVector(size = total_len)
+        # Set the relevant bits
+        for x in self.deps:
+            self.deps_vector[x] = 1
+
 # Process deps to form populate dependent_ops.
 for op in op_list:
     for dep in op.deps():
@@ -403,6 +412,10 @@ class ALCTestSuite:
 
         self.total_len = len(self.op_list)
 
+        # Store the dependencies as bit vectors.
+        for op in self.op_list:
+            op.store_deps_as_bit_vector(self.total_len)
+
     # == External ==
     # Test if this combo is valid. Combo is specified using the id numbers of
     # the operations in the combo.
@@ -449,6 +462,29 @@ class ALCTestSuite:
                 # Add this op to the local drop set for the next iteration.
                 local_drop_set.add(self.op_list[i])
 
+    # The recursive function that calculates the total number of combos.
+    # The op_list is treated as a global constant.
+    # Each invocation of the function has the prefix (0 to n-1) that has been
+    # processed plus the ops that have been dropped in that prefix.
+    def count_combos(self, start, end, drop_vector):
+        if end >= start:
+            self.total_num_combos += 1
+
+        # Return if we are at the end of the op_list.
+        if end == (self.total_len - 1):
+            return
+
+        # Build up a local drop_set
+        local_drop_vector = drop_vector.deep_copy()
+
+        # Look for candidates beyond the end position.
+        for i in range(end + 1, self.total_len):
+            if (self.op_list[i].deps_vector & local_drop_vector).count_bits() == 0:
+                # Can be included
+                self.count_combos(start, i, local_drop_vector)
+                # Add this op to the local drop vector for the next iteration.
+                local_drop_vector[i] = 1
+
     # == External ==
     # Get all the combos.  
     # 
@@ -469,6 +505,19 @@ class ALCTestSuite:
             return self.generated_combos
         else:
             return get_micro_ops_set(self.generated_combos)
+
+    # == External ==
+    # Return the number of combos.  
+    # 
+    # Input: maximum number of combos to be returned (limit) and tested (limit_tested) 
+    # Output: Number of combos possible for given disk op set with given
+    # constraints.
+    def count_all_combos(self):
+        self.total_len = len(self.op_list)
+        self.total_num_combos = 0
+        bv = BitVector.BitVector(size = self.total_len)
+        self.count_combos(0, -1, bv)
+        return self.total_num_combos 
 
     # == External ==
     # Drop a list of operations from the combination. This can result in
@@ -535,9 +584,14 @@ class ALCTestSuite:
 if __name__ == '__main__':
     micro_op_list = pickle.load(open(args.op_file, 'r'))
 
-    testSuite = ALCTestSuite(micro_op_list) 
-    combos = testSuite.get_combos(100)
-    print("Number of combos: " + str(len(combos)))
+    testSuite = ALCTestSuite(micro_op_list[:25]) 
+    #combos = testSuite.get_combos(150000)
+    #print("Number of combos: " + str(len(combos)))
+
+    # Alternatively, you can just get the number of combos directly. 
+    # This doesn't generate all the sets, and is much faster.
+    print("Number of combos: " + str(testSuite.count_all_combos()))
+    exit()
 
     if args.very_verbose:
         for x in combos:
