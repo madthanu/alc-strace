@@ -337,7 +337,12 @@ class Operation:
         self.deps_vector = BitVector.BitVector(size = total_len)
         # Set the relevant bits
         for x in self.deps:
-            self.deps_vector[x] = 1
+            self.deps_vector[x.global_id] = 1
+
+    # Add a dependecy to the operation.
+    def add_dep(self, op):
+        self.deps = self.deps | op.deps
+        self.deps.add(op)
 
 # Process deps to form populate dependent_ops.
 for op in op_list:
@@ -479,7 +484,7 @@ class ALCTestSuite:
 
         # Look for candidates beyond the end position.
         for i in range(end + 1, self.total_len):
-            if (self.op_list[i].deps_vector & local_drop_vector).count_bits() == 0:
+            if (self.op_list[i].deps_vector & local_drop_vector).count_bits_sparse() == 0:
                 # Can be included
                 self.count_combos(start, i, local_drop_vector)
                 # Add this op to the local drop vector for the next iteration.
@@ -580,18 +585,40 @@ class ALCTestSuite:
             print(op.get_short_string() + "depends on:")
             print_op_string(op.deps)
 
+    # == External ==
+    #
+    # Add a list of dependencies to the list already computed.
+    # 
+    # Input: list of tuples. Each tuple (X, Y) indicates that X should now
+    # depend on Y. To include X in a combo, you also need Y. 
+    # X and Y are op ids. 
+    # Output: None. 
+    def add_deps_to_ops(self, dep_list):
+        dep_list = sorted(dep_list)
+        for dep_tuple in dep_list:
+            x_id = dep_tuple[0]
+            y_id = dep_tuple[1]
+            x_op = self.id_to_micro_op_map[x_id]
+            y_op = self.id_to_micro_op_map[y_id]
+            x_op.add_dep(y_op)
+
+        # Recompute all the dependencies and bit vectors.
+        for op in self.op_list:
+            for dep_op in op.deps:
+                op.deps = op.deps | dep_op.deps
+            op.store_deps_as_bit_vector(self.total_len)
+
 # Driver main showing how the code is meant to be used.
 if __name__ == '__main__':
     micro_op_list = pickle.load(open(args.op_file, 'r'))
 
-    testSuite = ALCTestSuite(micro_op_list[:25]) 
-    #combos = testSuite.get_combos(150000)
-    #print("Number of combos: " + str(len(combos)))
+    testSuite = ALCTestSuite(micro_op_list) 
+    combos = testSuite.get_combos(5000)
+    print("Number of combos: " + str(len(combos)))
 
     # Alternatively, you can just get the number of combos directly. 
     # This doesn't generate all the sets, and is much faster.
-    print("Number of combos: " + str(testSuite.count_all_combos()))
-    exit()
+    # print("Number of combos: " + str(testSuite.count_all_combos()))
 
     if args.very_verbose:
         for x in combos:
@@ -632,6 +659,20 @@ if __name__ == '__main__':
     op_id_list.append(40)
     result_set = testSuite.keep_list_of_ops(op_id_list)
     print("Keep list answer: " + str(len(result_set)))
+
+    '''
+    # Testing adding lots of dependencies and seeing if it reduces the number
+    # of combos.
+    testSuite2 = ALCTestSuite(micro_op_list[:10]) 
+    before_combo = testSuite2.count_all_combos()
+    list_of_deps = []
+    for i in range(0, 8):
+        list_of_deps.append((9, i))
+        list_of_deps.append((8, i))
+    testSuite2.add_deps_to_ops(list_of_deps)
+    after_combo = testSuite2.count_all_combos()
+    print(before_combo, after_combo)
+    '''
 
     # Print out the list of operations
     if args.very_verbose:
