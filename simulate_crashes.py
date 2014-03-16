@@ -390,11 +390,14 @@ class Replayer:
 			for y in range(start_y, len(self.micro_ops[x].hidden_disk_ops)):
 				if self.micro_ops[x].hidden_disk_ops[y].hidden_requires <= keep_list:
 					(i, j) = (x, y)
+					if self.micro_ops[x].hidden_disk_ops[y].op == 'sync':
+						keep_list.add(self.dops_single((i, j)))
 				else:
 					time_stamp_found = True
 					break
 			if time_stamp_found:
 				break
+
 
 		self.__cached_stdout_implied = copy.deepcopy((keep_list, (i, j)))
 
@@ -402,7 +405,7 @@ class Replayer:
 		x = i + 1
 		if j == len(self.micro_ops[i].hidden_disk_ops) - 1:
 			while(True):
-				if x == len(self.micro_ops) or self.micro_ops[x] not in ['stdout', 'stderr']:
+				if x == len(self.micro_ops) or len(self.micro_ops[x].hidden_disk_ops) != 0:
 					break
 				x += 1
 		stdout = ''
