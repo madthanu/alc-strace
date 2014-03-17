@@ -26,6 +26,7 @@ def init_cmdline():
 	parser.add_argument('--hide_diskops', dest = 'hide_diskops', type = bool, default = False)
 	parser.add_argument('--show_tids', dest = 'show_tids', type = bool, default = False)
 	parser.add_argument('--show_time', dest = 'show_time', type = bool, default = False)
+	parser.add_argument('--auto_run', dest = 'auto_run', type = bool, default = False)
 	parser.add_argument('--replayer_threads', dest = 'replayer_threads', type = int, default = 0)
 	parser.add_argument('--interesting_path_function', dest = 'interesting_path_function', type = str, default = None)
 	parser.add_argument('--special_stdout', dest = 'special_stdout', type = str, default = None)

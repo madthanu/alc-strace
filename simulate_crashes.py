@@ -79,7 +79,7 @@ class MultiThreadedReplayer(threading.Thread):
 
 	@staticmethod
 	def wait_and_write_outputs(fname):
-		f = open(fname, 'w+')
+		f = open(fname, 'a+')
 		MultiThreadedReplayer.queue.join()
 		for i in MultiThreadedReplayer.short_outputs:
 			f.write(str(MultiThreadedReplayer.short_outputs[i]))
@@ -143,6 +143,8 @@ class Replayer:
 		j = len(self.micro_ops[i].hidden_disk_ops) - 1
 		self.__micro_end = i
 		self.__disk_end = j
+	def micro_len(self):
+		return len(self.micro_ops)
 	def save(self, i):
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
 							micro_end = self.__micro_end,
@@ -182,7 +184,7 @@ class Replayer:
 				for j in range(0, till):
 					if not micro_op.hidden_disk_ops[j].hidden_omitted:
 						to_replay.append(micro_op.hidden_disk_ops[j])
-			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot)
+			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot, use_cached = True)
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
@@ -326,6 +328,9 @@ class Replayer:
 	def dops_omit(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
+	def dops_include(self, i, j = None):
+		(i, j) = self.__dops_get_i_j(i, j)
+		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = False
 	def dops_replay(self, summary_string = None, checker_params = None):
 		if cmdline().replayer_threads > 0:
 			self.__multithreaded_replay(summary_string, checker_params)
@@ -469,8 +474,11 @@ class Replayer:
 		os.system("mkfifo /tmp/fifo_out")
 		print 'Entering listener loop'
 		while True:
-			f = open('/tmp/fifo_in', 'r')
-			string = f.read()
+			if cmdline().auto_run:
+				string = 'runprint'
+			else:
+				f = open('/tmp/fifo_in', 'r')
+				string = f.read()
 			if string == "runprint" or string == "runprint\n":
 				print "Command: runprint"
 				start_time = time.time()
@@ -485,7 +493,7 @@ class Replayer:
 				try:
 					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
 				except:
-					f2 = open('/tmp/replay_output', 'w+')
+					f2 = open('/tmp/replay_output', 'a+')
 					f2.write("Error during runprint\n")
 					f2.write(traceback.format_exc())
 					f2.close()
@@ -497,13 +505,15 @@ class Replayer:
 				f2.close()
 
 				if(self.replay_count > 1 and cmdline().replayer_threads == 0):
-					f2 = open('/tmp/replay_output', 'w+')
+					f2 = open('/tmp/replay_output', 'a+')
 					f2.write(self.short_outputs)
 					f2.close()
 				print "Finished command: runprint (in " + str(time.time() - start_time) + " seconds)"
 			else:
 				print "This is the string obtained from fifo: |" + string + "|"
 				assert False
+			if cmdline().auto_run:
+				break
 			f.close()
 			f = open('/tmp/fifo_out', 'w')
 			f.write("done")
@@ -558,5 +568,10 @@ for i in range(0, cmdline().replayer_threads + 1):
 	t.setDaemon(True)
 	t.start()
 
+replayer = None
+def main():
+	replayer.listener_loop()
+
 (path_inode_map, micro_operations) = conv_micro.get_micro_ops()
-Replayer(path_inode_map, micro_operations).listener_loop()
+replayer = Replayer(path_inode_map, micro_operations)
+cProfile.run('main()')
