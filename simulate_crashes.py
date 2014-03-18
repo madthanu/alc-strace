@@ -22,8 +22,6 @@ from mystruct import Struct
 from myutils import *
 import gc
 
-init_cmdline()
-
 class MultiThreadedReplayer(threading.Thread):
 	queue = Queue.Queue()
 	short_outputs = {}
@@ -447,6 +445,8 @@ class Replayer:
 			for disk_op in micro_op.hidden_disk_ops:
 				to_export.append(disk_op)
 		pickle.dump(to_export, open(fname, 'w'))
+	def _export(self, fname):
+		pickle.dump((self.path_inode_map, self.micro_ops), open(fname, 'wb'), 2)
 	def _dops_verify_replayer(self, i = None):
 		if i == None:
 			to_check = range(0, len(self.micro_ops))
@@ -563,15 +563,12 @@ def replay_micro_ops(rows):
 			print line.op
 			assert False
 
-for i in range(0, cmdline().replayer_threads + 1):
-	t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
-	t.setDaemon(True)
-	t.start()
-
-replayer = None
-def main():
-	replayer.listener_loop()
-
-(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
-replayer = Replayer(path_inode_map, micro_operations)
-cProfile.run('main()')
+if __name__ == "__main__":
+	init_cmdline()
+	for i in range(0, cmdline().replayer_threads + 1):
+		t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
+		t.setDaemon(True)
+		t.start()
+	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
+	replayer = Replayer(path_inode_map, micro_operations)
+	cProfile.run('replayer.listener_loop()')

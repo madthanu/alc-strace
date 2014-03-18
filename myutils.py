@@ -87,7 +87,7 @@ def colors_test(fname):
 	f.close()
 
 def short_path(name):
-	if not name.startswith(__cmdline.base_path):
+	if not __cmdline or not name.startswith(__cmdline.base_path):
 		return name
 	return name.replace(re.sub(r'//', r'/', __cmdline.base_path + '/'), '', 1)
 

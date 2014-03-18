@@ -9,8 +9,7 @@ def prefix_run(msg):
 
 
 def omit_one_micro_op(msg):
-#	for i in range(0, micro_len()):
-	for i in range(0, 4):
+	for i in range(0, micro_len()):
 		if dops_len(i) == 0:
 			continue
 
@@ -37,8 +36,6 @@ def omit_one_micro_op(msg):
 	print 'finished ' + msg
 
 def omit_one(msg, consider_only = None):
-	load(1)
-
 	for i in range(0, dops_len()):
 		if consider_only and (not get_op(dops_double(i)[0]).op in consider_only):
 			continue
@@ -47,48 +44,29 @@ def omit_one(msg, consider_only = None):
 		for j in range(i + 1, till + 1):
 			R = str(i) + str(dops_double(i))
 			E = str(j) + str(dops_double(j))
-			end_at(dops_double(j))
+			dops_end_at(dops_double(j))
 			dops_omit(dops_double(i))
-			last = (i, j)
 			dops_replay(msg + ' R' + R + ' E' + E)
-			load(1)
+			dops_include(dops_double(j))
 	print 'finished ' + msg
 
-if False:
-	dops_generate(splits=1)
-	dops_set_legal()
-	save(1)
-	prefix_run('prefix-one')
+dops_generate(splits=1)
+dops_set_legal()
+save(1)
 
-	dops_generate(splits=4096, split_mode='aligned')
-	dops_set_legal()
-	save(1)
-	prefix_run('prefix-aligned')
-
-	dops_generate(splits=3)
-	dops_set_legal()
-	save(1)
-	prefix_run('prefix-three')
-
-#dops_generate(splits=1)
-#dops_set_legal()
-#save(1)
+prefix_run('prefix-one')
 omit_one_micro_op('omitmicro')
+omit_one('omit_one-one')
 
-if False:
-	dops_generate(splits=1)
-	dops_set_legal()
-	save(1)
-	omit_one('omit_one-one')
+dops_generate(splits=4096, split_mode='aligned')
+dops_set_legal()
+save(1)
+prefix_run('prefix-aligned')
+omit_one('omit_one-aligned', ['append', 'write', 'unlink', 'rename'])
 
-	dops_generate(splits=4096, split_mode='aligned')
-	dops_set_legal()
-	save(1)
-	omit_one('omit_one-aligned', ['append', 'write', 'unlink', 'rename'])
+dops_generate(splits=3)
+dops_set_legal()
+save(1)
+prefix_run('prefix-three')
+omit_one('omit_one-three', ['append', 'write', 'unlink', 'rename'])
 
-	dops_generate(splits=3)
-	dops_set_legal()
-	save(1)
-	omit_one('omit_one-three', ['append', 'write', 'unlink', 'rename'])
-
-print total
