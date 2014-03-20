@@ -51,6 +51,12 @@ innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","
 
 innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
 
+sync_ops = set(['fsync', 'fdatasync', 'file_sync_range'])
+expansive_ops = set(['append', 'trunc', 'write', 'unlink', 'rename'])
+pseudo_ops = sync_ops | set(['stderr', 'stdout'])
+real_ops = expansive_ops | set(['creat', 'link', 'mkdir', 'rmdir'])
+
+
 def parse_line(line):
 	try:
 		toret = Struct()

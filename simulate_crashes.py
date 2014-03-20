@@ -22,8 +22,6 @@ from mystruct import Struct
 from myutils import *
 import gc
 
-init_cmdline()
-
 class MultiThreadedReplayer(threading.Thread):
 	queue = Queue.Queue()
 	short_outputs = {}
@@ -347,6 +345,9 @@ class Replayer:
 		(i, j) = self.__dops_get_i_j(i, j)
 		if self.micro_ops[i].op not in ['stdout', 'stderr']:
 			self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
+	def dops_include(self, i, j = None):
+		(i, j) = self.__dops_get_i_j(i, j)
+		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = False
 	def dops_replay(self, summary_string = None, checker_params = None):
 		if cmdline().replayer_threads > 0:
 			self.__multithreaded_replay(summary_string, checker_params)
@@ -526,10 +527,12 @@ def replay_micro_ops(rows):
 			print line.op
 			assert False
 
-for i in range(0, cmdline().replayer_threads + 1):
-	t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
-	t.setDaemon(True)
-	t.start()
-
-(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
-Replayer(path_inode_map, micro_operations).listener_loop()
+if __name__ == "__main__":
+	init_cmdline()
+	for i in range(0, cmdline().replayer_threads + 1):
+		t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
+		t.setDaemon(True)
+		t.start()
+	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
+	replayer = Replayer(path_inode_map, micro_operations)
+	cProfile.run('replayer.listener_loop()')

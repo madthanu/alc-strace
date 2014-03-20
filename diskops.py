@@ -10,6 +10,9 @@ from myutils import *
 TYPE_DIR = 0
 TYPE_FILE = 1
 
+pseudo_ops = set(['sync', 'stderr', 'stdout'])
+real_ops = set(['create_dir_entry', 'delete_dir_entry', 'truncate', 'write'])
+
 def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 	assert split_mode in ['aligned', 'count']
 	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None, append_write_zeros = False):
