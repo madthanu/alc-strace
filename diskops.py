@@ -136,7 +136,7 @@ def get_disk_ops(line, splits, split_mode):
 		disk_op = Struct(op = 'sync', inode = line.inode, offset = offset, count = count)
 		line.hidden_disk_ops.append(disk_op)
 	elif line.op in ['stdout', 'stderr']:
-		line.hidden_disk_ops = []
+		line.hidden_disk_ops = [Struct(op = line.op, data = line.data)]
 	else:
 		assert False
 
@@ -340,7 +340,7 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, use_cached = Fals
 				os.close(fd)
 				buf = ""
 		else:
-			assert line.op == 'sync'
+			assert line.op in ['sync', 'stdout', 'stderr']
 
 	if use_cached:
 		os.system('rm -rf ' + original_replay_dir)
