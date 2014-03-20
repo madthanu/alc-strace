@@ -91,7 +91,7 @@ class MultiThreadedReplayer(threading.Thread):
 
 	@staticmethod
 	def wait_and_write_outputs(fname):
-		f = open(fname, 'w+')
+		f = open(fname, 'a+')
 		MultiThreadedReplayer.queue.join()
 		for i in MultiThreadedReplayer.short_outputs:
 			f.write(str(MultiThreadedReplayer.short_outputs[i]))
@@ -431,8 +431,11 @@ class Replayer:
 		os.system("mkfifo /tmp/fifo_out")
 		print 'Entering listener loop'
 		while True:
-			f = open('/tmp/fifo_in', 'r')
-			string = f.read()
+			if cmdline().auto_run:
+				string = 'runprint'
+			else:
+				f = open('/tmp/fifo_in', 'r')
+				string = f.read()
 			if string == "runprint" or string == "runprint\n":
 				print "Command: runprint"
 				start_time = time.time()
@@ -444,13 +447,16 @@ class Replayer:
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
-				try:
+				if cmdline().auto_run:
 					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
-				except:
-					f2 = open('/tmp/replay_output', 'w+')
-					f2.write("Error during runprint\n")
-					f2.write(traceback.format_exc())
-					f2.close()
+				else:
+					try:
+						exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
+					except:
+						f2 = open('/tmp/replay_output', 'a+')
+						f2.write("Error during runprint\n")
+						f2.write(traceback.format_exc())
+						f2.close()
 
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.wait_and_write_outputs('/tmp/replay_output')
@@ -459,13 +465,15 @@ class Replayer:
 				f2.close()
 
 				if(self.replay_count > 1 and cmdline().replayer_threads == 0):
-					f2 = open('/tmp/replay_output', 'w+')
+					f2 = open('/tmp/replay_output', 'a+')
 					f2.write(self.short_outputs)
 					f2.close()
 				print "Finished command: runprint (in " + str(time.time() - start_time) + " seconds)"
 			else:
 				print "This is the string obtained from fifo: |" + string + "|"
 				assert False
+			if cmdline().auto_run:
+				break
 			f.close()
 			f = open('/tmp/fifo_out', 'w')
 			f.write("done")
