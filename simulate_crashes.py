@@ -154,6 +154,8 @@ class Replayer:
 		j = len(self.micro_ops[i].hidden_disk_ops) - 1
 		self.__micro_end = i
 		self.__disk_end = j
+	def micro_len(self):
+		return len(self.micro_ops)
 	def save(self, i):
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
 							micro_end = self.__micro_end,
@@ -192,7 +194,7 @@ class Replayer:
 				for j in range(0, till):
 					if not micro_op.hidden_disk_ops[j].hidden_omitted:
 						to_replay.append(micro_op.hidden_disk_ops[j])
-			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot)
+			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot, use_cached = True)
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
@@ -335,7 +337,6 @@ class Replayer:
 		assert 'hidden_disk_ops' in self.micro_ops[i].__dict__
 		assert j < len(self.micro_ops[i].hidden_disk_ops)
 		return (i, j)
-
 	def dops_remove(self, i, j = None):
 		self.test_suite_initialized = False
 		(i, j) = self.__dops_get_i_j(i, j)
@@ -404,6 +405,8 @@ class Replayer:
 			for disk_op in micro_op.hidden_disk_ops:
 				to_export.append(disk_op)
 		pickle.dump(to_export, open(fname, 'w'))
+	def _export(self, fname):
+		pickle.dump((self.path_inode_map, self.micro_ops), open(fname, 'wb'), 2)
 	def _dops_verify_replayer(self, i = None):
 		if i == None:
 			to_check = range(0, len(self.micro_ops))
@@ -448,10 +451,10 @@ class Replayer:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
 				if cmdline().auto_run:
-					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
+					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
 				else:
 					try:
-						exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
+						exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
 					except:
 						f2 = open('/tmp/replay_output', 'a+')
 						f2.write("Error during runprint\n")
