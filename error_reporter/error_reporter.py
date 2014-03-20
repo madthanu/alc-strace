@@ -8,18 +8,7 @@ import re
 import pprint
 import collections
 import copy
-
-delimiter = '\n'
-micro_cache_file = './micro_cache_file'
-replay_output_file = './replay_output'
-
-def is_correct(msg):
-	msg = msg.split(';')
-	msg = [x.strip() for x in msg]
-	if 'T' in msg: return False
-	if msg[0] == 'C' and msg[1] in ['C', 'C, U', 'C, T'] and msg[2] in ['C', 'CD'] and msg[3] == 'C' and msg[4] == 'C dir':
-		return True
-	return False
+import conv_micro
 
 class Op:
 	def __repr__(self):
@@ -40,7 +29,7 @@ class Op:
 		return hash((self.micro, self.disk))
 
 class ReplayOutputParser:
-	def __init__(self, fname):
+	def __init__(self, fname, delimiter):
 		self.prefix = collections.defaultdict(dict)
 		self.omitmicro = {}
 		self.omit_one = collections.defaultdict(dict)
@@ -99,114 +88,154 @@ class MicroOps:
 		self.one = copy.deepcopy(micro_operations)
 		self.three = copy.deepcopy(micro_operations)
 		self.aligned = copy.deepcopy(micro_operations)
+		self.one_expanded = copy.deepcopy(micro_operations)
+		self.three_expanded = copy.deepcopy(micro_operations)
+		self.aligned_expanded = copy.deepcopy(micro_operations)
 		for line in self.one:
-			diskops.get_disk_ops(line, 1, 'count')
+			diskops.get_disk_ops(line, 1, 'count', False)
 		for line in self.three:
-			diskops.get_disk_ops(line, 3, 'count')
+			diskops.get_disk_ops(line, 3, 'count', False)
 		for line in self.aligned:
-			diskops.get_disk_ops(line, 4096, 'aligned')
-	def dops_len(self, mode, op):
+			diskops.get_disk_ops(line, 4096, 'aligned', False)
+		for line in self.one_expanded:
+			diskops.get_disk_ops(line, 1, 'count', True)
+		for line in self.three_expanded:
+			diskops.get_disk_ops(line, 3, 'count', True)
+		for line in self.aligned_expanded:
+			diskops.get_disk_ops(line, 4096, 'aligned', True)
+	def dops_len(self, mode, op, expanded_atomicity = False):
+		if expanded_atomicity:
+			return len(eval('self.' + mode + '_expanded')[op].hidden_disk_ops)
 		return len(eval('self.' + mode)[op].hidden_disk_ops)
 	def len(self):
 		return len(self.one)
 
-(path_inode_map, micro_operations) = pickle.load(open(micro_cache_file, 'r'))
-replay_output = ReplayOutputParser(replay_output_file)
-micro_ops = MicroOps(micro_operations)
-#pprint.pprint(micro_operations)
 
-pseudo_micro_ops = ['stdout', 'stderr', 'fsync', 'fdatasync', 'sync_file_region']
+def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', replay_output_file = './replay_output', is_correct = None):
+	(path_inode_map, micro_operations) = pickle.load(open(micro_cache_file, 'r'))
+	replay_output = ReplayOutputParser(replay_output_file, delimiter)
+	micro_ops = MicroOps(micro_operations)
 
-# Finding prefix bugs
-prefix_problems = set()
-for i in range(0, len(micro_operations)):
-	if micro_operations[i].op not in pseudo_micro_ops:
-		correct = None
-		# Determining whether this is an inter-syscall-prefix bug
-		for subtype in replay_output.prefix:
-			prefix_dict = replay_output.prefix[subtype]
-			end = Op(i, micro_ops.dops_len(subtype, i) - 1)
-			assert end in prefix_dict.keys()
-			if correct == None:
-				correct = is_correct(prefix_dict[end])
-			else:
-				assert correct == is_correct(prefix_dict[end])
+	# Finding prefix bugs
+	prefix_problems = set()
+	for i in range(0, len(micro_operations)):
+		if micro_operations[i].op not in conv_micro.sync_ops:
+			correct = None
+			# Determining whether this is an inter-syscall-prefix bug
+			for subtype in replay_output.prefix:
+				prefix_dict = replay_output.prefix[subtype]
+				end = Op(i, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 1)
+				if subtype == 'one':
+					assert end in prefix_dict.keys()
+				if end in prefix_dict.keys():
+					if correct == None:
+						correct = is_correct(prefix_dict[end])
+					else:
+						assert correct == is_correct(prefix_dict[end])
+				else:
+					assert micro_operations[i].op not in conv_micro.expansive_ops
 
-		# Determining whether this is the last real micro_op
-		ending = True
-		for j in range(i + 1, len(micro_operations)):
-			if micro_operations[j].op not in pseudo_micro_ops:
-				ending = False
-				break
+			# Determining whether this is the last real micro_op
+			ending = True
+			for j in range(i + 1, len(micro_operations)):
+				if micro_operations[j].op not in conv_micro.sync_ops:
+					ending = False
+					break
 
-		if ending and not correct:
-			print 'Incorrect in the ending (probably durability)'
-			assert i not in prefix_problems
-			prefix_problems.add(i)
-		elif not correct:
-			print 'Prefix: ' + micro_operations[i].op + ' <-> ' + micro_operations[i + 1].op
-			assert i not in prefix_problems
-			assert (i + 1) not in prefix_problems
-			prefix_problems.add(i)
+			if ending and not correct:
+				print 'WARNING: Incorrect in the ending'
+				assert i not in prefix_problems
+				prefix_problems.add(i)
+			elif not correct:
+				print ''.join(('Prefix: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[i + 1].op, '(', str(i + 1),')'))
+				assert i not in prefix_problems
+				assert (i + 1) not in prefix_problems
+				prefix_problems.add(i)
 
-# Finding atomicity bugs
-atomicity_violators = set()
-for i in range(0, len(micro_operations)):
-	if i not in prefix_problems and i - 1 not in prefix_problems \
-			and micro_operations[i].op not in pseudo_micro_ops:
-		incorrect_under = set()
-		for subtype in replay_output.prefix:
-			prefix_dict = replay_output.prefix[subtype]
-			for disk_end in range(0, micro_ops.dops_len(subtype, i) - 2):
-				end = Op(i, disk_end)
-				assert end in prefix_dict.keys()
-				if not is_correct(prefix_dict[end]):
-					incorrect_under.add(subtype)
-		if len(incorrect_under) > 0:
-			assert len(incorrect_under) <= 3
-			atomicity_violators.add(i)
-			if len(incorrect_under) == 3:
-				print 'Atomicity: ' + micro_operations[i].op
-			else:
-				print 'Special atomicity: ' + micro_operations[i].op
+	# Finding atomicity bugs
+	atomicity_violators = set()
+	for i in range(0, len(micro_operations)):
+		# If the i-th micro op does not have a prefix problem, and it is actually a real diskop-producing micro-op
+		if i not in prefix_problems and i - 1 not in prefix_problems \
+				and micro_operations[i].op not in conv_micro.pseudo_ops:
+			incorrect_under = set()
+			for subtype in replay_output.prefix:
+				prefix_dict = replay_output.prefix[subtype]
+				for disk_end in range(0, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 2):
+					end = Op(i, disk_end)
+					if subtype == 'one':
+						assert end in prefix_dict.keys()
+					if end in prefix_dict.keys():
+						if not is_correct(prefix_dict[end]):
+							incorrect_under.add(subtype)
+					else:
+						assert micro_operations[i].op not in conv_micro.expansive_ops
+			if len(incorrect_under) > 0:
+				assert len(incorrect_under) <= 3
+				atomicity_violators.add(i)
+				if micro_operations[i].op not in conv_micro.expansive_ops:
+					assert len(incorrect_under) == 1
+					print 'Atomicity: ' + micro_operations[i].op + '(' + str(i) + ')'
+				elif len(incorrect_under) == 3:
+					print 'Atomicity: ' + micro_operations[i].op + '(' + str(i) + ')'
+				else:
+					print 'Special atomicity: ' + micro_operations[i].op + '(' + str(i) + ')'
 
-# Full re-orderings
-reordering_violators = {}
-for i in range(0, len(micro_operations)):
-	if i not in prefix_problems and i - 1 not in prefix_problems \
-			and micro_operations[i].op not in pseudo_micro_ops:
-		blank_found = False
-		for j in range(i + 1, len(micro_operations)):
-			if j in prefix_problems or micro_operations[j].op in pseudo_micro_ops:
-				continue
-			if not (Op(i), Op(j)) in replay_output.omitmicro:
-				blank_found = True
-				continue
-			assert not blank_found
-			output = replay_output.omitmicro[(Op(i), Op(j))]
-			if not is_correct(output):
-				reordering_violators[i] = j
-				print ''.join(('Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')'))
-				break
+	# Full re-orderings
+	reordering_violators = {}
+	for i in range(0, len(micro_operations)):
+		if i not in prefix_problems and i - 1 not in prefix_problems \
+				and micro_operations[i].op not in conv_micro.pseudo_ops:
+			blank_found = False
+			for j in range(i + 1, len(micro_operations)):
+				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops:
+					continue
+				if not (Op(i), Op(j)) in replay_output.omitmicro:
+					blank_found = True
+					continue
+				assert not blank_found
+				output = replay_output.omitmicro[(Op(i), Op(j))]
+				if not is_correct(output):
+					reordering_violators[i] = j
+					print ''.join(('Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')'))
+					break
 
-# Special re-orderings
-# for i in range(0, len(micro_operations)):
-# 	if i not in prefix_problems and i not in atomicity_violators \
-# 			and micro_operations[i].op not in pseudo_micro_ops:
-# 		if i in reordering_violators:
-# 
-# 		blank_found = False
-# 		for j in range(i + 1, len(micro_operations)):
-# 			if j in prefix_problems or j in atomicity_violators \
-# 				or micro_operations[j].op in pseudo_micro_ops:
-# 				continue
-# 			if not (Op(i), Op(j)) in replay_output.omitmicro:
-# 				blank_found = True
-# 				continue
-# 			assert not blank_found
-# 			output = replay_output.omitmicro[(Op(i), Op(j))]
-# 			if not is_correct(output):
-# 				reordering_violators[i] = j
-# 				print ''.join(('Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')'))
-# 				break
+	# Special re-orderings
+	for i in range(0, len(micro_operations)):
+		if i not in prefix_problems and i - 1 not in prefix_problems \
+				and i not in atomicity_violators \
+				and micro_operations[i].op not in conv_micro.pseudo_ops:
+			till = len(micro_operations)
+			if i in reordering_violators:
+				till = reordering_violators[i] - 1
+			special_reordering_found = False
+			for j in range(i + 1, till):
+				if j in prefix_problems or j in atomicity_violators \
+						or micro_operations[j].op in conv_micro.sync_ops:
+					continue
+				for subtype in replay_output.omit_one:
+					for x in range(0, micro_ops.dops_len(subtype, i)):
+						blank_found = False
+						start = 0
+						if (j in prefix_problems or j - 1 in prefix_problems \
+								or j in atomicity_violators):
+							start = micro_ops.dops_len(subtype, j) - 1
+						for y in range(start, micro_ops.dops_len(subtype, j)):
+							if (Op(i, x), Op(j, y)) not in replay_output.omit_one[subtype]:
+								blank_found = True
+								continue
+							if blank_found:
+								assert (Op(i, x), Op(j, y)) not in replay_output.omit_one[subtype]
+								continue
+							output = replay_output.omit_one[subtype][(Op(i, x), Op(j, y))]
+							if not is_correct(output):
+								print ''.join(('Special reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')'))
+								special_reordering_found = True
+							break
+						if special_reordering_found:
+							break
+					if special_reordering_found:
+						break
+				if special_reordering_found:
+					break
 

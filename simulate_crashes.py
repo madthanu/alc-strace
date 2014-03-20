@@ -33,16 +33,28 @@ class MultiThreadedReplayer(threading.Thread):
 
 	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string, checker_params):
 		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
-		if checker_params:
-			args = [cmdline().checker_tool, replay_dir]
+		assert type(cmdline().checker_tool) in [list, str, tuple]
+		args = [cmdline().checker_tool, replay_dir]
+		stdout = ''
+		stderr = ''
+		for diskop in to_replay:
+			if diskop.op == 'stdout':
+				stdout += diskop.data
+			if diskop.op == 'stderr':
+				stderr += diskop.data
+		args.append(stdout)
+		args.append(stderr)
+		if not checker_params:
+			pass
+		elif type(checker_params) == str:
+			args.append(x)
+		else:
 			for x in checker_params:
 				if type(x) != str:
 					args.append(repr(x))
 				else:
 					args.append(x)
-			tmp_short_output = subprocess.check_output(args)
-		else:
-			tmp_short_output = subprocess.check_output(cmdline().checker_tool + " " + replay_dir, shell = True)
+		tmp_short_output = subprocess.check_output(args)
 
 		if summary_string == None:
 			summary_string = 'R' + str(replay_count)
@@ -108,13 +120,12 @@ class Replayer:
 		all_diskops = []
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
+		for i in range(0, len(all_diskops)):
+			if all_diskops[i].op == 'stdout':
+				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
-		for i in range(0, len(all_diskops)):
-			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i])))
-			all_diskops[i].hidden_requires.remove(i)
 		if cmdline().debug_level >= 1: print "... done."
-		self.__cached_stdout_implied = None
 		self.test_suite_initialized = True
 		self.save(0)
 	def print_ops(self):
@@ -157,7 +168,6 @@ class Replayer:
 		self.__disk_end = retrieved.disk_end
 		self.test_suite = retrieved.test_suite
 		self.test_suite_initialized = retrieved.test_suite_initialized
-		self.__cached_stdout_implied = None
 
 	def __multithreaded_replay(self, summary_string = None, checker_params = None):
 		assert cmdline().replayer_threads > 0
@@ -187,17 +197,27 @@ class Replayer:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
 
-		if checker_params:
-			args = [cmdline().checker_tool, cmdline().replayed_snapshot]
+		args = [cmdline().checker_tool, replay_dir]
+		stdout = ''
+		stderr = ''
+		for diskop in to_replay:
+			if diskop.op == 'stdout':
+				stdout += diskop.data
+			if diskop.op == 'stderr':
+				stderr += diskop.data
+		args.append(stdout)
+		args.append(stderr)
+		if not checker_params:
+			pass
+		elif type(checker_params) == str:
+			args.append(x)
+		else:
 			for x in checker_params:
 				if type(x) != str:
 					args.append(repr(x))
 				else:
 					args.append(x)
-			subprocess.call(args, stdout = f)
-		else:
-			subprocess.call(cmdline().checker_tool + " " + cmdline().replayed_snapshot, shell = True, stdout = f)
-		f.close()
+		subprocess.call(args, stdout = f)
 
 		# Storing output in all necessary locations
 		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
@@ -290,20 +310,19 @@ class Replayer:
 		all_diskops = []
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
-		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		for i in range(0, len(all_diskops)):
-			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i])))
-			all_diskops[i].hidden_requires.remove(i)
-		self.__cached_stdout_implied = None
+			if all_diskops[i].op == 'stdout':
+				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
+		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
-	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
+	def dops_generate(self, ids = None, splits = 3, split_mode = 'count', expanded_atomicity = False):
 		self.test_suite_initialized = False
 		if type(ids) == int:
 			ids = [ids]
 		if ids == None:
 			ids = range(0, len(self.micro_ops))
 		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode)
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode, expanded_atomicity)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
 	def __dops_get_i_j(self, i, j):
@@ -316,7 +335,6 @@ class Replayer:
 		assert 'hidden_disk_ops' in self.micro_ops[i].__dict__
 		assert j < len(self.micro_ops[i].hidden_disk_ops)
 		return (i, j)
-
 	def dops_remove(self, i, j = None):
 		self.test_suite_initialized = False
 		(i, j) = self.__dops_get_i_j(i, j)
@@ -325,7 +343,8 @@ class Replayer:
 			self.__disk_end -= 1
 	def dops_omit(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
-		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
+		if self.micro_ops[i].op not in ['stdout', 'stderr']:
+			self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
 	def dops_include(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = False
@@ -361,64 +380,6 @@ class Replayer:
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
-	def dops_implied_stdout(self, keep_list):
-		assert self.test_suite_initialized
-
-		if type(keep_list) != list:
-			if type(keep_list) == tuple:
-				keep_list = set([self.dops_single(keep_list)])
-			else:
-				assert type(keep_list) == int
-				keep_list = set([keep_list])
-		else:
-			if type(keep_list[0]) == tuple:
-				keep_list = set([self.dops_single(double) for double in keep_list])
-			else:
-				assert type(keep_list[0]) == int
-				keep_list = set(keep_list)
-
-		# Finding the timestamp till which you are allowed to proceed by sending only the current list to the disk
-		if self.__cached_stdout_implied:
-			(cached_keep_list, cached_answer) = self.__cached_stdout_implied
-			if cached_keep_list <= keep_list:
-				(i, j) = cached_answer
-		else:
-			(i, j) = self.dops_double(max(keep_list))
-
-		for x in range(i, len(self.micro_ops)):
-			start_y = 0
-			if x == i:
-				start_y = j + 1
-			time_stamp_found = False
-			for y in range(start_y, len(self.micro_ops[x].hidden_disk_ops)):
-				if self.micro_ops[x].hidden_disk_ops[y].hidden_requires <= keep_list:
-					(i, j) = (x, y)
-					if self.micro_ops[x].hidden_disk_ops[y].op == 'sync':
-						keep_list.add(self.dops_single((i, j)))
-				else:
-					time_stamp_found = True
-					break
-			if time_stamp_found:
-				break
-
-
-		self.__cached_stdout_implied = copy.deepcopy((keep_list, (i, j)))
-
-		# Finding the last stdout corresponding to the found timestamp
-		x = i + 1
-		if j == len(self.micro_ops[i].hidden_disk_ops) - 1:
-			while(True):
-				if x == len(self.micro_ops) or len(self.micro_ops[x].hidden_disk_ops) != 0:
-					break
-				x += 1
-		stdout = ''
-		stderr = ''
-		for y in range(0, x):
-			if self.micro_ops[y].op == 'stdout':
-				stdout += self.micro_ops[y].data
-			elif self.micro_ops[y].op == 'stderr':
-				stderr += self.micro_ops[y].data
-		return (x - 1, stdout, stderr)
 	def dops_independent_till(self, drop_list):
 		assert self.test_suite_initialized
 		if type(drop_list) != list:
@@ -490,13 +451,16 @@ class Replayer:
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
-				try:
-					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
-				except:
-					f2 = open('/tmp/replay_output', 'a+')
-					f2.write("Error during runprint\n")
-					f2.write(traceback.format_exc())
-					f2.close()
+				if cmdline().auto_run:
+					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
+				else:
+					try:
+						exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
+					except:
+						f2 = open('/tmp/replay_output', 'a+')
+						f2.write("Error during runprint\n")
+						f2.write(traceback.format_exc())
+						f2.close()
 
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.wait_and_write_outputs('/tmp/replay_output')
