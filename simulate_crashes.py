@@ -315,14 +315,14 @@ class Replayer:
 				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
-	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
+	def dops_generate(self, ids = None, splits = 3, split_mode = 'count', expanded_atomicity = False):
 		self.test_suite_initialized = False
 		if type(ids) == int:
 			ids = [ids]
 		if ids == None:
 			ids = range(0, len(self.micro_ops))
 		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode)
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode, expanded_atomicity)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
 	def __dops_get_i_j(self, i, j):
