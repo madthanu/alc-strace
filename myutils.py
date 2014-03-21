@@ -57,6 +57,9 @@ def init_cmdline():
 	if __cmdline.scratchpad_dir not in ['/tmp', '/tmp/']:
 		assert not __cmdline.replayed_snapshot
 		__cmdline.replayed_snapshot = os.path.join(__cmdline.scratchpad_dir, 'replayed_snapshot')
+	
+	if not os.path.isdir(__cmdline.scratchpad_dir):
+		os.makedirs(__cmdline.scratchpad_dir)
 
 	assert __cmdline.replayed_snapshot != False
 

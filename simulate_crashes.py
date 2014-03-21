@@ -451,11 +451,12 @@ class Replayer:
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
+				exec_context = dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)] + [('cmdline', cmdline())])
 				if cmdline().auto_run:
-					exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
+					exec(f2) in exec_context
 				else:
 					try:
-						exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
+						exec(f2) in exec_context
 					except:
 						f2 = open(scratchpad('replay_output'), 'a+')
 						f2.write("Error during runprint\n")

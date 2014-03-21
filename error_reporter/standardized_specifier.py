@@ -105,4 +105,4 @@ dops_generate(splits=3)
 dops_set_legal()
 omit_one('omit_one-three', conv_micro.expansive_ops)
 
-_export('/tmp/micro_cache_file')
+_export(os.path.join(cmdline.scratchpad_dir, 'micro_cache_file'))
