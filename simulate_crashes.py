@@ -197,7 +197,7 @@ class Replayer:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
 		f = open('/tmp/replay_output', 'w+')
 
-		args = [cmdline().checker_tool, replay_dir]
+		args = [cmdline().checker_tool, cmdline().replayed_snapshot]
 		stdout = ''
 		stderr = ''
 		for diskop in to_replay:

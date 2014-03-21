@@ -209,7 +209,7 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 			if i in reordering_violators:
 				till = reordering_violators[i] - 1
 			special_reordering_found = False
-			for j in range(i + 1, till):
+			for j in range(i, till):
 				if j in prefix_problems or j in atomicity_violators \
 						or micro_operations[j].op in conv_micro.sync_ops:
 					continue
@@ -221,6 +221,8 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 								or j in atomicity_violators):
 							start = micro_ops.dops_len(subtype, j) - 1
 						for y in range(start, micro_ops.dops_len(subtype, j)):
+							if i == j and not y > x:
+								continue
 							if (Op(i, x), Op(j, y)) not in replay_output.omit_one[subtype]:
 								blank_found = True
 								continue
@@ -231,7 +233,7 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 							if not is_correct(output):
 								print ''.join(('Special reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')'))
 								special_reordering_found = True
-							break
+								break
 						if special_reordering_found:
 							break
 					if special_reordering_found:
