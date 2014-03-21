@@ -57,6 +57,15 @@ def omit_one(msg, consider_only = None):
 			continue
 		if consider_only and (not op in consider_only):
 			continue
+		dop = dops_get_op(dops_double(i))
+		if op == 'append' and dop.special_write != None:
+			continue
+		if op == 'trunc' and dop.op == 'write' and dop.special_write != 'ZEROS':
+			continue
+		if op == 'trunc' and dop.op == 'truncate' and dops_double(i)[1] != dops_len(dops_double(i)[0]) - 1:
+			# trunc micro op that reduces file size, but not at the last diskop of the micro op
+			continue
+
 		till = dops_single(dops_independent_till(dops_double(i)))
 
 		for j in range(i + 1, till + 1):

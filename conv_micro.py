@@ -345,6 +345,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			if fd >= 0 and 'O_DIRECTORY' not in flags:
 				# Finished with most of the asserts and initialization. Actually handling the open() here.
 
+				newly_created = False
 				if not __replayed_stat(name):
 					assert 'O_CREAT' in flags
 					assert 'O_WRONLY' in flags or 'O_RDWR' in flags
@@ -356,14 +357,16 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 					inode = __replayed_stat(name).st_ino
 					new_op = Struct(op = 'creat', name = name, mode = mode, inode = inode, parent = __parent_inode(name))
 					micro_operations.append(new_op)
+					newly_created = True
 				else:
 					inode = __replayed_stat(name).st_ino
 
 				if 'O_TRUNC' in flags:
 					assert 'O_WRONLY' in flags or 'O_RDWR' in flags
-					new_op = Struct(op = 'trunc', name = name, initial_size = __replayed_stat(name).st_size, final_size = 0, inode = inode)
-					micro_operations.append(new_op)
-					__replayed_truncate(name, 0)
+					if not newly_created:
+						new_op = Struct(op = 'trunc', name = name, initial_size = __replayed_stat(name).st_size, final_size = 0, inode = inode)
+						micro_operations.append(new_op)
+						__replayed_truncate(name, 0)
 
 				fd_flags = []
 				if 'O_SYNC' in flags or 'O_DSYNC' in flags or 'O_RSYNC' in flags:

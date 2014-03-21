@@ -15,7 +15,7 @@ real_ops = set(['create_dir_entry', 'delete_dir_entry', 'truncate', 'write'])
 
 def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 	assert split_mode in ['aligned', 'count']
-	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None, append_write_zeros = False):
+	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
 		toret = []
 
 		# If we are making the file smaller, follow the same algorithm
@@ -53,7 +53,7 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 				disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end)
 				toret.append(disk_op)
 
-			if append_micro_op and append_write_zeros:
+			if append_micro_op:
 				# Write zeros
 				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
 				toret.append(disk_op)
@@ -129,9 +129,9 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 	elif line.op == 'trunc':
 		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.initial_size, line.final_size)
 	elif line.op == 'append':
-		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line, append_write_zeros = expanded_atomicity)
+		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
 		if expanded_atomicity:
-			line.hidden_disk_ops += trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line, append_write_zeros = expanded_atomicity)
+			line.hidden_disk_ops += trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
 	elif line.op == 'write':
 		assert line.count > 0
 		line.hidden_disk_ops = []
