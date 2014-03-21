@@ -119,7 +119,7 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 	# Finding prefix bugs
 	prefix_problems = set()
 	for i in range(0, len(micro_operations)):
-		if micro_operations[i].op not in conv_micro.sync_ops:
+		if micro_operations[i].op not in conv_micro.sync_ops and micro_ops.dops_len('one', i) > 0:
 			correct = None
 			# Determining whether this is an inter-syscall-prefix bug
 			for subtype in replay_output.prefix:
@@ -185,10 +185,11 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 	reordering_violators = {}
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \
-				and micro_operations[i].op not in conv_micro.pseudo_ops:
+				and micro_operations[i].op not in conv_micro.pseudo_ops \
+				and micro_ops.dops_len('one', i) > 0:
 			blank_found = False
 			for j in range(i + 1, len(micro_operations)):
-				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops:
+				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
 					continue
 				if not (Op(i), Op(j)) in replay_output.omitmicro:
 					blank_found = True
@@ -204,14 +205,16 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \
 				and i not in atomicity_violators \
-				and micro_operations[i].op not in conv_micro.pseudo_ops:
+				and micro_operations[i].op not in conv_micro.pseudo_ops \
+				and micro_ops.dops_len('one', i) > 0:
 			till = len(micro_operations)
 			if i in reordering_violators:
 				till = reordering_violators[i] - 1
 			special_reordering_found = False
 			for j in range(i, till):
 				if j in prefix_problems or j in atomicity_violators \
-						or micro_operations[j].op in conv_micro.sync_ops:
+						or micro_operations[j].op in conv_micro.sync_ops \
+						or micro_ops.dops_len('one', j) == 0:
 					continue
 				for subtype in replay_output.omit_one:
 					for x in range(0, micro_ops.dops_len(subtype, i)):
