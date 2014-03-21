@@ -32,6 +32,7 @@ def init_cmdline():
 	parser.add_argument('--special_stdout', dest = 'special_stdout', type = str, default = None)
 	parser.add_argument('--special_stdout_prefix', dest = 'special_stdout_prefix', type = str, default = None)
 	parser.add_argument('--special_stdout_suffix', dest = 'special_stdout_suffix', type = str, default = None)
+	parser.add_argument('--scratchpad_dir', dest = 'scratchpad_dir', type = str, default = '/tmp')
 	__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:
@@ -43,7 +44,6 @@ def init_cmdline():
 
 	assert __cmdline.prefix != False
 	assert __cmdline.initial_snapshot != False
-	assert __cmdline.replayed_snapshot != False
 	assert __cmdline.base_path != False and __cmdline.base_path.startswith('/')
 	if __cmdline.base_path.endswith('/'):
 		__cmdline.base_path = __cmdline.base_path[0 : -1]
@@ -53,6 +53,12 @@ def init_cmdline():
 
 	if 'starting_cwd' not in __cmdline.__dict__ or __cmdline.starting_cwd == False:
 		__cmdline.starting_cwd = __cmdline.base_path
+	
+	if __cmdline.scratchpad_dir not in ['/tmp', '/tmp/']:
+		assert not __cmdline.replayed_snapshot
+		__cmdline.replayed_snapshot = os.path.join(__cmdline.scratchpad_dir, 'replayed_snapshot')
+
+	assert __cmdline.replayed_snapshot != False
 
 def cmdline():
 	return __cmdline
@@ -121,3 +127,7 @@ def is_interesting(path):
 	if __cmdline.interesting_path_function != None:
 		return __cmdline.interesting_path_function(path)
 	return re.search(cmdline().interesting_path_string, path)
+
+def scratchpad(path):
+	assert not path.startswith('/')
+	return os.path.join(__cmdline.scratchpad_dir, path)

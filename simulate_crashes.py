@@ -129,7 +129,7 @@ class Replayer:
 		self.test_suite_initialized = True
 		self.save(0)
 	def print_ops(self):
-		f = open('/tmp/current_orderings', 'w+')
+		f = open(scratchpad('current_orderings'), 'w+')
 		for i in range(0, len(self.micro_ops)):
 			micro_id = colorize(str(i), 3 if i > self.__micro_end else 2)
 			orig_id = colorize(str(self.micro_ops[i].hidden_id), 3)
@@ -195,7 +195,7 @@ class Replayer:
 			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot, use_cached = True)
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
-		f = open('/tmp/replay_output', 'w+')
+		f = open(scratchpad('replay_output'), 'w+')
 
 		args = [cmdline().checker_tool, cmdline().replayed_snapshot]
 		stdout = ''
@@ -220,16 +220,16 @@ class Replayer:
 		subprocess.call(args, stdout = f)
 
 		# Storing output in all necessary locations
-		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
+		os.system('cp ' + scratchpad('replay_output') + ' ' + scratchpad('replay_outputs_long/') + str(self.replay_count) + '_output')
 		self.print_ops()
-		os.system('cp /tmp/current_orderings /tmp/replay_outputs_long/' + str(self.replay_count) + '_orderings')
+		os.system('cp ' + scratchpad('current_orderings') + ' ' + scratchpad('replay_outputs_long/') + str(self.replay_count) + '_orderings')
 		if summary_string == None:
 			summary_string = 'R' + str(self.replay_count)
 		else:
 			summary_string = str(summary_string)
 		tmp_short_output = '\n'
-		if os.path.isfile('/tmp/short_output'):
-			f = open('/tmp/short_output', 'r')
+		if os.path.isfile(scratchpad('short_output')):
+			f = open(scratchpad('short_output'), 'r')
 			tmp_short_output = f.read()
 			f.close()
 		if len(tmp_short_output) > 0 and tmp_short_output[-1] == '\n':
@@ -419,35 +419,35 @@ class Replayer:
 				for disk_op in micro_op.hidden_disk_ops:
 					to_replay.append(disk_op)
 			diskops.replay_disk_ops(self.path_inode_map, to_replay)
-			os.system("rm -rf /tmp/disk_ops_output")
-			os.system("cp -R " + cmdline().replayed_snapshot + " /tmp/disk_ops_output")
+			os.system("rm -rf " + scratchpad("disk_ops_output"))
+			os.system("cp -R " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output"))
 
 			replay_micro_ops(self.micro_ops[0 : till + 1])
 
- 			subprocess.call("diff -ar " + cmdline().replayed_snapshot + " /tmp/disk_ops_output > /tmp/replay_output", shell = True)
-			self.short_outputs += str(till) + '\t' + subprocess.check_output("diff -ar " + cmdline().replayed_snapshot + " /tmp/disk_ops_output | wc -l", shell = True)
+ 			subprocess.call("diff -ar " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output") + " > " + scratchpad("replay_output"), shell = True)
+			self.short_outputs += str(till) + '\t' + subprocess.check_output("diff -ar " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output") + " | wc -l", shell = True)
 			self.replay_count += 1
 			print('__dops_verify_replayer(' + str(till) + ') finished.')
 	def listener_loop(self):
-		os.system("rm -f /tmp/fifo_in")
-		os.system("rm -f /tmp/fifo_out")
-		os.system("mkfifo /tmp/fifo_in")
-		os.system("mkfifo /tmp/fifo_out")
+		os.system("rm -f " + scratchpad("fifo_in"))
+		os.system("rm -f " + scratchpad("fifo_out"))
+		os.system("mkfifo " + scratchpad("fifo_in"))
+		os.system("mkfifo " + scratchpad("fifo_out"))
 		print 'Entering listener loop'
 		while True:
 			if cmdline().auto_run:
 				string = 'runprint'
 			else:
-				f = open('/tmp/fifo_in', 'r')
+				f = open(scratchpad('fifo_in'), 'r')
 				string = f.read()
 			if string == "runprint" or string == "runprint\n":
 				print "Command: runprint"
 				start_time = time.time()
 				self.short_outputs = ""
 				self.replay_count = 0
-				os.system('rm -rf /tmp/replay_outputs_long/')
-				os.system('echo > /tmp/replay_output')
-				os.system('mkdir -p /tmp/replay_outputs_long/')
+				os.system('rm -rf ' + scratchpad('replay_outputs_long/'))
+				os.system('echo > ' + scratchpad('replay_output'))
+				os.system('mkdir -p ' + scratchpad('replay_outputs_long/'))
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
@@ -457,19 +457,19 @@ class Replayer:
 					try:
 						exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)])
 					except:
-						f2 = open('/tmp/replay_output', 'a+')
+						f2 = open(scratchpad('replay_output'), 'a+')
 						f2.write("Error during runprint\n")
 						f2.write(traceback.format_exc())
 						f2.close()
 
 				if cmdline().replayer_threads > 0:
-					MultiThreadedReplayer.wait_and_write_outputs('/tmp/replay_output')
+					MultiThreadedReplayer.wait_and_write_outputs(scratchpad('replay_output'))
 
 				self.print_ops()
 				f2.close()
 
 				if(self.replay_count > 1 and cmdline().replayer_threads == 0):
-					f2 = open('/tmp/replay_output', 'a+')
+					f2 = open(scratchpad('replay_output'), 'a+')
 					f2.write(self.short_outputs)
 					f2.close()
 				print "Finished command: runprint (in " + str(time.time() - start_time) + " seconds)"
@@ -479,7 +479,7 @@ class Replayer:
 			if cmdline().auto_run:
 				break
 			f.close()
-			f = open('/tmp/fifo_out', 'w')
+			f = open(scratchpad('fifo_out'), 'w')
 			f.write("done")
 			f.close()
 
@@ -535,4 +535,5 @@ if __name__ == "__main__":
 		t.start()
 	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
 	replayer = Replayer(path_inode_map, micro_operations)
-	cProfile.run('replayer.listener_loop()')
+#	cProfile.run('replayer.listener_loop()')
+	replayer.listener_loop()

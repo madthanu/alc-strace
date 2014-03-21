@@ -251,7 +251,7 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, use_cached = Fals
 	global cached_rows, cached_dirinode_map
 	if use_cached:
 		original_replay_dir = replay_dir
-		replay_dir = '/tmp/cached_replay_dir'
+		replay_dir = scratchpad('cached_replay_dir')
 		dirinode_map = cached_dirinode_map
 		if cached_rows and len(cached_rows) <= len(rows) and rows[0:len(cached_rows)] == cached_rows:
 			rows = copy.deepcopy(rows[len(cached_rows):])
