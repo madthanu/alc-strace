@@ -22,8 +22,6 @@ from mystruct import Struct
 from myutils import *
 import gc
 
-init_cmdline()
-
 class MultiThreadedReplayer(threading.Thread):
 	queue = Queue.Queue()
 	short_outputs = {}
@@ -35,19 +33,28 @@ class MultiThreadedReplayer(threading.Thread):
 
 	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string, checker_params):
 		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
-
-		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir)
-
-		if checker_params:
-			args = [cmdline().checker_tool, replay_dir]
+		assert type(cmdline().checker_tool) in [list, str, tuple]
+		args = [cmdline().checker_tool, replay_dir]
+		stdout = ''
+		stderr = ''
+		for diskop in to_replay:
+			if diskop.op == 'stdout':
+				stdout += diskop.data
+			if diskop.op == 'stderr':
+				stderr += diskop.data
+		args.append(stdout)
+		args.append(stderr)
+		if not checker_params:
+			pass
+		elif type(checker_params) == str:
+			args.append(x)
+		else:
 			for x in checker_params:
 				if type(x) != str:
 					args.append(repr(x))
 				else:
 					args.append(x)
-			tmp_short_output = subprocess.check_output(args)
-		else:
-			tmp_short_output = subprocess.check_output(cmdline().checker_tool + " " + replay_dir, shell = True)
+		tmp_short_output = subprocess.check_output(args)
 
 		if summary_string == None:
 			summary_string = 'R' + str(replay_count)
@@ -67,6 +74,11 @@ class MultiThreadedReplayer(threading.Thread):
 
 	@staticmethod
 	def replay_and_check(to_replay, replay_count, summary_string, checker_params = None):
+		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
+		if replay_count % cmdline().replayer_threads == 0:
+			time.sleep(0)
+
+		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir, use_cached = True)
 		MultiThreadedReplayer.queue.put((to_replay, replay_count, summary_string, checker_params))
 
 	@staticmethod
@@ -77,7 +89,7 @@ class MultiThreadedReplayer(threading.Thread):
 
 	@staticmethod
 	def wait_and_write_outputs(fname):
-		f = open(fname, 'w+')
+		f = open(fname, 'a+')
 		MultiThreadedReplayer.queue.join()
 		for i in MultiThreadedReplayer.short_outputs:
 			f.write(str(MultiThreadedReplayer.short_outputs[i]))
@@ -108,17 +120,16 @@ class Replayer:
 		all_diskops = []
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
+		for i in range(0, len(all_diskops)):
+			if all_diskops[i].op == 'stdout':
+				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
-		for i in range(0, len(all_diskops)):
-			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i])))
-			all_diskops[i].hidden_requires.remove(i)
 		if cmdline().debug_level >= 1: print "... done."
-		self.__cached_stdout_implied = None
 		self.test_suite_initialized = True
 		self.save(0)
 	def print_ops(self):
-		f = open('/tmp/current_orderings', 'w+')
+		f = open(scratchpad('current_orderings'), 'w+')
 		for i in range(0, len(self.micro_ops)):
 			micro_id = colorize(str(i), 3 if i > self.__micro_end else 2)
 			orig_id = colorize(str(self.micro_ops[i].hidden_id), 3)
@@ -141,6 +152,8 @@ class Replayer:
 		j = len(self.micro_ops[i].hidden_disk_ops) - 1
 		self.__micro_end = i
 		self.__disk_end = j
+	def micro_len(self):
+		return len(self.micro_ops)
 	def save(self, i):
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
 							micro_end = self.__micro_end,
@@ -155,7 +168,6 @@ class Replayer:
 		self.__disk_end = retrieved.disk_end
 		self.test_suite = retrieved.test_suite
 		self.test_suite_initialized = retrieved.test_suite_initialized
-		self.__cached_stdout_implied = None
 
 	def __multithreaded_replay(self, summary_string = None, checker_params = None):
 		assert cmdline().replayer_threads > 0
@@ -180,34 +192,44 @@ class Replayer:
 				for j in range(0, till):
 					if not micro_op.hidden_disk_ops[j].hidden_omitted:
 						to_replay.append(micro_op.hidden_disk_ops[j])
-			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot)
+			diskops.replay_disk_ops(self.path_inode_map, to_replay, cmdline().replayed_snapshot, use_cached = True)
 		else:
 			replay_micro_ops(self.micro_ops[0 : self.__micro_end + 1])
-		f = open('/tmp/replay_output', 'w+')
+		f = open(scratchpad('replay_output'), 'w+')
 
-		if checker_params:
-			args = [cmdline().checker_tool, cmdline().replayed_snapshot]
+		args = [cmdline().checker_tool, cmdline().replayed_snapshot]
+		stdout = ''
+		stderr = ''
+		for diskop in to_replay:
+			if diskop.op == 'stdout':
+				stdout += diskop.data
+			if diskop.op == 'stderr':
+				stderr += diskop.data
+		args.append(stdout)
+		args.append(stderr)
+		if not checker_params:
+			pass
+		elif type(checker_params) == str:
+			args.append(x)
+		else:
 			for x in checker_params:
 				if type(x) != str:
 					args.append(repr(x))
 				else:
 					args.append(x)
-			subprocess.call(args, stdout = f)
-		else:
-			subprocess.call(cmdline().checker_tool + " " + cmdline().replayed_snapshot, shell = True, stdout = f)
-		f.close()
+		subprocess.call(args, stdout = f)
 
 		# Storing output in all necessary locations
-		os.system('cp /tmp/replay_output /tmp/replay_outputs_long/' + str(self.replay_count) + '_output')
+		os.system('cp ' + scratchpad('replay_output') + ' ' + scratchpad('replay_outputs_long/') + str(self.replay_count) + '_output')
 		self.print_ops()
-		os.system('cp /tmp/current_orderings /tmp/replay_outputs_long/' + str(self.replay_count) + '_orderings')
+		os.system('cp ' + scratchpad('current_orderings') + ' ' + scratchpad('replay_outputs_long/') + str(self.replay_count) + '_orderings')
 		if summary_string == None:
 			summary_string = 'R' + str(self.replay_count)
 		else:
 			summary_string = str(summary_string)
 		tmp_short_output = '\n'
-		if os.path.isfile('/tmp/short_output'):
-			f = open('/tmp/short_output', 'r')
+		if os.path.isfile(scratchpad('short_output')):
+			f = open(scratchpad('short_output'), 'r')
 			tmp_short_output = f.read()
 			f.close()
 		if len(tmp_short_output) > 0 and tmp_short_output[-1] == '\n':
@@ -288,20 +310,19 @@ class Replayer:
 		all_diskops = []
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
-		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		for i in range(0, len(all_diskops)):
-			all_diskops[i].hidden_requires = set(sorted(self.test_suite.keep_list_of_ops([i])))
-			all_diskops[i].hidden_requires.remove(i)
-		self.__cached_stdout_implied = None
+			if all_diskops[i].op == 'stdout':
+				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
+		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
-	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
+	def dops_generate(self, ids = None, splits = 3, split_mode = 'count', expanded_atomicity = False):
 		self.test_suite_initialized = False
 		if type(ids) == int:
 			ids = [ids]
 		if ids == None:
 			ids = range(0, len(self.micro_ops))
 		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode)
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode, expanded_atomicity)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
 	def __dops_get_i_j(self, i, j):
@@ -314,7 +335,6 @@ class Replayer:
 		assert 'hidden_disk_ops' in self.micro_ops[i].__dict__
 		assert j < len(self.micro_ops[i].hidden_disk_ops)
 		return (i, j)
-
 	def dops_remove(self, i, j = None):
 		self.test_suite_initialized = False
 		(i, j) = self.__dops_get_i_j(i, j)
@@ -323,7 +343,11 @@ class Replayer:
 			self.__disk_end -= 1
 	def dops_omit(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
-		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
+		if self.micro_ops[i].op not in ['stdout', 'stderr']:
+			self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
+	def dops_include(self, i, j = None):
+		(i, j) = self.__dops_get_i_j(i, j)
+		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = False
 	def dops_replay(self, summary_string = None, checker_params = None):
 		if cmdline().replayer_threads > 0:
 			self.__multithreaded_replay(summary_string, checker_params)
@@ -356,61 +380,6 @@ class Replayer:
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
-	def dops_implied_stdout(self, keep_list):
-		assert self.test_suite_initialized
-
-		if type(keep_list) != list:
-			if type(keep_list) == tuple:
-				keep_list = set([self.dops_single(keep_list)])
-			else:
-				assert type(keep_list) == int
-				keep_list = set([keep_list])
-		else:
-			if type(keep_list[0]) == tuple:
-				keep_list = set([self.dops_single(double) for double in keep_list])
-			else:
-				assert type(keep_list[0]) == int
-				keep_list = set(keep_list)
-
-		# Finding the timestamp till which you are allowed to proceed by sending only the current list to the disk
-		if self.__cached_stdout_implied:
-			(cached_keep_list, cached_answer) = self.__cached_stdout_implied
-			if cached_keep_list <= keep_list:
-				(i, j) = cached_answer
-		else:
-			(i, j) = self.dops_double(max(keep_list))
-
-		for x in range(i, len(self.micro_ops)):
-			start_y = 0
-			if x == i:
-				start_y = j + 1
-			time_stamp_found = False
-			for y in range(start_y, len(self.micro_ops[x].hidden_disk_ops)):
-				if self.micro_ops[x].hidden_disk_ops[y].hidden_requires <= keep_list:
-					(i, j) = (x, y)
-				else:
-					time_stamp_found = True
-					break
-			if time_stamp_found:
-				break
-
-		self.__cached_stdout_implied = copy.deepcopy((keep_list, (i, j)))
-
-		# Finding the last stdout corresponding to the found timestamp
-		x = i + 1
-		if j == len(self.micro_ops[i].hidden_disk_ops) - 1:
-			while(True):
-				if x == len(self.micro_ops) or self.micro_ops[x] not in ['stdout', 'stderr']:
-					break
-				x += 1
-		stdout = ''
-		stderr = ''
-		for y in range(0, x):
-			if self.micro_ops[y].op == 'stdout':
-				stdout += self.micro_ops[y].data
-			elif self.micro_ops[y].op == 'stderr':
-				stderr += self.micro_ops[y].data
-		return (x - 1, stdout, stderr)
 	def dops_independent_till(self, drop_list):
 		assert self.test_suite_initialized
 		if type(drop_list) != list:
@@ -437,6 +406,8 @@ class Replayer:
 			for disk_op in micro_op.hidden_disk_ops:
 				to_export.append(disk_op)
 		pickle.dump(to_export, open(fname, 'w'))
+	def _export(self, fname):
+		pickle.dump((self.path_inode_map, self.micro_ops), open(fname, 'wb'), 2)
 	def _dops_verify_replayer(self, i = None):
 		if i == None:
 			to_check = range(0, len(self.micro_ops))
@@ -448,59 +419,68 @@ class Replayer:
 				for disk_op in micro_op.hidden_disk_ops:
 					to_replay.append(disk_op)
 			diskops.replay_disk_ops(self.path_inode_map, to_replay)
-			os.system("rm -rf /tmp/disk_ops_output")
-			os.system("cp -R " + cmdline().replayed_snapshot + " /tmp/disk_ops_output")
+			os.system("rm -rf " + scratchpad("disk_ops_output"))
+			os.system("cp -R " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output"))
 
 			replay_micro_ops(self.micro_ops[0 : till + 1])
 
- 			subprocess.call("diff -ar " + cmdline().replayed_snapshot + " /tmp/disk_ops_output > /tmp/replay_output", shell = True)
-			self.short_outputs += str(till) + '\t' + subprocess.check_output("diff -ar " + cmdline().replayed_snapshot + " /tmp/disk_ops_output | wc -l", shell = True)
+ 			subprocess.call("diff -ar " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output") + " > " + scratchpad("replay_output"), shell = True)
+			self.short_outputs += str(till) + '\t' + subprocess.check_output("diff -ar " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output") + " | wc -l", shell = True)
 			self.replay_count += 1
 			print('__dops_verify_replayer(' + str(till) + ') finished.')
 	def listener_loop(self):
-		os.system("rm -f /tmp/fifo_in")
-		os.system("rm -f /tmp/fifo_out")
-		os.system("mkfifo /tmp/fifo_in")
-		os.system("mkfifo /tmp/fifo_out")
+		os.system("rm -f " + scratchpad("fifo_in"))
+		os.system("rm -f " + scratchpad("fifo_out"))
+		os.system("mkfifo " + scratchpad("fifo_in"))
+		os.system("mkfifo " + scratchpad("fifo_out"))
 		print 'Entering listener loop'
 		while True:
-			f = open('/tmp/fifo_in', 'r')
-			string = f.read()
+			if cmdline().auto_run:
+				string = 'runprint'
+			else:
+				f = open(scratchpad('fifo_in'), 'r')
+				string = f.read()
 			if string == "runprint" or string == "runprint\n":
 				print "Command: runprint"
 				start_time = time.time()
 				self.short_outputs = ""
 				self.replay_count = 0
-				os.system('rm -rf /tmp/replay_outputs_long/')
-				os.system('echo > /tmp/replay_output')
-				os.system('mkdir -p /tmp/replay_outputs_long/')
+				os.system('rm -rf ' + scratchpad('replay_outputs_long/'))
+				os.system('echo > ' + scratchpad('replay_output'))
+				os.system('mkdir -p ' + scratchpad('replay_outputs_long/'))
 				if cmdline().replayer_threads > 0:
 					MultiThreadedReplayer.reset()
 				f2 = open(cmdline().orderings_script, 'r')
-				#try:
-				exec(f2) in dict(inspect.getmembers(self) + self.__dict__.items())
-				#except:
-				#	f2 = open('/tmp/replay_output', 'w+')
-				#	f2.write("Error during runprint\n")
-				#	f2.write(traceback.format_exc())
-				#	f2.close()
+				exec_context = dict(inspect.getmembers(self) + self.__dict__.items() + [('__file__', cmdline().orderings_script)] + [('cmdline', cmdline())])
+				if cmdline().auto_run:
+					exec(f2) in exec_context
+				else:
+					try:
+						exec(f2) in exec_context
+					except:
+						f2 = open(scratchpad('replay_output'), 'a+')
+						f2.write("Error during runprint\n")
+						f2.write(traceback.format_exc())
+						f2.close()
 
 				if cmdline().replayer_threads > 0:
-					MultiThreadedReplayer.wait_and_write_outputs('/tmp/replay_output')
+					MultiThreadedReplayer.wait_and_write_outputs(scratchpad('replay_output'))
 
 				self.print_ops()
 				f2.close()
 
 				if(self.replay_count > 1 and cmdline().replayer_threads == 0):
-					f2 = open('/tmp/replay_output', 'w+')
+					f2 = open(scratchpad('replay_output'), 'a+')
 					f2.write(self.short_outputs)
 					f2.close()
 				print "Finished command: runprint (in " + str(time.time() - start_time) + " seconds)"
 			else:
 				print "This is the string obtained from fifo: |" + string + "|"
 				assert False
+			if cmdline().auto_run:
+				break
 			f.close()
-			f = open('/tmp/fifo_out', 'w')
+			f = open(scratchpad('fifo_out'), 'w')
 			f.write("done")
 			f.close()
 
@@ -548,10 +528,13 @@ def replay_micro_ops(rows):
 			print line.op
 			assert False
 
-for i in range(0, cmdline().replayer_threads + 1):
-	t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
-	t.setDaemon(True)
-	t.start()
-
-(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
-Replayer(path_inode_map, micro_operations).listener_loop()
+if __name__ == "__main__":
+	init_cmdline()
+	for i in range(0, cmdline().replayer_threads + 1):
+		t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
+		t.setDaemon(True)
+		t.start()
+	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
+	replayer = Replayer(path_inode_map, micro_operations)
+#	cProfile.run('replayer.listener_loop()')
+	replayer.listener_loop()

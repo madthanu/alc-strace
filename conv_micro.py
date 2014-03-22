@@ -52,6 +52,12 @@ innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","
 innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
 innocent_syscalls += ['shmget', 'shmat', 'shmdt', 'shmctl']
 
+sync_ops = set(['fsync', 'fdatasync', 'file_sync_range'])
+expansive_ops = set(['append', 'trunc', 'write', 'unlink', 'rename'])
+pseudo_ops = sync_ops | set(['stderr', 'stdout'])
+real_ops = expansive_ops | set(['creat', 'link', 'mkdir', 'rmdir'])
+
+
 def parse_line(line):
 	try:
 		toret = Struct()
@@ -308,6 +314,7 @@ class ProcessTracker:
 		assert toret.pid == tid or tid in toret.child_tids
 		return toret
 
+__directory_symlinks = []
 def __get_micro_op(syscall_tid, line, mtrace_recorded):
 	micro_operations = []
 
@@ -317,6 +324,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 	fdtracker = proctracker.fdtracker
 	fdtracker_unwatched = proctracker.fdtracker_unwatched
 
+	global __directory_symlinks
 	parsed_line = parse_line(line)
 	if parsed_line == False:
 		return []
@@ -340,6 +348,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			if fd >= 0 and 'O_DIRECTORY' not in flags:
 				# Finished with most of the asserts and initialization. Actually handling the open() here.
 
+				newly_created = False
 				if not __replayed_stat(name):
 					assert 'O_CREAT' in flags
 					assert 'O_WRONLY' in flags or 'O_RDWR' in flags
@@ -351,14 +360,16 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 					inode = __replayed_stat(name).st_ino
 					new_op = Struct(op = 'creat', name = name, mode = mode, inode = inode, parent = __parent_inode(name))
 					micro_operations.append(new_op)
+					newly_created = True
 				else:
 					inode = __replayed_stat(name).st_ino
 
 				if 'O_TRUNC' in flags:
 					assert 'O_WRONLY' in flags or 'O_RDWR' in flags
-					new_op = Struct(op = 'trunc', name = name, initial_size = __replayed_stat(name).st_size, final_size = 0, inode = inode)
-					micro_operations.append(new_op)
-					__replayed_truncate(name, 0)
+					if not newly_created:
+						new_op = Struct(op = 'trunc', name = name, initial_size = __replayed_stat(name).st_size, final_size = 0, inode = inode)
+						micro_operations.append(new_op)
+						__replayed_truncate(name, 0)
 
 				fd_flags = []
 				if 'O_SYNC' in flags or 'O_DSYNC' in flags or 'O_RSYNC' in flags:
@@ -377,20 +388,39 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			fdtracker_unwatched.new_fd_mapping(fd, name, 0, fd_flags, 0)
 	elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
 		fd = safe_string_to_int(parsed_line.args[0])
-		if fdtracker.is_watched(fd) or fd in [1, 2]:
+		special_stdout = False
+		name = None
+		if fdtracker_unwatched.is_watched(fd):
+			name = fdtracker_unwatched.get_name(fd)
+		elif fdtracker.is_watched(fd):
+			name = fdtracker.get_name(fd)
+		if name and name == cmdline().special_stdout:
+			special_stdout = True
+		if fdtracker.is_watched(fd) or fd in [1, 2] or special_stdout:
 			dump_file = eval(parsed_line.args[-2])
 			dump_offset = safe_string_to_int(parsed_line.args[-1])
-			if fd in [1, 2]:
+			if fd in [1, 2] or special_stdout:
 				count = safe_string_to_int(parsed_line.args[2])
 				fd_data = os.open(dump_file, os.O_RDONLY)
 				os.lseek(fd_data, dump_offset, os.SEEK_SET)
 				buf = os.read(fd_data, count)
 				os.close(fd_data)
-				if fd == 1:
+				if special_stdout:
+					starting = 0
+					ending = len(buf) - 1
+					if cmdline().special_stdout_prefix:
+						starting = buf.find(cmdline().special_stdout_prefix)
+					if cmdline().special_stdout_suffix:
+						ending = buf.find(cmdline().special_stdout_suffix) - 1
+					if starting < 0 or ending < 0:
+						special_stdout = False
+					else:
+						buf = buf[starting  + len(cmdline().special_stdout_prefix) : ending + 1]
+				if fd == 1 or special_stdout:
 					if not cmdline().omit_stdout:
 						new_op = Struct(op = 'stdout', data = buf)
 						micro_operations.append(new_op)
-				else:
+				elif fd == 2:
 					if not cmdline().omit_stderr:
 						new_op = Struct(op = 'stderr', data = buf)
 						micro_operations.append(new_op)
@@ -496,18 +526,23 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			if is_interesting(name):
 				assert __replayed_stat(name)
 				inode = __replayed_stat(name).st_ino
-				hardlinks = __replayed_stat(name).st_nlink
-				size = __replayed_stat(name).st_size
-				micro_operations.append(Struct(op = 'unlink', name = name, inode = inode, hardlinks = hardlinks, parent = __parent_inode(name), size = size))
-				# A simple os.unlink might be sufficient, but making sure that the inode is not re-used.
-				if hardlinks > 1:
-					os.unlink(replayed_path(name))
-					if len(fdtracker.get_fds(inode)) > 1:
-						print "Warning: File unlinked while being open: " + name
-					if memtracker.file_mapped(inode):
-						print "Warning: File unlinked while being mapped: " + name
-				else:
+				if os.path.isdir(replayed_path(name)):
+					assert inode in __directory_symlinks
+					micro_operations.append(Struct(op = 'rmdir', name = name, inode = inode, parent = __parent_inode(name)))
 					os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + str(uuid.uuid1()))
+				else:
+					hardlinks = __replayed_stat(name).st_nlink
+					size = __replayed_stat(name).st_size
+					micro_operations.append(Struct(op = 'unlink', name = name, inode = inode, hardlinks = hardlinks, parent = __parent_inode(name), size = size))
+					# A simple os.unlink might be sufficient, but making sure that the inode is not re-used.
+					if hardlinks > 1:
+						os.unlink(replayed_path(name))
+						if len(fdtracker.get_fds(inode)) > 1:
+							print "Warning: File unlinked while being open: " + name
+						if memtracker.file_mapped(inode):
+							print "Warning: File unlinked while being mapped: " + name
+					else:
+						os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + str(uuid.uuid1()))
 	elif parsed_line.syscall == 'lseek':
 		if int(parsed_line.ret) != -1:
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -765,7 +800,8 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 				if source_is_dir == True:
 					os.mkdir(replayed_path(dest), 0777)
 					inode = __replayed_stat(dest).st_ino
-					micro_operations.append(Struct(op = 'mkdir', name = dest, mode = 0777, inode = inode, parent = __parent_inode(dest)))
+					__directory_symlinks.append(inode)
+					micro_operations.append(Struct(op = 'mkdir', name = dest, mode = '0777', inode = inode, parent = __parent_inode(dest)))
 				else:
 					tmp_fd = os.open(replayed_path(dest), os.O_CREAT | os.O_WRONLY, 0666)
 					assert tmp_fd > 0

@@ -5,9 +5,12 @@ function! Crashes_editor_vim_version()
 endfunction
 
 function! Runprint()
+	if $scratchpad_dir == ''
+		let $scratchpad_dir = '/tmp'
+	endif
 	silent windo! w!
-	silent !echo runprint > /tmp/fifo_in
-	silent !cat /tmp/fifo_out > /dev/null
+	silent !echo runprint > $scratchpad_dir/fifo_in
+	silent !cat $scratchpad_dir/fifo_out > /dev/null
 	silent windo! e
 	wincmd b
 	wincmd h
@@ -17,8 +20,11 @@ function! Runprint()
 endfunction
 
 if !exists("g:crashes_editor_started")
-	vsp /tmp/current_orderings
-	vsp /tmp/replay_output
+	if $scratchpad_dir == ''
+		let $scratchpad_dir = '/tmp'
+	endif
+	vsp $scratchpad_dir/current_orderings
+	vsp $scratchpad_dir/replay_output
 	wincmd l
 	AnsiEsc
 	set ro

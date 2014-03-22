@@ -3,13 +3,17 @@ import os
 import string
 import math
 import pprint
+import copy
 from mystruct import Struct
 from myutils import *
 
 TYPE_DIR = 0
 TYPE_FILE = 1
 
-def get_disk_ops(line, splits, split_mode):
+pseudo_ops = set(['sync', 'stderr', 'stdout'])
+real_ops = set(['create_dir_entry', 'delete_dir_entry', 'truncate', 'write'])
+
+def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 	assert split_mode in ['aligned', 'count']
 	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
 		toret = []
@@ -43,19 +47,29 @@ def get_disk_ops(line, splits, split_mode):
 			else:
 				count = min(per_slice_size, remaining)
 			end = count + start
-			disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end)
-			toret.append(disk_op)
-			# If the file is becoming bigger, that area might end up containing garbage data or zeros.
-			if not invert:
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'GARBAGE')
-				# TODO: Currently not writing zeros explicitly, since this will be simulated by simple truncates. However, unsure of this' impact on the heuristics.
-				toret.append(disk_op)
-				if not append_micro_op:
-					disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
-					toret.append(disk_op)
 
+			if invert:
+				# Actually truncate
+				disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end)
+				toret.append(disk_op)
 
 			if append_micro_op:
+				# Write zeros
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
+				toret.append(disk_op)
+
+			if not invert:
+				# Write garbage
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'GARBAGE')
+				toret.append(disk_op)
+
+			if (not invert) and not append_micro_op:
+				# Write zeros
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
+				toret.append(disk_op)
+
+			if append_micro_op:
+				# Write data
 				dump_offset = append_micro_op.dump_offset + (start - append_micro_op.offset)
 				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = dump_offset, count = count, dump_file = append_micro_op.dump_file, special_write = None)
 				toret.append(disk_op)
@@ -76,10 +90,10 @@ def get_disk_ops(line, splits, split_mode):
 
 	def unlink_disk_ops(parent, inode, name, size, hardlinks, entry_type = TYPE_FILE):
 		toret = []
-		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode, entry_type = entry_type) # Inode stored, Vijay hack
-		toret.append(disk_op)
 		if hardlinks == 1:
 			toret += trunc_disk_ops(inode, size, 0)
+		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode, entry_type = entry_type) # Inode stored, Vijay hack
+		toret.append(disk_op)
 		return toret
 	def link_disk_ops(parent, inode, name, mode = None, entry_type = TYPE_FILE):
 		return [Struct(op = 'create_dir_entry', parent = parent, entry = name, inode = inode, mode = mode, entry_type = entry_type)]
@@ -92,14 +106,32 @@ def get_disk_ops(line, splits, split_mode):
 		line.hidden_disk_ops = link_disk_ops(line.dest_parent, line.source_inode, line.dest)
 	elif line.op == 'rename':
 		line.hidden_disk_ops = []
+		# source: source_inode, dest: dest_inode
+		if expanded_atomicity:
+			line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2)
+		# source: None, dest: dest_inode
 		if line.dest_hardlinks >= 1:
 			line.hidden_disk_ops += unlink_disk_ops(line.dest_parent, line.dest_inode, line.dest, line.dest_size, line.dest_hardlinks)
+		# source: None, dest: None
+		if expanded_atomicity:
+			line.hidden_disk_ops += link_disk_ops(line.source_parent, line.source_inode, line.source)
+		# source: source_inode, dest: None
 		line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2) # Setting hardlinks as 2 so that trunc does not happen
+		# source: None, dest: None
 		line.hidden_disk_ops += link_disk_ops(line.dest_parent, line.source_inode, line.dest)
+		# source: None, dest: source_inode
+		if expanded_atomicity:
+			line.hidden_disk_ops += link_disk_ops(line.source_parent, line.source_inode, line.source)
+		# source: source_inode, dest: source_inode
+		if expanded_atomicity:
+			line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2) # Setting hardlinks as 2 so that trunc does not happen
+		# source: None, dest: source_inode
 	elif line.op == 'trunc':
 		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.initial_size, line.final_size)
 	elif line.op == 'append':
 		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
+		if expanded_atomicity:
+			line.hidden_disk_ops += trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
 	elif line.op == 'write':
 		assert line.count > 0
 		line.hidden_disk_ops = []
@@ -135,7 +167,7 @@ def get_disk_ops(line, splits, split_mode):
 		disk_op = Struct(op = 'sync', inode = line.inode, offset = offset, count = count)
 		line.hidden_disk_ops.append(disk_op)
 	elif line.op in ['stdout', 'stderr']:
-		line.hidden_disk_ops = []
+		line.hidden_disk_ops = [Struct(op = line.op, data = line.data)]
 	else:
 		assert False
 
@@ -147,7 +179,11 @@ def get_disk_ops(line, splits, split_mode):
 		cnt += 1
 	return line.hidden_disk_ops
 
-def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
+cached_rows = None
+cached_dirinode_map = {}
+
+# use_cached works only on a single thread
+def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, use_cached = False):
 	def get_stat(path):
 		try:
 			return os.stat(path)
@@ -211,11 +247,29 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 			else:
 				os.link(final_path, replay_dir + '/.inodes/' + str(initial_inode))
 
-	os.system("rm -rf " + replay_dir)
-	os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
-	initialize_inode_links(initial_paths_inode_map)
+
+	global cached_rows, cached_dirinode_map
+	if use_cached:
+		original_replay_dir = replay_dir
+		replay_dir = scratchpad('cached_replay_dir')
+		dirinode_map = cached_dirinode_map
+		if cached_rows and len(cached_rows) <= len(rows) and rows[0:len(cached_rows)] == cached_rows:
+			rows = copy.deepcopy(rows[len(cached_rows):])
+			cached_rows += rows
+		else:
+			cached_rows = copy.deepcopy(rows)
+			cached_dirinode_map = {}
+			dirinode_map = cached_dirinode_map
+			os.system("rm -rf " + replay_dir)
+			os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
+			initialize_inode_links(initial_paths_inode_map)
+	else:
+		os.system("rm -rf " + replay_dir)
+		os.system("cp -R " + cmdline().initial_snapshot + " " + replay_dir)
+		initialize_inode_links(initial_paths_inode_map)
 
 	for line in rows:
+	#	print line
 		if line.op == 'create_dir_entry':
 			new_path = get_inode_directory(line.parent) + '/' + os.path.basename(line.entry)
 			if line.entry_type == TYPE_FILE:
@@ -317,7 +371,13 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir):
 				os.close(fd)
 				buf = ""
 		else:
-			assert line.op == 'sync'
+			assert line.op in ['sync', 'stdout', 'stderr']
+
+	if use_cached:
+		os.system('rm -rf ' + original_replay_dir)
+		os.system('cp -a ' + replay_dir + ' ' + original_replay_dir)
+		replay_dir = original_replay_dir
+		cached_dirinode_map = copy.deepcopy(dirinode_map)
 
 	os.system("rm -rf " + replay_dir + '/.inodes')
 
