@@ -1,7 +1,8 @@
 prefix = "tmp/strace.out"
 initial_snapshot = "tmp/initial_snapshot"
 replayed_snapshot = "/tmp/replayed_snapshot"
-base_path = "/mnt/mydisk/"
+base_path = "/tmp/mydisk/"
 orderings_script = "crash_specifier.py"
-checker_tool = "bash psql_checker.sh"
+checker_tool = "./psql_checker.sh"
+#replayer_threads=1
 starting_cwd = "/root/alc-strace/test" 
