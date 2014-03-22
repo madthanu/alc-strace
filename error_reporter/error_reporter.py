@@ -111,7 +111,25 @@ class MicroOps:
 		return len(self.one)
 
 
-def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', replay_output_file = './replay_output', is_correct = None):
+
+class FailureCategory:
+	CORRECT = 10
+	PARTIAL_READ_FAILURE = 20
+	FULL_READ_FAILURE = 34
+	PARTIAL_WRITE_FAILURE = 45
+	FULL_WRITE_FAILURE = 56
+	CORRUPTED_READ_VALUES = 67
+	MISC = 78
+
+	@staticmethod
+	def repr(meaning):
+		inv_dict = {v:k for k, v in FailureCategory.__dict__.items()}
+		if type(meaning) == int:
+			return inv_dict[meaning]
+		ans = [inv_dict[x] for x in meaning]
+		return '|'.join(ans)
+
+def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
 	(path_inode_map, micro_operations) = pickle.load(open(micro_cache_file, 'r'))
 	replay_output = ReplayOutputParser(replay_output_file, delimiter)
 	micro_ops = MicroOps(micro_operations)
@@ -130,6 +148,8 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 				if end in prefix_dict.keys():
 					if correct == None:
 						correct = is_correct(prefix_dict[end])
+						if not correct:
+							wrong_output = prefix_dict[end]
 					else:
 						assert correct == is_correct(prefix_dict[end])
 				else:
@@ -147,7 +167,12 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 				assert i not in prefix_problems
 				prefix_problems.add(i)
 			elif not correct:
-				print ''.join(('Prefix: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[i + 1].op, '(', str(i + 1),')'))
+				report = ['Prefix: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[i + 1].op, '(', str(i + 1),')', ':']
+				if not failure_category:
+					report.append(wrong_output)
+				else:
+					report.append(FailureCategory.repr(failure_category(wrong_output)))
+				print ''.join(report)
 				assert i not in prefix_problems
 				assert (i + 1) not in prefix_problems
 				prefix_problems.add(i)
@@ -167,6 +192,7 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 						assert end in prefix_dict.keys()
 					if end in prefix_dict.keys():
 						if not is_correct(prefix_dict[end]):
+							wrong_output = prefix_dict[end]
 							incorrect_under.add(subtype)
 					else:
 						assert micro_operations[i].op not in conv_micro.expansive_ops
@@ -175,11 +201,17 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 				atomicity_violators.add(i)
 				if micro_operations[i].op not in conv_micro.expansive_ops:
 					assert len(incorrect_under) == 1
-					print 'Atomicity: ' + micro_operations[i].op + '(' + str(i) + ')'
+					report = 'Atomicity'
 				elif len(incorrect_under) == 3:
-					print 'Atomicity: ' + micro_operations[i].op + '(' + str(i) + ')'
+					report = 'Atomicity'
 				else:
-					print 'Special atomicity: ' + micro_operations[i].op + '(' + str(i) + ')'
+					report = 'Special atomicity'
+				report = [report, ': ', micro_operations[i].op, '(', str(i),')', ':']
+				if not failure_category:
+					report.append(wrong_output)
+				else:
+					report.append(FailureCategory.repr(failure_category(wrong_output)))
+				print ''.join(report)
 
 	# Full re-orderings
 	reordering_violators = {}
@@ -198,7 +230,12 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 				output = replay_output.omitmicro[(Op(i), Op(j))]
 				if not is_correct(output):
 					reordering_violators[i] = j
-					print ''.join(('Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')'))
+					report = ['Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')', ':']
+					if not failure_category:
+						report.append(wrong_output)
+					else:
+						report.append(FailureCategory.repr(failure_category(wrong_output)))
+					print ''.join(report)
 					break
 
 	# Special re-orderings
@@ -236,7 +273,12 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 								continue
 							output = replay_output.omit_one[subtype][(Op(i, x), Op(j, y))]
 							if not is_correct(output):
-								print ''.join(('Special reordering: ', micro_operations[i].op, '(', str((i, x)),')', ' <-> ', micro_operations[j].op, '(', str((j, y)),') in ', subtype))
+								report = ['Special reordering: ', micro_operations[i].op, '(', str((i, x)),')', ' <-> ', micro_operations[j].op, '(', str((j, y)),')', ':']
+								if not failure_category:
+									report.append(wrong_output)
+								else:
+									report.append(FailureCategory.repr(failure_category(wrong_output)))
+								print ''.join(report)
 								special_reordering_found = True
 								break
 						if special_reordering_found:
