@@ -322,6 +322,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 	fdtracker = proctracker.fdtracker
 	fdtracker_unwatched = proctracker.fdtracker_unwatched
 
+	directory_symlinks = []
 	parsed_line = parse_line(line)
 	if parsed_line == False:
 		return []
@@ -523,18 +524,23 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			if is_interesting(name):
 				assert __replayed_stat(name)
 				inode = __replayed_stat(name).st_ino
-				hardlinks = __replayed_stat(name).st_nlink
-				size = __replayed_stat(name).st_size
-				micro_operations.append(Struct(op = 'unlink', name = name, inode = inode, hardlinks = hardlinks, parent = __parent_inode(name), size = size))
-				# A simple os.unlink might be sufficient, but making sure that the inode is not re-used.
-				if hardlinks > 1:
-					os.unlink(replayed_path(name))
-					if len(fdtracker.get_fds(inode)) > 1:
-						print "Warning: File unlinked while being open: " + name
-					if memtracker.file_mapped(inode):
-						print "Warning: File unlinked while being mapped: " + name
-				else:
+				if os.path.isdir(replayed_path(name)):
+					assert inode in directory_symlinks
+					micro_operations.append(Struct(op = 'rmdir', name = name, inode = inode, parent = __parent_inode(name)))
 					os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + str(uuid.uuid1()))
+				else:
+					hardlinks = __replayed_stat(name).st_nlink
+					size = __replayed_stat(name).st_size
+					micro_operations.append(Struct(op = 'unlink', name = name, inode = inode, hardlinks = hardlinks, parent = __parent_inode(name), size = size))
+					# A simple os.unlink might be sufficient, but making sure that the inode is not re-used.
+					if hardlinks > 1:
+						os.unlink(replayed_path(name))
+						if len(fdtracker.get_fds(inode)) > 1:
+							print "Warning: File unlinked while being open: " + name
+						if memtracker.file_mapped(inode):
+							print "Warning: File unlinked while being mapped: " + name
+					else:
+						os.rename(replayed_path(name), replayed_path(name) + '.deleted_' + str(uuid.uuid1()))
 	elif parsed_line.syscall == 'lseek':
 		if int(parsed_line.ret) != -1:
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -792,7 +798,8 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 				if source_is_dir == True:
 					os.mkdir(replayed_path(dest), 0777)
 					inode = __replayed_stat(dest).st_ino
-					micro_operations.append(Struct(op = 'mkdir', name = dest, mode = 0777, inode = inode, parent = __parent_inode(dest)))
+					directory_symlinks.append(inode)
+					micro_operations.append(Struct(op = 'mkdir', name = dest, mode = '0777', inode = inode, parent = __parent_inode(dest)))
 				else:
 					tmp_fd = os.open(replayed_path(dest), os.O_CREAT | os.O_WRONLY, 0666)
 					assert tmp_fd > 0
