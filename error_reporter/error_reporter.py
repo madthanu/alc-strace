@@ -90,25 +90,32 @@ class ReplayOutputParser:
 				assert False
 
 class MicroOps:
-	def __init__(self, micro_operations):
-		self.one = copy.deepcopy(micro_operations)
-		self.three = copy.deepcopy(micro_operations)
-		self.aligned = copy.deepcopy(micro_operations)
-		self.one_expanded = copy.deepcopy(micro_operations)
-		self.three_expanded = copy.deepcopy(micro_operations)
-		self.aligned_expanded = copy.deepcopy(micro_operations)
-		for line in self.one:
-			diskops.get_disk_ops(line, 1, 'count', False)
-		for line in self.three:
-			diskops.get_disk_ops(line, 3, 'count', False)
-		for line in self.aligned:
-			diskops.get_disk_ops(line, 4096, 'aligned', False)
-		for line in self.one_expanded:
-			diskops.get_disk_ops(line, 1, 'count', True)
-		for line in self.three_expanded:
-			diskops.get_disk_ops(line, 3, 'count', True)
-		for line in self.aligned_expanded:
-			diskops.get_disk_ops(line, 4096, 'aligned', True)
+	def __init__(self, strace_description):
+		strace_description = pickle.load(open(strace_description, 'r'))
+		if type(strace_description) == dict and 'version' in strace_description and strace_description['version'] == 2:
+			for subtype in ['one', 'three', 'aligned', 'one_expanded', 'three_expanded', 'aligned_expanded']:
+				assert subtype in strace_description
+				exec('self.' + subtype + ' = copy.deepcopy(strace_description[subtype])')
+		else:
+			(path_inode_map, micro_operations) = strace_description
+			self.one = copy.deepcopy(micro_operations)
+			self.three = copy.deepcopy(micro_operations)
+			self.aligned = copy.deepcopy(micro_operations)
+			self.one_expanded = copy.deepcopy(micro_operations)
+			self.three_expanded = copy.deepcopy(micro_operations)
+			self.aligned_expanded = copy.deepcopy(micro_operations)
+			for line in self.one:
+				diskops.get_disk_ops(line, 1, 'count', False)
+			for line in self.three:
+				diskops.get_disk_ops(line, 3, 'count', False)
+			for line in self.aligned:
+				diskops.get_disk_ops(line, 4096, 'aligned', False)
+			for line in self.one_expanded:
+				diskops.get_disk_ops(line, 1, 'count', True)
+			for line in self.three_expanded:
+				diskops.get_disk_ops(line, 3, 'count', True)
+			for line in self.aligned_expanded:
+				diskops.get_disk_ops(line, 4096, 'aligned', True)
 	def dops_len(self, mode, op, expanded_atomicity = False):
 		if expanded_atomicity:
 			return len(eval('self.' + mode + '_expanded')[op].hidden_disk_ops)
@@ -140,7 +147,6 @@ def __failure_category(failure_category, wrong_output):
 		return wrong_output
 	else:
 		return FailureCategory.repr(failure_category(wrong_output))
-
 
 def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 	global replay_output
@@ -220,10 +226,10 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 
 replay_output = None
 
-def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
+def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
 	global replay_output
-	(path_inode_map, micro_operations) = pickle.load(open(micro_cache_file, 'r'))
-	micro_ops = MicroOps(micro_operations)
+	micro_ops = MicroOps(strace_description)
+	micro_operations = micro_ops.one
 	replay_output = ReplayOutputParser(replay_output_file, delimiter)
 
 	# Finding prefix bugs

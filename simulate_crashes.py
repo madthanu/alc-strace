@@ -407,7 +407,31 @@ class Replayer:
 				to_export.append(disk_op)
 		pickle.dump(to_export, open(fname, 'w'))
 	def _export(self, fname):
-		pickle.dump((self.path_inode_map, self.micro_ops), open(fname, 'wb'), 2)
+		output = {}
+		output['one'] = copy.deepcopy(self.micro_ops)
+		output['three'] = copy.deepcopy(self.micro_ops)
+		output['aligned'] = copy.deepcopy(self.micro_ops)
+		output['one_expanded'] = copy.deepcopy(self.micro_ops)
+		output['three_expanded'] = copy.deepcopy(self.micro_ops)
+		output['aligned_expanded'] = copy.deepcopy(self.micro_ops)
+		for line in output['one']:
+			diskops.get_disk_ops(line, 1, 'count', False)
+		for line in output['three']:
+			diskops.get_disk_ops(line, 3, 'count', False)
+		for line in output['aligned']:
+			diskops.get_disk_ops(line, 4096, 'aligned', False)
+		for line in output['one_expanded']:
+			diskops.get_disk_ops(line, 1, 'count', True)
+		for line in output['three_expanded']:
+			diskops.get_disk_ops(line, 3, 'count', True)
+		for line in output['aligned_expanded']:
+			diskops.get_disk_ops(line, 4096, 'aligned', True)
+		output['conv_micro_stuff'] = {}
+		for stuff in ['sync_ops', 'expansive_ops', 'pseudo_ops', 'real_ops']:
+			output['conv_micro_stuff'][stuff] = eval('conv_micro.' + stuff)
+		output['path_inode_map'] = self.path_inode_map
+		output['version'] = 2
+		pickle.dump(output, open(fname, 'wb'), 2)
 	def _dops_verify_replayer(self, i = None):
 		if i == None:
 			to_check = range(0, len(self.micro_ops))
