@@ -43,7 +43,13 @@ class ReplayOutputParser:
 			testcase = testcase.strip()
 			if testcase == '':
 				continue
-			m = re.search(r'^([^ ]*) ([ER]M?[0-9]+)(\([0-9]+, [0-9]+\))? ?([ER]M?[0-9]+)?(\([0-9]+, [0-9]+\))?(.*)$', testcase)
+ 
+			marker = None # Hack for making multiline regex work in python
+			for x in ['|', '<', '>', '{', '&', '%']:
+				if x not in testcase:
+					marker = x
+			assert marker != None
+			m = re.search(r'^([^ ]*) ([ER]M?[0-9]+)(\([0-9]+, [0-9]+\))? ?([ER]M?[0-9]+)?(\([0-9]+, [0-9]+\))?(.*)$', testcase.replace('\n', marker), re.DOTALL)
 			case = testcase[m.start(1):m.end(1)]
 			args = []
 			for i in range(2, 6):
