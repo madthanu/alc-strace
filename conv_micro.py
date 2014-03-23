@@ -231,9 +231,11 @@ def __parent_inode(path):
 	return __replayed_stat(os.path.dirname(path)).st_ino
 
 def __replayed_truncate(path, new_size):
+	old_mode = writeable_toggle(replayed_path(path))
 	tmp_fd = os.open(replayed_path(path), os.O_WRONLY)
 	os.ftruncate(tmp_fd, new_size)
 	os.close(tmp_fd)
+	writeable_toggle(replayed_path(path), old_mode)
 
 def __get_files_from_inode(inode):
 	results = subprocess.check_output(['find', cmdline().replayed_snapshot, '-inum', str(inode)])
