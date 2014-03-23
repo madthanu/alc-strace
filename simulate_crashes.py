@@ -121,7 +121,7 @@ class Replayer:
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
 		for i in range(0, len(all_diskops)):
-			if all_diskops[i].op == 'stdout':
+			if all_diskops[i].op in ['stdout', 'stderr']:
 				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
@@ -311,7 +311,7 @@ class Replayer:
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
 		for i in range(0, len(all_diskops)):
-			if all_diskops[i].op == 'stdout':
+			if all_diskops[i].op in ['stdout', 'stderr']:
 				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
