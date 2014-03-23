@@ -232,9 +232,9 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 					reordering_violators[i] = j
 					report = ['Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')', ':']
 					if not failure_category:
-						report.append(wrong_output)
+						report.append(output)
 					else:
-						report.append(FailureCategory.repr(failure_category(wrong_output)))
+						report.append(FailureCategory.repr(failure_category(output)))
 					print ''.join(report)
 					break
 
@@ -275,9 +275,9 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 							if not is_correct(output):
 								report = ['Special reordering: ', micro_operations[i].op, '(', str((i, x)),')', ' <-> ', micro_operations[j].op, '(', str((j, y)),')', ':']
 								if not failure_category:
-									report.append(wrong_output)
+									report.append(output)
 								else:
-									report.append(FailureCategory.repr(failure_category(wrong_output)))
+									report.append(FailureCategory.repr(failure_category(output)))
 								print ''.join(report)
 								special_reordering_found = True
 								break
