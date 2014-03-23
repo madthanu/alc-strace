@@ -208,7 +208,6 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 					subtypes_with_incorrectness.add(subtype)
 			if len(subtypes_with_incorrectness) not in [0, 3]:
 				differs_across_subtypes = True
-				print 'blah, ' + x + ' ' + str(subtypes_with_incorrectness)
 
 		if not differs_across_subtypes:
 			broken_incorrect_under = set()

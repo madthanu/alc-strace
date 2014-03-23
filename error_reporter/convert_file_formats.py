@@ -1,5 +1,8 @@
-import diskops
+import os
 import sys
+parent = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
+sys.path.append(parent)
+import diskops
 import pickle
 import copy
 import conv_micro
