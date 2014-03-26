@@ -114,7 +114,6 @@ def replayed_path(name):
 	toret = name.replace(__cmdline.base_path, __cmdline.replayed_snapshot + '/', 1)
 	return re.sub(r'//', r'/', toret)
 
-
 def safe_string_to_int(s):
 	try:
 		if len(s) >= 2 and s[0:2] == "0x":
@@ -134,3 +133,15 @@ def is_interesting(path):
 def scratchpad(path):
 	assert not path.startswith('/')
 	return os.path.join(__cmdline.scratchpad_dir, path)
+
+def writeable_toggle(path, mode = None):
+	if mode == 'UNTOGGLED':
+		return
+	elif mode != None:
+		os.chmod(path, mode)
+	if os.access(path, os.W_OK):
+		return 'UNTOGGLED'
+	if not os.access(path, os.W_OK):
+		old_mode = os.stat(path).st_mode
+		os.chmod(path, 0777)
+		return old_mode

@@ -294,11 +294,14 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, use_cached = Fals
 					os.rename(path, replay_dir + '/.inodes/' + str(line.inode)) # Deletion of
 						# directory is equivalent to moving it back into the '.inodes' directory.
 		elif line.op == 'truncate':
+			old_mode = writeable_toggle(get_inode_file(line.inode))
 			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
 			assert fd > 0
 			os.ftruncate(fd, line.final_size)
 			os.close(fd)
+			writeable_toggle(get_inode_file(line.inode), old_mode)
 		elif line.op == 'write':
+			old_mode = writeable_toggle(get_inode_file(line.inode))
 			if line.special_write != None:
 				if (line.special_write == 'GARBAGE' or line.special_write == 'ZEROS') and line.count > 4096:
 					if line.count > 4 * 1024 * 1024:
@@ -370,6 +373,7 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, use_cached = Fals
 				os.write(fd, buf)
 				os.close(fd)
 				buf = ""
+			writeable_toggle(get_inode_file(line.inode), old_mode)
 		else:
 			assert line.op in ['sync', 'stdout', 'stderr']
 

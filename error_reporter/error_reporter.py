@@ -43,7 +43,13 @@ class ReplayOutputParser:
 			testcase = testcase.strip()
 			if testcase == '':
 				continue
-			m = re.search(r'^([^ ]*) ([ER]M?[0-9]+)(\([0-9]+, [0-9]+\))? ?([ER]M?[0-9]+)?(\([0-9]+, [0-9]+\))?(.*)$', testcase)
+ 
+			marker = None # Hack for making multiline regex work in python
+			for x in ['|', '<', '>', '{', '&', '%']:
+				if x not in testcase:
+					marker = x
+			assert marker != None
+			m = re.search(r'^([^ ]*) ([ER]M?[0-9]+)(\([0-9]+, [0-9]+\))? ?([ER]M?[0-9]+)?(\([0-9]+, [0-9]+\))?(.*)$', testcase.replace('\n', marker), re.DOTALL)
 			case = testcase[m.start(1):m.end(1)]
 			args = []
 			for i in range(2, 6):
@@ -84,25 +90,32 @@ class ReplayOutputParser:
 				assert False
 
 class MicroOps:
-	def __init__(self, micro_operations):
-		self.one = copy.deepcopy(micro_operations)
-		self.three = copy.deepcopy(micro_operations)
-		self.aligned = copy.deepcopy(micro_operations)
-		self.one_expanded = copy.deepcopy(micro_operations)
-		self.three_expanded = copy.deepcopy(micro_operations)
-		self.aligned_expanded = copy.deepcopy(micro_operations)
-		for line in self.one:
-			diskops.get_disk_ops(line, 1, 'count', False)
-		for line in self.three:
-			diskops.get_disk_ops(line, 3, 'count', False)
-		for line in self.aligned:
-			diskops.get_disk_ops(line, 4096, 'aligned', False)
-		for line in self.one_expanded:
-			diskops.get_disk_ops(line, 1, 'count', True)
-		for line in self.three_expanded:
-			diskops.get_disk_ops(line, 3, 'count', True)
-		for line in self.aligned_expanded:
-			diskops.get_disk_ops(line, 4096, 'aligned', True)
+	def __init__(self, strace_description):
+		strace_description = pickle.load(open(strace_description, 'r'))
+		if type(strace_description) == dict and 'version' in strace_description and strace_description['version'] == 2:
+			for subtype in ['one', 'three', 'aligned', 'one_expanded', 'three_expanded', 'aligned_expanded']:
+				assert subtype in strace_description
+				exec('self.' + subtype + ' = copy.deepcopy(strace_description[subtype])')
+		else:
+			(path_inode_map, micro_operations) = strace_description
+			self.one = copy.deepcopy(micro_operations)
+			self.three = copy.deepcopy(micro_operations)
+			self.aligned = copy.deepcopy(micro_operations)
+			self.one_expanded = copy.deepcopy(micro_operations)
+			self.three_expanded = copy.deepcopy(micro_operations)
+			self.aligned_expanded = copy.deepcopy(micro_operations)
+			for line in self.one:
+				diskops.get_disk_ops(line, 1, 'count', False)
+			for line in self.three:
+				diskops.get_disk_ops(line, 3, 'count', False)
+			for line in self.aligned:
+				diskops.get_disk_ops(line, 4096, 'aligned', False)
+			for line in self.one_expanded:
+				diskops.get_disk_ops(line, 1, 'count', True)
+			for line in self.three_expanded:
+				diskops.get_disk_ops(line, 3, 'count', True)
+			for line in self.aligned_expanded:
+				diskops.get_disk_ops(line, 4096, 'aligned', True)
 	def dops_len(self, mode, op, expanded_atomicity = False):
 		if expanded_atomicity:
 			return len(eval('self.' + mode + '_expanded')[op].hidden_disk_ops)
@@ -129,10 +142,94 @@ class FailureCategory:
 		ans = [inv_dict[x] for x in meaning]
 		return '|'.join(ans)
 
-def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
-	(path_inode_map, micro_operations) = pickle.load(open(micro_cache_file, 'r'))
+def __failure_category(failure_category, wrong_output):
+	if not failure_category:
+		return wrong_output
+	else:
+		return FailureCategory.repr(failure_category(wrong_output))
+
+def report_atomicity(incorrect_under, op, msg, micro_ops, i):
+	global replay_output
+	incorrect_subtypes = set([subtype for (subtype, disk_end) in incorrect_under])
+	append_partial_meanings = ['filled_zero', 'filled_garbage', 'partial']
+	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg]
+	if op.op == 'append':
+		if op.offset / 4096 != (op.offset + op.count) / 4096:
+			# If append crosses page boundary
+			report[3] = 'across_boundary'
+		else:
+			report[3] = 'within_boundary'
+	if op.op == 'rename':
+		rename_partial_meanings = collections.defaultdict(dict)
+		for subtype in replay_output.prefix:
+			l = micro_ops.dops_len(subtype, i, True)
+			if op.hidden_disk_ops[1].op == 'link':
+				report[3] = 'destination_nil'
+				assert l == 6
+				rename_partial_meanings[subtype][0] = 'no source-no destination'
+				rename_partial_meanings[subtype][1] = 'source points to new no destination'
+				rename_partial_meanings[subtype][2] = 'no source-no destination'
+				rename_partial_meanings[subtype][3] = 'no source-no destination'
+				rename_partial_meanings[subtype][4] = 'source and destination point to new'
+			else:
+				report[3] = 'destination_exists'
+				rename_partial_meanings[subtype][0] = 'no source-destination points to old'
+				rename_partial_meanings[subtype][l - 7] = 'source points to new-destination empty'
+				rename_partial_meanings[subtype][l - 6] = 'no source-no destination'
+				rename_partial_meanings[subtype][l - 5] = 'source points to new-no destination'
+				rename_partial_meanings[subtype][l - 4] = 'no source-no destination'
+				rename_partial_meanings[subtype][l - 3] = 'no source-destination points to new'
+				rename_partial_meanings[subtype][l - 2] = 'source and destination point to new'
+				for x in range(1, l - 7):
+					rename_partial_meanings[subtype][x] = 'source points to new-destination partial truncate old'
+
+	assert 'rename' in conv_micro.expansive_ops
+	assert 'append' in conv_micro.expansive_ops
+	if op.op not in conv_micro.expansive_ops:
+		assert len(incorrect_subtypes) == 1
+
+	if op.op in ['append', 'rename']:
+		if op.op == 'append':
+			partial_meaning = lambda subtype, disk_end: append_partial_meanings[disk_end % 3]
+			all_partial_meanings = append_partial_meanings
+		else:
+			partial_meaning = lambda subtype, disk_end: rename_partial_meanings[subtype][disk_end % 3]
+			all_partial_meanings = rename_partial_meanings['three']
+
+		broken_incorrect_under = set()
+		for (subtype, disk_end) in incorrect_under:
+			broken_incorrect_under.add((subtype, partial_meaning(subtype, disk_end)))
+
+		differs_across_subtypes = False
+		for x in all_partial_meanings:
+			subtypes_with_incorrectness = set()
+			for (subtype, t) in broken_incorrect_under:
+				if t == x:
+					subtypes_with_incorrectness.add(subtype)
+			if len(subtypes_with_incorrectness) not in [0, 3]:
+				differs_across_subtypes = True
+
+		if not differs_across_subtypes:
+			broken_incorrect_under = set()
+			for (subtype, disk_end) in incorrect_under:
+				broken_incorrect_under.add(partial_meaning(subtype, disk_end))
+
+		report[4] = broken_incorrect_under
+
+	for i in range(0, len(report)):
+		if type(report[i]) in [tuple, list, set]:
+			report[i] = '(' + ', '.join([str(x) for x in report[i]]) + ')'
+		else:
+			report[i] = str(report[i])
+	print ' '.join(report)
+
+replay_output = None
+
+def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
+	global replay_output
+	micro_ops = MicroOps(strace_description)
+	micro_operations = micro_ops.one
 	replay_output = ReplayOutputParser(replay_output_file, delimiter)
-	micro_ops = MicroOps(micro_operations)
 
 	# Finding prefix bugs
 	prefix_problems = set()
@@ -183,7 +280,7 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 		# If the i-th micro op does not have a prefix problem, and it is actually a real diskop-producing micro-op
 		if i not in prefix_problems and i - 1 not in prefix_problems \
 				and micro_operations[i].op not in conv_micro.pseudo_ops:
-			incorrect_under = set()
+			incorrect_under = []
 			for subtype in replay_output.prefix:
 				prefix_dict = replay_output.prefix[subtype]
 				for disk_end in range(0, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 2):
@@ -193,25 +290,12 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 					if end in prefix_dict.keys():
 						if not is_correct(prefix_dict[end]):
 							wrong_output = prefix_dict[end]
-							incorrect_under.add(subtype)
+							incorrect_under.append((subtype, disk_end))
 					else:
 						assert micro_operations[i].op not in conv_micro.expansive_ops
 			if len(incorrect_under) > 0:
-				assert len(incorrect_under) <= 3
 				atomicity_violators.add(i)
-				if micro_operations[i].op not in conv_micro.expansive_ops:
-					assert len(incorrect_under) == 1
-					report = 'Atomicity'
-				elif len(incorrect_under) == 3:
-					report = 'Atomicity'
-				else:
-					report = 'Special atomicity'
-				report = [report, ': ', micro_operations[i].op, '(', str(i),')', ':']
-				if not failure_category:
-					report.append(wrong_output)
-				else:
-					report.append(FailureCategory.repr(failure_category(wrong_output)))
-				print ''.join(report)
+				report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i)
 
 	# Full re-orderings
 	reordering_violators = {}
@@ -232,9 +316,9 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 					reordering_violators[i] = j
 					report = ['Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')', ':']
 					if not failure_category:
-						report.append(wrong_output)
+						report.append(output)
 					else:
-						report.append(FailureCategory.repr(failure_category(wrong_output)))
+						report.append(FailureCategory.repr(failure_category(output)))
 					print ''.join(report)
 					break
 
@@ -275,9 +359,9 @@ def report_errors(delimiter = '\n', micro_cache_file = './micro_cache_file', rep
 							if not is_correct(output):
 								report = ['Special reordering: ', micro_operations[i].op, '(', str((i, x)),')', ' <-> ', micro_operations[j].op, '(', str((j, y)),')', ':']
 								if not failure_category:
-									report.append(wrong_output)
+									report.append(output)
 								else:
-									report.append(FailureCategory.repr(failure_category(wrong_output)))
+									report.append(FailureCategory.repr(failure_category(output)))
 								print ''.join(report)
 								special_reordering_found = True
 								break
