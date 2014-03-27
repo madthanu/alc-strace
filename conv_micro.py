@@ -824,6 +824,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 		op.hidden_tid = syscall_tid
 		op.hidden_time = parsed_line.str_time
 		op.hidden_pid = proctracker.pid
+		op.hidden_syscall = copy.deepcopy(parsed_line)
 	return micro_operations
 
 
