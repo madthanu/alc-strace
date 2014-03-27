@@ -33,7 +33,7 @@ def is_correct(msg):
 		return False
 	if meaning(msg[3]) == 'Exception':
 		return False
-	if meaning(msg[1]) == 'Wrong':
+	if meaning(msg[2]) == 'Wrong':
 		return False
 	return True
 
@@ -41,13 +41,17 @@ def failure_category(msg):
 	msg = msg.replace("; e.g", "");
 	msg = msg.split(';')
 	msg = [x.strip() for x in msg]
+	toret = set()
 	if meaning(msg[4]) == 'Wrong':
-		return FailureCategory.CORRUPTED_READ_VALUES
+		toret.add(FailureCategory.CORRUPTED_READ_VALUES)
 	if meaning(msg[4]) == 'Exception':
-		return FailureCategory.PARTIAL_READ_FAILURE
-	if meaning(msg[1]) == 'Wrong':
-		return FailureCategory.CORRUPTED_READ_VALUES;
-	return FailureCategory.MISC
+		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
+	if meaning(msg[3]) == 'Exception':
+		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
+	if meaning(msg[2]) == 'Wrong':
+		toret.add(FailureCategory.MISC)
+	assert len(toret) > 0
+	return list(toret)
 
 error_reporter.report_errors('\n', './micro_cache_file', './replay_output', is_correct, failure_category)
 #error_reporter.report_errors('\n', './micro_cache_file', './replay_output', is_correct)
