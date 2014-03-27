@@ -26,6 +26,7 @@ def meaning(x):
 		assert False
 
 def is_correct(msg):
+	msg = msg.replace('; e.g.', '')
 	msg = msg.split(';')
 	msg = [x.strip() for x in msg]
 	if meaning(msg[4]) != 'C':
@@ -37,12 +38,19 @@ def is_correct(msg):
 	return True
 
 def failure_category(msg):
+	msg = msg.replace('; e.g.', '')
 	msg = msg.split(';')
 	msg = [x.strip() for x in msg]
+	toret = set()
 	if meaning(msg[4]) == 'Wrong':
-		return FailureCategory.CORRUPTED_READ_VALUES
+		toret.add(FailureCategory.CORRUPTED_READ_VALUES)
 	if meaning(msg[4]) == 'Exception':
-		return FailureCategory.PARTIAL_READ_FAILURE
-	return FailureCategory.MISC
+		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
+	if meaning(msg[3]) == 'Exception':
+		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
+	if meaning(msg[2]) == 'Wrong':
+		toret.add(FailureCategory.MISC)
+	assert len(toret) > 0
+	return list(toret)
 
 error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
