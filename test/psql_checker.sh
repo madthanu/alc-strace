@@ -19,9 +19,13 @@ service postgresql start
 #ps aux | grep postgres
 #service postgresql status
 echo "Starting client"
-#sudo -u postgres psql testingdb -f /root/postgres-stuff/list.f 2>&1
-python2.7 checker.py "$@" > /tmp/short_output 
+#sudo -u postgres psql testingdb2 -f /root/postgres-stuff/list.f > /tmp/short_output 
+sudo -u postgres psql testingdb2 -f /root/postgres-stuff/select-table.f > /tmp/short_output 
+#sudo -u postgres psql testingdb2 -f /root/postgres-stuff/list-table.f > /tmp/short_output 
+#python2.7 checker.py "$@" > /tmp/short_output 
+
 cat /tmp/short_output >> /tmp/all_output 
+
 #cat /tmp/short_output 
 #date >> /tmp/short_output
 #python2.7 checker.py 

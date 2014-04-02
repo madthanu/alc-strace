@@ -30,7 +30,8 @@ function initialize_workload {
     sudo -u postgres psql testingdb -f /root/postgres-stuff/list.f
     sudo -u postgres psql testingdb -f /root/postgres-stuff/insert.f
     # Extra stuff - delete later.
-    sudo -u postgres psql testingdb -f /root/postgres-stuff/init-db2.f
+    sudo -u postgres psql -f /root/postgres-stuff/init-db2.f
+    sudo -u postgres psql testingdb2 -f /root/postgres-stuff/init-table.f
     # End of extra stuff.
     service postgresql stop 
     killall postgres || true

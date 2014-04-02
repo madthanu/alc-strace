@@ -32,53 +32,29 @@ def prefix_run():
         dops_replay(str(datetime.datetime.now()) +
                     ' E' + E, checker_params=checker_params)
 
-def omit_one_heuristic():
+def omit_one(msg, consider_only = None):
     load(1)
     last = None # Just used for asserting that the algorithm is correct
 
-    init_point = dops_single((246, 0))
-    end_point = dops_single((256, 0))
+    init_point = dops_single((265, 0))
+    end_point = dops_single((265, 9))
 
     for i in range(init_point, end_point + 1):
-        load(1)
-        keep_list = range(0, i + 1)
-
-        if dops_get_op(dops_double(i)).op in ["truncate", "sync"]:
-            continue
-
+        op = get_op(dops_double(i)[0]).op
+        dop = dops_get_op(dops_double(i))
         till = dops_single(dops_independent_till(dops_double(i)))
         till = min(end_point, till)
 
-        # 'till' now contains the index of the last disk_op, till which
-        # execution can continue legally, while omitting (i.e., still
-        # buffering in memory) the 'i'th disk_op.
-
         for j in range(i + 1, till + 1):
-            load(1)
+            op = get_op(dops_double(j)[0]).op
             R = str(i) + str(dops_double(i))
             E = str(j) + str(dops_double(j))
             dops_end_at(dops_double(j))
             dops_omit(dops_double(i))
-            last = (i, j)
-            keep_list.append(j)
-            if dops_get_op(dops_double(i)).op in ["sync"]:
-                continue
-            checker_params = dops_implied_stdout(keep_list)
-            checker_params = (checker_params[0], checker_params[1],
-                              checker_params[2],  str(datetime.datetime.now()) +
-                              ' R' + R +
-                              ' E' + E
-                             )
-            dops_replay(str(datetime.datetime.now()) +
-                        ' R' + R +
-                        ' E' + E
-                        ,
-                        checker_params=checker_params
-                       )
-            load(1) # This is actually the only load(0) required
-            # inside any of the for loops. The others are there just for readability.
+            dops_replay(msg + ' R' + R + ' E' + E)
+            dops_include(dops_double(i))
 
-    assert last == (dops_len() - 2, dops_len() - 1)
+    print 'finished ' + msg
 
 def omit_range_heuristic():
 	load(0)
@@ -153,9 +129,29 @@ def example_calls():
 #save(1)
 #omit_one_heuristic()
 
-#dops_end_at((146, 2))
+##dops_omit((150, 0))
+#dops_omit((151, 0))
+#dops_omit((151, 1))
+#dops_omit((151, 2))
+#dops_omit((151, 3))
+#dops_omit((151, 4))
+#dops_omit((151, 5))
+#dops_omit((151, 6))
+#dops_omit((151, 7))
+#dops_omit((151, 8))
+#dops_end_at((151,8))
 #dops_replay()
+
+dops_generate(265, splits=10)
+dops_set_legal()
+#dops_omit((265, 2))
+#dops_omit((265, 5))
+#dops_end_at((265, 9))
 #dops_replay()
+save(1)
+omit_one("omit_one")
+
+
 #dops_omit((7, 2))
 #dops_end_at((90, 0))
 #dops_end_at(dops_double(dops_len() -1))
