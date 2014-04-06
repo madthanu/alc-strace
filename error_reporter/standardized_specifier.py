@@ -32,7 +32,6 @@ def omit_one_micro_op(msg):
 
 		# Calculating the 'till' micro_op
 		till = dops_independent_till(omit_list)
-		till = dops_double(dops_len())
 		if till[1] == dops_len(till[0]) - 1:
 			till = till[0]
 		else:
