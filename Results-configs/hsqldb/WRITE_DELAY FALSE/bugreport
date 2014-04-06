@@ -1,0 +1,9 @@
+Atomicity:  unlink 25   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  unlink 40   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  rename 44 destination_exists (no source-no destination) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  unlink 48   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Reordering: creat(19) <-> stdout(27):DURABILITY_VIOLATION
+Reordering: creat(34) <-> rename(41):DURABILITY_VIOLATION
+Reordering: rename(41) <-> unlink(42):DURABILITY_VIOLATION
+Reordering: unlink(42) <-> unlink(48):CORRUPTED_READ_VALUES
+Reordering: rename(44) <-> unlink(48):FULL_WRITE_FAILURE|FULL_READ_FAILURE
