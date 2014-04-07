@@ -1,0 +1,13 @@
+# BdbDriver Configuration File
+# Created 2014-04-04 18:18:47.521921
+[bdb]
+
+# use mmap?
+use_mmap             = No
+
+# The durabilty of the key-value pairs being stored. 
+sync                 = NOSYNC
+
+# Storage engine
+method               = BTREE
+

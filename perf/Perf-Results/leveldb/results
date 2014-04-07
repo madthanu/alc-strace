@@ -1,0 +1,24 @@
+version 1.15.0
+
+sync: off
+
+1. same key:  602879.525689
+2. diff key:  12448.6226574
+
+sync: on
+
+1. same key:  2840.20534128
+2. diff key:  1956.82159216
+
+
+version 1.10.0
+
+sync: off
+
+1. same key:  579730.288767
+2. diff key:  12449.542787
+
+sync: on
+
+1. same key:  2787.28243378
+2. diff key:  2045.6572909

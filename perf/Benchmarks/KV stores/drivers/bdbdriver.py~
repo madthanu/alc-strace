@@ -1,0 +1,113 @@
+from datetime import datetime
+import lmdb
+from abstractdriver import *
+import os
+from bsddb3 import db
+import shutil
+import sys
+import time
+
+
+class BdbDriver(AbstractDriver):
+    DEFAULT_CONFIG = {
+                "sync": ("The durabilty of the key-value pairs being stored. ",
+                         "SYNC"),
+                "method": ("Storage engine",
+                         "BTREE"),
+                "use_mmap": ("use mmap?",
+                         "No"),
+            }
+        
+    def __init__(self, name):
+        super(BdbDriver, self).__init__("bdb")
+        
+    def __str__(self):
+        return self.driver_name
+    
+    def makeDefaultConfig(self):
+        """This function needs to be implemented by all sub-classes.
+        It should return the items that need to be in your implementation's configuration file.
+        Each item in the list is a triplet containing: ( <PARAMETER NAME>, <DESCRIPTION>, <DEFAULT VALUE> )
+        """
+        return BdbDriver.DEFAULT_CONFIG
+
+    def loadConfig(self, config):
+	"""Initialize the driver using the given configuration dict"""
+	try:
+		if config['sync'] == 'SYNC':
+			self.syncFlag = db.DB_TXN_SYNC
+		elif config['sync'] == 'NOSYNC':
+			self.syncFlag = db.DB_TXN_NOSYNC
+		elif config['sync'] == 'WRITENOSYNC':
+			self.syncFlag = db.DB_TXN_WRITE_NOSYNC
+
+		if config['method'] == 'BTREE':
+			self.accessMethod = db.DB_BTREE
+		elif config['method'] == 'HASH':
+			self.accessMethod = db.DB_HASH	
+
+		self.dbLocation = '/tmp/perfstore'
+
+		if os.path.exists(self.dbLocation):
+			os.system('rm -rf '+ self.dbLocation)
+
+		os.mkdir(self.dbLocation)
+		
+		self.fileName = 'mydb.db'
+		dbvar = self.GetDBInstance()
+		dbvar.open(self.dbLocation + '/' + self.fileName, None, self.accessMethod, db.DB_CREATE | db.DB_AUTO_COMMIT | db.DB_NOMMAP)	    
+	except Exception as e:
+		print str(e)
+		raise 
+
+    def GetDBInstance(self):
+	self.dbInstance = None
+	self.env = db.DBEnv()
+	self.env.set_tx_max(100000)
+	self.env.set_flags(db.DB_CREATE | db.DB_NOMMAP | db.DB_CHKSUM, 1)
+	self.env.open(self.dbLocation, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOG | db.DB_INIT_TXN | db.DB_INIT_LOCK | db.DB_THREAD | db.DB_PRIVATE)
+	self.dbInstance = db.DB(self.env)
+	return self.dbInstance
+
+    def formatConfig(self, config):
+        """Return a formatted version of the config dict that can be used with the --config command line argument"""
+        ret =  "# %s Configuration File\n" % (self.driver_name)
+        ret += "# Created %s\n" % (datetime.now())
+        ret += "[%s]" % self.name
+        
+        for name in config.keys():
+            desc, default = config[name]
+            if default == None: default = ""
+            ret += "\n\n# %s\n%-20s = %s" % (desc, name, default) 
+        return (ret)
+    
+    def readValue(self, key, tx):
+        """Read a value in the context of this transaction"""
+        self.dbInstance.get(str(key), txn=tx)	
+ 
+    def writeValue(self, key, value, tx):
+        """Write a value in the context of this transaction"""
+        self.dbInstance.put(str(key), str(value),txn=tx)
+
+    def txBegin(self, willWrite):
+    	assert self.env is not None
+	tx = self.env.txn_begin(flags = self.syncFlag)
+	return tx 
+
+    def txCommit(self, tx):
+	"""Commit the given transaction."""
+	assert tx is not None
+	tx.commit()
+
+    def txEnd(self, tx):
+	"""End the given transaction."""
+	#Do nothing
+
+    def close(self):
+    	self.dbInstance.close()
+        self.env.close()
+        os.system('rm -rf /tmp/perfstore')
+        os.system('mkdir /tmp/perfstore')
+
+## CLASS
+

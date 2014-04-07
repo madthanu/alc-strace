@@ -1,0 +1,6 @@
+Coding this based on https://github.com/apavlo/py-tpcc
+
+For instructions on how to add a new driver, see https://github.com/apavlo/py-tpcc/wiki 
+
+For example of driver, see SQLite driver at https://github.com/apavlo/py-tpcc/blob/master/pytpcc/drivers/sqlitedriver.py
+
