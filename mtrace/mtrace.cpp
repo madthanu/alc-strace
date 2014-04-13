@@ -166,7 +166,7 @@ int MemregionTracker::region_last = 0;
 
 void output_stacktrace(FILE *f) {
 	static int initialized = 0;
-	void (*actual_function)(FILE *);
+	void (*actual_function)(FILE *) = NULL;
 	if(!initialized) {
 		char *errors;
 		char temp[1000];

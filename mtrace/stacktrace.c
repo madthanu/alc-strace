@@ -11,7 +11,7 @@
 
 // keep a sorted array of cache entries, so that we can binary search through
 // it
-static struct mmap_cache_t {
+struct mmap_cache_t {
 	// example entry:
 	// 7fabbb09b000-7fabbb09f000 r--p 00179000 fc:00 1180246 /lib/libc-2.11.1.so
 	//
