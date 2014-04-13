@@ -10,6 +10,8 @@
 #include <syscall.h>
 #include <time.h>
 #include <unistd.h>
+#include <dlfcn.h>
+#include <stdlib.h>
 #include "pin.H"
 
 /******************************************************************************
@@ -161,6 +163,29 @@ class MemregionTracker {
 
 struct MemregionTracker::region_t MemregionTracker::region[MAX_MEM_REGIONS];
 int MemregionTracker::region_last = 0;
+
+void output_stacktrace(FILE *f) {
+	static int initialized = 0;
+	void (*actual_function)(FILE *);
+	if(!initialized) {
+		char *errors;
+		char temp[1000];
+		void *dl_handle;
+
+		sprintf(temp, "%s/libstacktrace.so", getenv("MTRACE_HOME"));
+
+		errors = dlerror(); if(errors != NULL) printf("%s\n", errors);
+		dlopen("libunwind.so", RTLD_NOW | RTLD_GLOBAL);
+		errors = dlerror(); if(errors != NULL) printf("%s\n", errors);
+		dl_handle = dlopen(temp, RTLD_NOW | RTLD_GLOBAL);
+		errors = dlerror(); if(errors != NULL) printf("%s\n", errors);
+
+		actual_function = (void(*)(FILE*)) dlsym(dl_handle, "output_stacktrace");
+
+		initialized = 1;
+	}
+	(*actual_function)(f);
+}
 
 void mprintf(const char *format, ...) {
 	FILE *file;
@@ -447,6 +472,7 @@ VOID AfterForkInChild(THREADID threadid, const CONTEXT* ctxt, VOID * arg) {
 }
 
 
+
 int main(int argc, char *argv[]) {
 	PIN_InitSymbols();
  	if(PIN_Init(argc, argv))
@@ -457,6 +483,7 @@ int main(int argc, char *argv[]) {
 	print_chars = KnobPrintChars;
 
 	memset(mwrite_tracker, 0, sizeof(mwrite_tracker));
+
 	IMG_AddInstrumentFunction(Image, 0);
 	INS_AddInstrumentFunction(Instruction, 0);
 	PIN_AddSyscallEntryFunction(SyscallEntry, 0);
