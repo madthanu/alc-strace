@@ -1946,6 +1946,130 @@ get_syscall_args(struct tcb *tcp)
 	return 1;
 }
 
+static void
+print_normalized_addr(struct tcb* tcp, unsigned long addr);
+
+extern int output_stacktraces;
+extern int use_libunwind;
+#ifdef LIBUNWIND
+extern unw_addr_space_t libunwind_as;
+
+// use libunwind to unwind the stack and print a backtrace:
+static void
+print_libunwind_backtrace(struct tcb* tcp)
+{
+	unw_word_t ip;
+	int n = 0, ret;
+	unw_cursor_t c;
+
+	EXITIF(unw_init_remote(&c, libunwind_as, tcp->libunwind_ui) < 0);
+	do {
+		EXITIF(unw_get_reg(&c, UNW_REG_IP, &ip) < 0);
+
+		print_normalized_addr(tcp, ip);
+
+		ret = unw_step(&c);
+
+		if (++n > 255) {
+			/* guard against bad unwind info in old libraries... */
+			fprintf(stderr, "libunwind warning: too deeply nested---assuming bogus unwind\n");
+			break;
+		}
+	} while (ret > 0);
+}
+
+#endif
+
+static void
+print_i386_ebp_backtrace(struct tcb* tcp)
+{
+	struct user_regs_struct cur_regs;
+	EXITIF(ptrace(PTRACE_GETREGS, tcp->pid, NULL, (long)&cur_regs) < 0);
+
+	// Crawl up the stack using frame pointers, which is relatively FAST but
+	// requires all user and library code to be compiled with a frame pointer
+
+	// Note that personality_wordsize[current_personality] is the wordsize for
+	// the target process (e.g., 4 bytes or 8 bytes)
+
+	// first print your current instruction pointer ...
+#if defined (I386)
+	print_normalized_addr(tcp, (unsigned long)cur_regs.eip);
+#elif defined (X86_64)
+	print_normalized_addr(tcp, (unsigned long)cur_regs.rip);
+#endif
+
+	// then crawl up the stack ...
+#if defined (I386)
+	unsigned long cur_ebp = (unsigned long)cur_regs.ebp;
+#elif defined (X86_64)
+	unsigned long cur_ebp = (unsigned long)cur_regs.rbp;
+#endif
+	unsigned long retaddr = 0;
+	int ret = 0;
+	while (ret == 0 && cur_ebp != 0) {
+		// return address is always at EBP/RBP + <word size>
+		ret = umoven(tcp,
+		             (long)cur_ebp + current_wordsize,
+		             current_wordsize,
+		             (void*)&retaddr);
+
+		print_normalized_addr(tcp, retaddr);
+
+		// the current EBP/RBP points to the EBP/RBP of the next frame up on the stack
+		ret = umoven(tcp, (long)cur_ebp, current_wordsize, (void*)&cur_ebp);
+	}
+}
+
+static void
+output_stacktrace(struct tcb* tcp)
+{
+	// walk up the stack and print out return addresses:
+	//   personality_wordsize[current_personality] is the wordsize for the target process
+
+	tprintf("[ "); // opening brace for stack trace
+
+	// caching for efficiency ...
+	if (!tcp->mmap_cache) {
+		alloc_mmap_cache(tcp);
+	}
+
+#if defined (I386)
+
+# ifdef LIBUNWIND
+	if (use_libunwind) {
+		// use libunwind to unwind the stack, which works even for code compiled
+		// without a frame pointer, but is relatively SLOW
+		print_libunwind_backtrace(tcp);
+	} else {
+# endif
+		print_i386_ebp_backtrace(tcp);
+# ifdef LIBUNWIND
+	}
+# endif
+
+#elif defined (X86_64)
+
+# ifdef LIBUNWIND
+	// a 64-bit version of libunwind can't parse 32-bit binaries, so we MUST
+	// resort to using stack crawling when tracking a 32-bit binary:
+	if (IS_32BIT_EMU || !use_libunwind) {
+# endif
+		print_i386_ebp_backtrace(tcp);
+# ifdef LIBUNWIND
+	} else if (use_libunwind) {
+		// use libunwind
+		print_libunwind_backtrace(tcp);
+	}
+# endif
+
+#else
+# error "Unknown architecture (not I386 or X86_64)"
+#endif
+
+	tprintf("] "); // closing brace for stack trace
+}
+
 static int
 trace_syscall_entering(struct tcb *tcp)
 {
@@ -2026,6 +2150,10 @@ trace_syscall_entering(struct tcb *tcp)
 	if (cflag == CFLAG_ONLY_STATS || hide_log_until_execve) {
 		res = 0;
 		goto ret;
+	}
+
+	if (output_stacktraces) {
+		output_stacktrace(tcp);
 	}
 
 	printleader(tcp);
@@ -2703,6 +2831,132 @@ trace_syscall_exiting(struct tcb *tcp)
  ret:
 	tcp->flags &= ~TCB_INSYSCALL;
 	return 0;
+}
+
+
+// keep a cache of /proc/<pid>/mmap contents to avoid unnecessary reads
+// make sure it's a SORTED array, so that we can do a fast binary search!
+void
+alloc_mmap_cache(struct tcb* tcp) {
+	EXITIF(tcp->mmap_cache);
+	EXITIF(tcp->mmap_cache_size); // make sure this starts at zero
+
+	// start with a small dynamically-allocated array and then use realloc() to
+	// dynamically expand as needed
+	int cur_array_size = 10;
+	struct mmap_cache_t* cache_head = malloc(cur_array_size * sizeof(*cache_head));
+
+	char filename[30];
+	sprintf(filename, "/proc/%d/maps", tcp->pid);
+
+	FILE* f = fopen(filename, "r");
+	EXITIF(!f);
+	char s[300];
+	while (fgets(s, sizeof(s), f) != NULL) {
+		unsigned long start_addr, end_addr, mmap_offset;
+		char binary_path[512];
+		binary_path[0] = '\0'; // 'reset' it just to be paranoid
+
+		// TODO: add support for paths with SPACES in them ...
+		// right now we assume that filenames have no spaces
+		sscanf(s, "%lx-%lx %*c%*c%*c%*c %lx %*x:%*x %*d %s", &start_addr, &end_addr, &mmap_offset, binary_path);
+
+		// there are some special 'fake files' like "[vdso]", "[heap]", "[stack]",
+		// etc., so simply IGNORE those!
+		if (binary_path[0] == '[' && binary_path[strlen(binary_path) - 1] == ']') {
+			continue;
+		}
+
+		// ignore empty string
+		if (binary_path[0] == '\0') {
+			continue;
+		}
+
+		EXITIF(end_addr < start_addr);
+
+		struct mmap_cache_t* cur_entry = &cache_head[tcp->mmap_cache_size];
+		cur_entry->start_addr = start_addr;
+		cur_entry->end_addr = end_addr;
+		cur_entry->mmap_offset = mmap_offset;
+		cur_entry->binary_filename = strdup(binary_path); // need to free later!
+
+		// sanity check to make sure that we're storing non-overlapping regions in
+		// ascending order:
+		if (tcp->mmap_cache_size > 0) {
+			struct mmap_cache_t* prev_entry = &cache_head[tcp->mmap_cache_size - 1];
+			EXITIF(prev_entry->start_addr >= cur_entry->start_addr);
+			EXITIF(prev_entry->end_addr > cur_entry->start_addr); // could be ==
+		}
+
+		tcp->mmap_cache_size++;
+
+		// resize:
+		if (tcp->mmap_cache_size >= cur_array_size) {
+			cur_array_size *= 2; // double in size!
+			cache_head = realloc(cache_head, cur_array_size * sizeof(*cache_head));
+		}
+	}
+	fclose(f);
+
+	tcp->mmap_cache = cache_head;
+}
+
+// remember to delete the mmap cache at the END of any system calls
+// that might change /proc/<pid>/mmap
+// examples of such system calls include: mmap, mprotect, munmap, execve
+void
+delete_mmap_cache(struct tcb* tcp) {
+	int i;
+	for (i = 0; i < tcp->mmap_cache_size; i++) {
+		free(tcp->mmap_cache[i].binary_filename);
+	}
+	free(tcp->mmap_cache);
+	tcp->mmap_cache = NULL;
+	tcp->mmap_cache_size = 0;
+}
+
+
+// given a memory address addr and a pid, tprintf the following string:
+//   <absolute path to binary>:<hex address offset in that binary>
+//
+// e.g., "/lib32/libc-2.11.1.so:0x3asdf " (include trailing whitespace)
+//
+// TODO: this currently doesn't properly handle paths with SPACES in them!
+//
+// Pre-condition: tcp->mmap_cache is already initialized
+static void
+print_normalized_addr(struct tcb* tcp, unsigned long addr) {
+	EXITIF(!tcp->mmap_cache);
+
+	// since tcp->mmap_cache is sorted, do a binary search to find the cache entry
+	// that contains addr
+	int lower = 0;
+	int upper = tcp->mmap_cache_size;
+
+	while (lower <= upper) {
+		int mid = (int)((upper + lower) / 2);
+		struct mmap_cache_t* cur = &tcp->mmap_cache[mid];
+
+		if (addr >= cur->start_addr && addr < cur->end_addr) {
+			// calculate the true offset into the binary ...
+			// but still print out the original address because it can be useful too ...
+			unsigned long true_offset = addr - cur->start_addr + cur->mmap_offset;
+			tprintf("%s:0x%lx:0x%lx ", cur->binary_filename, true_offset, addr);
+			return; // exit early
+		}
+		else if (lower == upper) {
+			// still can't find the entry, so just exit!
+			EXITIF(!(lower == mid)); // sanity check
+			return;
+		}
+		else if (addr < cur->start_addr) {
+			upper = mid - 1;
+		}
+		else {
+			lower = mid + 1;
+		}
+	}
+
 }
 
 int

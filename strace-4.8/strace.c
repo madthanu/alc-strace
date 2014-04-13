@@ -71,6 +71,12 @@ extern char *optarg;
 # define fork() vfork()
 #endif
 
+#ifdef LIBUNWIND
+// integrate libunwind into strace ... from libunwind-1.0/tests/test-ptrace.c
+unw_addr_space_t libunwind_as;
+#endif
+
+
 cflag_t cflag = CFLAG_NONE;
 unsigned int followfork = 0;
 unsigned int ptrace_setoptions = 0;
@@ -149,6 +155,9 @@ static char *outfname = NULL;
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
 static int shared_dump_log_fd;
+
+int output_stacktraces = 0;
+int use_libunwind = 1;
 
 struct tcb *printing_tcp = NULL;
 static struct tcb *current_tcp;
@@ -233,6 +242,9 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
 -E var=val -- put var=val in the environment for command\n\
 -E var -- remove var from the environment for command\n\
 -P path -- trace accesses to path\n\
+-k -- obtain stack traces (using libunwind by default, if compiled with it)\n\
+-w -- obtain stack trace by walking up the frame pointer chain\n\
+      rather than using libunwind (FASTER but requires frame pointers!)\n\
 "
 /* ancient, no one should use it
 -F -- attempt to follow vforks (deprecated, use -f)\n\
@@ -695,6 +707,15 @@ alloctcb(int pid)
 			memset(tcp, 0, sizeof(*tcp));
 			tcp->pid = pid;
 			tcp->flags = TCB_INUSE;
+
+			tcp->mmap_cache = NULL;
+			tcp->mmap_cache_size = 0;
+
+#ifdef LIBUNWIND
+			if (use_libunwind)
+				tcp->libunwind_ui = _UPT_create(tcp->pid);
+#endif
+
 #if SUPPORTED_PERSONALITIES > 1
 			tcp->currpers = current_personality;
 #endif
@@ -728,6 +749,12 @@ droptcb(struct tcb *tcp)
 			fflush(tcp->outf);
 		}
 	}
+
+	delete_mmap_cache(tcp);
+#ifdef LIBUNWIND
+	if (use_libunwind)
+		_UPT_destroy(tcp->libunwind_ui);
+#endif
 
 	if (current_tcp == tcp)
 		current_tcp = NULL;
@@ -1555,6 +1582,17 @@ init(int argc, char *argv[])
 	int optF = 0;
 	struct sigaction sa;
 
+#ifdef LIBUNWIND
+	if (use_libunwind) {
+		/* Create libunwind address space for the process */
+		libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
+		if (!libunwind_as) {
+			fprintf(stderr, "Fatal error: unw_create_addr_space() from libunwind failed\n");
+			exit(1);
+		}
+	}
+#endif
+
 	progname = argv[0] ? argv[0] : "strace";
 
 	/* Make sure SIGCHLD has the default action so that waitpid
@@ -1591,7 +1629,7 @@ init(int argc, char *argv[])
 #endif
 	qualify("signal=all");
 	while ((c = getopt(argc, argv,
-		"+b:cCdfFhiqrtTvVxyz"
+		"+b:cCdfFhiqrtTvVxyzkw"
 		"D"
 		"a:e:o:O:p:s:S:u:E:P:I:")) != EOF) {
 		switch (c) {
@@ -1702,6 +1740,12 @@ init(int argc, char *argv[])
 			opt_intr = string_to_uint(optarg);
 			if (opt_intr <= 0 || opt_intr >= NUM_INTR_OPTS)
 				error_opt_arg(c, optarg);
+			break;
+		case 'k':
+			output_stacktraces = 1;
+			break;
+		case 'w':
+			use_libunwind = 0;
 			break;
 		default:
 			usage(stderr, 1);

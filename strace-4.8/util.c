@@ -61,6 +61,14 @@
 # undef pt_all_user_regs
 #endif
 
+/* macros */
+#ifndef MAX
+# define MAX(a,b)		(((a) > (b)) ? (a) : (b))
+#endif
+#ifndef MIN
+# define MIN(a,b)		(((a) < (b)) ? (a) : (b))
+#endif
+
 int
 string_to_uint(const char *str)
 {

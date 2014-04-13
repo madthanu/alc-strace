@@ -168,8 +168,46 @@ static const struct xlat mmap_flags[] = {
 #ifdef MAP_NOCORE
 	{ MAP_NOCORE,	"MAP_NOCORE"	},
 #endif
+#ifdef TILE
+	{ MAP_CACHE_NO_LOCAL, "MAP_CACHE_NO_LOCAL" },
+	{ MAP_CACHE_NO_L2, "MAP_CACHE_NO_L2" },
+	{ MAP_CACHE_NO_L1, "MAP_CACHE_NO_L1" },
+#endif
 	{ 0,		NULL		},
 };
+
+#ifdef TILE
+static int
+addtileflags(long flags)
+{
+	long home = flags & _MAP_CACHE_MKHOME(_MAP_CACHE_HOME_MASK);
+	flags &= ~_MAP_CACHE_MKHOME(_MAP_CACHE_HOME_MASK);
+
+	if (flags & _MAP_CACHE_INCOHERENT) {
+		flags &= ~_MAP_CACHE_INCOHERENT;
+		if (home == MAP_CACHE_HOME_NONE) {
+			tprints("|MAP_CACHE_INCOHERENT");
+			return flags;
+		}
+		tprints("|_MAP_CACHE_INCOHERENT");
+	}
+
+	switch (home) {
+	case 0:	break;
+	case MAP_CACHE_HOME_HERE: tprints("|MAP_CACHE_HOME_HERE"); break;
+	case MAP_CACHE_HOME_NONE: tprints("|MAP_CACHE_HOME_NONE"); break;
+	case MAP_CACHE_HOME_SINGLE: tprints("|MAP_CACHE_HOME_SINGLE"); break;
+	case MAP_CACHE_HOME_TASK: tprints("|MAP_CACHE_HOME_TASK"); break;
+	case MAP_CACHE_HOME_HASH: tprints("|MAP_CACHE_HOME_HASH"); break;
+	default:
+		tprintf("|MAP_CACHE_HOME(%ld)",
+			(home >> _MAP_CACHE_HOME_SHIFT) );
+		break;
+	}
+
+	return flags;
+}
+#endif
 
 static int
 print_mmap(struct tcb *tcp, long *u_arg, unsigned long long offset)
@@ -188,7 +226,11 @@ print_mmap(struct tcb *tcp, long *u_arg, unsigned long long offset)
 		/* flags */
 #ifdef MAP_TYPE
 		printxval(mmap_flags, u_arg[3] & MAP_TYPE, "MAP_???");
+# ifdef TILE
+		addflags(mmap_flags, addtileflags(u_arg[3] & ~MAP_TYPE));
+# else
 		addflags(mmap_flags, u_arg[3] & ~MAP_TYPE);
+# endif
 #else
 		printflags(mmap_flags, u_arg[3], "MAP_???");
 #endif
@@ -273,7 +315,13 @@ sys_mmap(struct tcb *tcp)
 	 * sys_mmap_pgoff(..., off >> PAGE_SHIFT); i.e. off is in bytes,
 	 * since the above code converts off to pages.
 	 */
-	return print_mmap(tcp, tcp->u_arg, offset);
+	int ret = print_mmap(tcp, tcp->u_arg, offset);
+
+	if (!entering(tcp)) {
+		delete_mmap_cache(tcp);
+	}
+
+	return ret;
 }
 
 /* Params are passed directly, offset is in pages */
@@ -304,6 +352,11 @@ sys_munmap(struct tcb *tcp)
 		tprintf("%#lx, %lu",
 			tcp->u_arg[0], tcp->u_arg[1]);
 	}
+
+	if (!entering(tcp)) {
+		delete_mmap_cache(tcp);
+	}
+
 	return 0;
 }
 
@@ -315,6 +368,11 @@ sys_mprotect(struct tcb *tcp)
 			tcp->u_arg[0], tcp->u_arg[1]);
 		printflags(mmap_prot, tcp->u_arg[2], "PROT_???");
 	}
+
+	if (!entering(tcp)) {
+		delete_mmap_cache(tcp);
+	}
+
 	return 0;
 }
 
