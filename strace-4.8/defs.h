@@ -392,6 +392,9 @@ typedef struct ioctlent {
 	unsigned long code;
 } struct_ioctlent;
 
+#define HAVE_LIBUNWIND 1
+#define HAVE_LIBUNWIND_PTRACE 1
+
 #if (defined(HAVE_LIBUNWIND) || defined(HAVE_LIBUNWIND_X86_64)) && defined(HAVE_LIBUNWIND_PTRACE)
 # define LIBUNWIND
 // put this #include as LATE in the file as possible, or else there might be
@@ -448,6 +451,7 @@ struct tcb {
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
 	int out_dump_f;		/* Output dump file for this process (fd) */
+	FILE *out_stack_f;		/* Output stack file for this process (fd) */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
 	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
 	struct timeval stime;	/* System time usage as of last process wait */
@@ -781,6 +785,7 @@ extern void line_ended(void);
 extern void tabto(void);
 extern void tprintf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void tdump(void *addr, long len);
+extern void tprintstackinfo(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void tprints(const char *str);
 
 #if SUPPORTED_PERSONALITIES > 1

@@ -2027,12 +2027,37 @@ output_stacktrace(struct tcb* tcp)
 	// walk up the stack and print out return addresses:
 	//   personality_wordsize[current_personality] is the wordsize for the target process
 
-	tprintf("[ "); // opening brace for stack trace
+	tprintstackinfo("[ "); // opening brace for stack trace
 
 	// caching for efficiency ...
 	if (!tcp->mmap_cache) {
 		alloc_mmap_cache(tcp);
 	}
+/*
+#if defined (I386)
+	printf("defined I386\n");
+#elif  defined (X86_64)
+	printf("defined X86_64\n");
+#endif
+
+# ifdef LIBUNWIND
+	printf("defined LIBUNWIND\n");
+#else
+	printf("undefined LIBUNWIND\n");
+#endif
+
+if (use_libunwind) {
+	printf("use_libunwind\n");
+} else {
+	printf("no use_libunwind\n");
+}
+
+if (IS_32BIT_EMU) {
+	printf("32BIT_EMU\n");
+} else {
+	printf("not 32BIT_EMU\n");
+}
+*/
 
 #if defined (I386)
 
@@ -2067,7 +2092,7 @@ output_stacktrace(struct tcb* tcp)
 # error "Unknown architecture (not I386 or X86_64)"
 #endif
 
-	tprintf("] "); // closing brace for stack trace
+	tprintstackinfo("]\n"); // closing brace for stack trace
 }
 
 static int
@@ -2941,7 +2966,7 @@ print_normalized_addr(struct tcb* tcp, unsigned long addr) {
 			// calculate the true offset into the binary ...
 			// but still print out the original address because it can be useful too ...
 			unsigned long true_offset = addr - cur->start_addr + cur->mmap_offset;
-			tprintf("%s:0x%lx:0x%lx ", cur->binary_filename, true_offset, addr);
+			tprintstackinfo("%s:0x%lx:0x%lx ", cur->binary_filename, true_offset, addr);
 			return; // exit early
 		}
 		else if (lower == upper) {

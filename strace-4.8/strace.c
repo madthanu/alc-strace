@@ -155,6 +155,7 @@ static char *outfname = NULL;
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
 static int shared_dump_log_fd;
+static int shared_stackinfo_f;
 
 int output_stacktraces = 0;
 int use_libunwind = 1;
@@ -551,6 +552,18 @@ tprintf(const char *fmt, ...)
 }
 
 void
+tprintstackinfo(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	if (current_tcp) {
+		int n = strace_vfprintf(current_tcp->out_stack_f, fmt, args);
+	}
+	va_end(args);
+}
+
+void
 tdump(void *addr, long len)
 {
 	long ret = write(current_tcp->out_dump_f, addr, len);
@@ -664,12 +677,15 @@ newoutf(struct tcb *tcp)
 {
 	tcp->outf = shared_log; /* if not -ff mode, the same file is for all */
 	tcp->out_dump_f = shared_dump_log_fd; /* if not -ff mode, the same file is for all */
+	tcp->out_stack_f = shared_stackinfo_f; /* if not -ff mode, the same file is for all */
 	if (followfork >= 2) {
 		char name[520 + sizeof(int) * 3];
 		sprintf(name, "%.512s.%u", outfname, tcp->pid);
 		tcp->outf = strace_fopen(name);
 		sprintf(name, "%.512s.byte_dump.%u", outfname, tcp->pid);
 		tcp->out_dump_f = open(name, O_CREAT | O_WRONLY | O_TRUNC, 00666);
+		sprintf(name, "%.512s.stackinfo.%u", outfname, tcp->pid);
+		tcp->out_stack_f = fopen(name, "w+");
 	}
 }
 
@@ -1619,6 +1635,7 @@ init(int argc, char *argv[])
 
 	shared_log = stderr;
 	shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
+	shared_stackinfo_f = fopen("/tmp/strace_stackinfo", "w");
 	set_sortby(DEFAULT_SORTBY);
 	set_personality(DEFAULT_PERSONALITY);
 	qualify("trace=all");
@@ -1817,10 +1834,12 @@ init(int argc, char *argv[])
 				error_msg_and_die("Piping the output and -ff are mutually exclusive");
 			shared_log = strace_popen(outfname + 1);
 			shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
+			shared_stackinfo_f = fopen("/tmp/strace_stackinfo", "w");
 		}
 		else if (followfork < 2)
 			shared_log = strace_fopen(outfname);
 			shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
+			shared_stackinfo_f = fopen("/tmp/strace_stackinfo", "w");
 	} else {
 		/* -ff without -o FILE is the same as single -f */
 		if (followfork >= 2)
@@ -2133,6 +2152,9 @@ trace(void)
 			fd = execve_thread->out_dump_f;
 			execve_thread->out_dump_f = tcp->out_dump_f;
 			tcp->out_dump_f = fd;
+			fp = execve_thread->out_stack_f;
+			execve_thread->out_stack_f = tcp->out_stack_f;
+			tcp->out_stack_f = fp;
 			/* And their column positions */
 			execve_thread->curcol = tcp->curcol;
 			tcp->curcol = 0;
