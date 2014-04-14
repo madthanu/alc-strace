@@ -3,7 +3,7 @@ import sys
 parent = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
 sys.path.append(parent)
 import diskops
-import pickle
+import cPickle as pickle
 import re
 import pprint
 import collections
@@ -168,7 +168,15 @@ def __failure_category(failure_category, wrong_output):
 
 vulnerability = set()
 
-def report_atomicity(incorrect_under, op, msg, micro_ops, i):
+def __stack_repr(stack_repr, op):
+	backtrace = op.hidden_backtrace
+	if stack_repr != None:
+		return stack_repr(backtrace)
+	for stack_frame in backtrace:
+		if '/libc' not in stack_frame.binary_filename and 'PosixWritableFile' not in stack_frame.func_name:
+			return stack_frame.src_filename + ':' + str(stack_frame.src_line_num) + '[' + stack_frame.func_name.replace('(anonymous namespace)', '()') + ']'
+
+def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_rep, stack_repr):
 	global replay_output
 	if incorrect_under == None:
 		assert op.op == 'write'
@@ -178,7 +186,7 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 	expand_partial_meanings = ['garbage', 'partial']
 
 	if not cmdline.human: assert op in ['append']
-	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg, '']
+	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg, '', __stack_repr(stack_repr, op)]
 	if op.op in ['append', 'write']:
 		if op.offset / 4096 != (op.offset + op.count) / 4096:
 			# If append crosses page boundary
@@ -271,13 +279,13 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 			report[i] = str(report[i])
 	if cmdline.human: print ' '.join(report)
 
-def report_reordering(micro_operations, i, j, msg):
-	report_pair('Reordering:', micro_operations, i, j, msg)
-def report_prefix(micro_operations, i, j, msg):
-	report_pair('Prefix:', micro_operations, i, j, msg)
-def report_pair(vul_type, micro_operations, i, j, msg):
+def report_reordering(micro_operations, i, j, msg, stack_repr):
+	report_pair('Reordering:', micro_operations, i, j, msg, stack_repr)
+def report_prefix(micro_operations, i, j, msg, stack_repr):
+	report_pair('Prefix:', micro_operations, i, j, msg, stack_repr)
+def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 	explanation = micro_operations[i].op + '(' + str(i) + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + micro_operations[j].op + '( ' + str(j) + ', ' + fname(micro_operations[j]) + ')'
-	report = [vul_type, explanation, '', ':', msg]
+	report = [vul_type, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
 	if micro_operations[i].op in ['rename', 'link'] or micro_operations[j].op in ['rename', 'link']:
 		report[2] = 'two_dir_ops'
 	elif micro_operations[i].op in ['trunc', 'append', 'write'] or micro_operations[j].op in ['trunc', 'append', 'write']:
@@ -323,7 +331,7 @@ def fname(op):
 		print op
 		assert False
 
-def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
+def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None, stack_repr = None):
 	global replay_output
 	micro_ops = MicroOps(strace_description)
 	micro_operations = micro_ops.one
@@ -362,7 +370,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				assert i not in prefix_problems
 				prefix_problems.add(i)
 			elif not correct:
-				report_prefix(micro_operations, i, i + 1, __failure_category(failure_category, wrong_output))
+				report_prefix(micro_operations, i, i + 1, __failure_category(failure_category, wrong_output), stack_repr)
 				assert i not in prefix_problems
 				assert (i + 1) not in prefix_problems
 				prefix_problems.add(i)
@@ -388,7 +396,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						assert micro_operations[i].op not in conv_micro.expansive_ops
 			if len(incorrect_under) > 0:
 				atomicity_violators.add(i)
-				report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i)
+				report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i, stack_repr)
 
 	# Full re-orderings
 	reordering_violators = {}
@@ -407,7 +415,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				output = replay_output.omitmicro[(Op(i), Op(j))]
 				if not is_correct(output):
 					reordering_violators[i] = j
-					report_reordering(micro_operations, i, j, __failure_category(failure_category, wrong_output))
+					report_reordering(micro_operations, i, j, __failure_category(failure_category, wrong_output), stack_repr)
 					break
 
 	# Special re-orderings
