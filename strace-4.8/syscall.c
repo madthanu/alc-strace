@@ -2022,8 +2022,13 @@ print_i386_ebp_backtrace(struct tcb* tcp)
 }
 
 static void
-output_stacktrace(struct tcb* tcp)
+output_stacktrace(int really_output_stacktrace, struct tcb* tcp)
 {
+	if(really_output_stacktrace == 0) {
+		tprintstackinfo("[]\n");
+		return;
+	}
+
 	// walk up the stack and print out return addresses:
 	//   personality_wordsize[current_personality] is the wordsize for the target process
 
@@ -2033,31 +2038,32 @@ output_stacktrace(struct tcb* tcp)
 	if (!tcp->mmap_cache) {
 		alloc_mmap_cache(tcp);
 	}
-/*
-#if defined (I386)
-	printf("defined I386\n");
-#elif  defined (X86_64)
-	printf("defined X86_64\n");
-#endif
 
-# ifdef LIBUNWIND
-	printf("defined LIBUNWIND\n");
-#else
-	printf("undefined LIBUNWIND\n");
-#endif
+	/*
+	#if defined (I386)
+		printf("defined I386\n");
+	#elif  defined (X86_64)
+		printf("defined X86_64\n");
+	#endif
 
-if (use_libunwind) {
-	printf("use_libunwind\n");
-} else {
-	printf("no use_libunwind\n");
-}
+	# ifdef LIBUNWIND
+		printf("defined LIBUNWIND\n");
+	#else
+		printf("undefined LIBUNWIND\n");
+	#endif
 
-if (IS_32BIT_EMU) {
-	printf("32BIT_EMU\n");
-} else {
-	printf("not 32BIT_EMU\n");
-}
-*/
+	if (use_libunwind) {
+		printf("use_libunwind\n");
+	} else {
+		printf("no use_libunwind\n");
+	}
+
+	if (IS_32BIT_EMU) {
+		printf("32BIT_EMU\n");
+	} else {
+		printf("not 32BIT_EMU\n");
+	}
+	*/
 
 #if defined (I386)
 
@@ -2177,15 +2183,33 @@ trace_syscall_entering(struct tcb *tcp)
 		goto ret;
 	}
 
-	if (output_stacktraces) {
-		output_stacktrace(tcp);
+	printleader(tcp);
+	int really_output_stacktrace = 1;
+	if (tcp->qual_flg & UNDEFINED_SCNO) {
+		tprintf("%s(", undefined_scno_name(tcp));
+		really_output_stacktrace = 0;
+	} else {
+		tprintf("%s(", tcp->s_ent->sys_name);
+		if((strcmp("fstat", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("mmap", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("munmap", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("gettid", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("close", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("gettid", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("lseek", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("rt_sigprocmask", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("gettimeofday", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("stat", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("mprotect", tcp->s_ent->sys_name) == 0) ||
+			) {
+			really_output_stacktrace = 0;
+		}
 	}
 
-	printleader(tcp);
-	if (tcp->qual_flg & UNDEFINED_SCNO)
-		tprintf("%s(", undefined_scno_name(tcp));
-	else
-		tprintf("%s(", tcp->s_ent->sys_name);
+	if (output_stacktraces) {
+		output_stacktrace(really_output_stacktrace, tcp);
+	}
+
 	if ((tcp->qual_flg & QUAL_RAW) && tcp->s_ent->sys_func != sys_exit)
 		res = printargs(tcp);
 	else
