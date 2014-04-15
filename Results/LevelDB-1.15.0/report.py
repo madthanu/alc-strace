@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.append(os.getenv('ALC_STRACE_HOME') + '/error_reporter')
 import error_reporter
+import cProfile
 from error_reporter import FailureCategory
 
 def meaning(x):
@@ -53,4 +54,7 @@ def failure_category(msg):
 	assert len(toret) > 0
 	return list(toret)
 
-error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
+def run_me():
+	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
+
+cProfile.run('run_me()')
