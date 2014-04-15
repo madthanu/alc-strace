@@ -12,6 +12,16 @@ import conv_micro
 import argparse
 import myutils
 
+
+class prettyDict(collections.defaultdict):
+    def __init__(self, *args, **kwargs):
+        collections.defaultdict.__init__(self,*args,**kwargs)
+
+    def __repr__(self):
+        return str(dict(self))
+
+bugs = prettyDict(lambda: prettyDict(lambda: set()))
+
 class Op:
 	def __repr__(self):
 		return repr(self.__dict__)
@@ -173,10 +183,10 @@ def __stack_repr(stack_repr, op):
 	if stack_repr != None:
 		return stack_repr(backtrace)
 	for stack_frame in backtrace:
-		if '/libc' not in stack_frame.binary_filename and 'PosixWritableFile' not in stack_frame.func_name:
-			return stack_frame.src_filename + ':' + str(stack_frame.src_line_num) + '[' + stack_frame.func_name.replace('(anonymous namespace)', '()') + ']'
+		if '/libc' not in stack_frame.binary_filename:
+			return stack_frame.src_filename + ':' + str(stack_frame.src_line_num) # + '[' + stack_frame.func_name.replace('(anonymous namespace)', '()') + ']'
 
-def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_rep, stack_repr):
+def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 	global replay_output
 	if incorrect_under == None:
 		assert op.op == 'write'
@@ -185,7 +195,6 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_rep, stack_re
 	append_partial_meanings = ['filled_zero', 'filled_garbage', 'partial']
 	expand_partial_meanings = ['garbage', 'partial']
 
-	if not cmdline.human: assert op in ['append']
 	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg, '', __stack_repr(stack_repr, op)]
 	if op.op in ['append', 'write']:
 		if op.offset / 4096 != (op.offset + op.count) / 4096:
@@ -278,14 +287,22 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_rep, stack_re
 		else:
 			report[i] = str(report[i])
 	if cmdline.human: print ' '.join(report)
+	bugs['Atomicity:'][__stack_repr(stack_repr, op)].add((op.op, msg, report[3]))
 
 def report_reordering(micro_operations, i, j, msg, stack_repr):
 	report_pair('Reordering:', micro_operations, i, j, msg, stack_repr)
 def report_prefix(micro_operations, i, j, msg, stack_repr):
 	report_pair('Prefix:', micro_operations, i, j, msg, stack_repr)
+def report_special_reordering(micro_operations, i, j, msg, stack_repr):
+	report_pair('Special reordering:', micro_operations, i, j, msg, stack_repr)
 def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
-	explanation = micro_operations[i].op + '(' + str(i) + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + micro_operations[j].op + '( ' + str(j) + ', ' + fname(micro_operations[j]) + ')'
+	first_index = str(i)
+	second_index = str(j)
+	if type(i) == tuple: i = i[0]
+	if type(j) == tuple: j = j[0]
+	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
 	report = [vul_type, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
+
 	if micro_operations[i].op in ['rename', 'link'] or micro_operations[j].op in ['rename', 'link']:
 		report[2] = 'two_dir_ops'
 	elif micro_operations[i].op in ['trunc', 'append', 'write'] or micro_operations[j].op in ['trunc', 'append', 'write']:
@@ -310,6 +327,7 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 		else:
 			report[2] = 'different_dir'
 
+	bugs[vul_type][(__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j]))].add((micro_operations[i].op + ' -> ' + micro_operations[j].op, report[2], msg))
 	report[2] = myutils.colorize(report[2], 3)
 	if cmdline.human: print ' '.join(report)
 
@@ -454,14 +472,9 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 							output = replay_output.omit_one[subtype][(Op(i, x), Op(j, y))]
 							if not is_correct(output):
 								if i == j:
-									report_atomicity(None, micro_operations[i], __failure_category(failure_category, output), micro_ops, i)
+									report_atomicity(None, micro_operations[i], __failure_category(failure_category, output), micro_ops, i, stack_repr)
 								else:
-									report = ['Special reordering: ', micro_operations[i].op, '(', str((i, x)), fname(micro_operations[i]), ')', ' <-> ', micro_operations[j].op, '(', str((j, y)), fname(micro_operations[j]), ')', ':']
-									if not failure_category:
-										report.append(output)
-									else:
-										report.append(FailureCategory.repr(failure_category(output)))
-									if cmdline.human: print ' '.join(report)
+									report_special_reordering(micro_operations, (i, x), (j, y), __failure_category(failure_category, output), stack_repr)
 								special_reordering_found = True
 								break
 						if special_reordering_found:
@@ -470,8 +483,12 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						break
 				if special_reordering_found:
 					break
+	if cmdline.human != True: pprint.pprint(eval(pprint.pformat(bugs)))
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--human', dest = 'human', type = bool, default = False)
+parser.add_argument('--human', dest = 'human', type = bool, default = True)
+parser.add_argument('--mode', dest = 'mode', type = str, default = None)
 parser.add_argument('--vul_types', dest = 'vul_types', type = bool, default = False)
 cmdline = parser.parse_args()
+if cmdline.mode != None and cmdline.mode != 'human':
+	cmdline.human = False
