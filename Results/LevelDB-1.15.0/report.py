@@ -55,6 +55,6 @@ def failure_category(msg):
 	return list(toret)
 
 def run_me():
-	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
+	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct)#, failure_category)
 
-cProfile.run('run_me()')
+run_me()
