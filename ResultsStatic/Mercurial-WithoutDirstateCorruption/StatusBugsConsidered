@@ -1,0 +1,33 @@
+Prefix: creat(30, /S10/merc/hg-checkexec-HGh3vO) <-> unlink( 31, /S10/merc/hg-checkexec-HGh3vO) [00;33msame_dir[0m : MISC
+Prefix: append(44, /S647/store/00changelog.i) <-> rename( 45, /S647/store/journal -> /S647/store/undo) [00;33mtwo_dir_ops[0m : MISC
+Prefix: rename(45, /S647/store/journal -> /S647/store/undo) <-> rename( 46, /S947/.hg/journal.dirstate -> /S947/.hg/undo.dirstate) [00;33mtwo_dir_ops[0m : MISC
+Prefix: rename(46, /S947/.hg/journal.dirstate -> /S947/.hg/undo.dirstate) <-> rename( 47, /S947/.hg/journal.branch -> /S947/.hg/undo.branch) [00;33mtwo_dir_ops[0m : MISC
+Prefix: rename(47, /S947/.hg/journal.branch -> /S947/.hg/undo.branch) <-> rename( 48, /S947/.hg/journal.desc -> /S947/.hg/undo.desc) [00;33mtwo_dir_ops[0m : MISC
+Prefix: rename(48, /S947/.hg/journal.desc -> /S947/.hg/undo.desc) <-> rename( 49, /S947/.hg/journal.bookmarks -> /S947/.hg/undo.bookmarks) [00;33mtwo_dir_ops[0m : MISC
+Prefix: rename(49, /S947/.hg/journal.bookmarks -> /S947/.hg/undo.bookmarks) <-> creat( 50, /S647/store/.fncache-jBini5) [00;33mtwo_dir_ops[0m : MISC
+Prefix: creat(50, /S647/store/.fncache-jBini5) <-> trunc( 51, /S647/store/.fncache-jBini5) [00;33msame_file[0m : MISC
+Prefix: append(52, /S647/store/.fncache-jBini5) <-> rename( 53, /S647/store/.fncache-jBini5 -> /S647/store/fncache) [00;33mtwo_dir_ops[0m : MISC
+Prefix: rename(53, /S647/store/.fncache-jBini5 -> /S647/store/fncache) <-> unlink( 54, /S647/store/lock) [00;33mtwo_dir_ops[0m : MISC
+Prefix: unlink(54, /S647/store/lock) <-> creat( 55, /S947/.hg/.dirstate-nm8VB2) [00;33mdifferent_dir[0m : MISC
+Prefix: creat(55, /S947/.hg/.dirstate-nm8VB2) <-> trunc( 56, /S947/.hg/.dirstate-nm8VB2) [00;33msame_file[0m : MISC
+Prefix: append(57, /S947/.hg/.dirstate-nm8VB2) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : MISC
+Atomicity:  rename 4 destination_exists (('three', 'source points to new-destination partial truncate old'), no source-no destination, source points to new-no destination, source points to new-destination empty) MISC /S947/.hg/.dirstate-fG0JHB -> /S947/.hg/dirstate
+Atomicity:  append 24 within_boundary(15) (('three', 'partial'), filled_garbage, filled_zero) PARTIAL_WRITE_FAILURE /S647/store/journal
+Atomicity:  append 33 within_boundary(15) (('three', 'partial'), filled_garbage, filled_zero) PARTIAL_WRITE_FAILURE /S647/store/journal
+Atomicity:  append 41 within_boundary(17) (('three', 'partial'), filled_garbage, filled_zero) PARTIAL_WRITE_FAILURE /S647/store/journal
+Atomicity:  append 42 within_boundary(151) (('three', 'partial'), filled_garbage, filled_zero) MISC /S647/store/00manifest.i
+Atomicity:  append 43 within_boundary(18) (('three', 'partial'), filled_garbage, filled_zero) PARTIAL_WRITE_FAILURE /S647/store/journal
+Reordering: append(3, /S947/.hg/.dirstate-fG0JHB) <-> rename( 4, /S947/.hg/.dirstate-fG0JHB -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: creat(22, /S647/store/journal) <-> append( 25, /S779/data/file3.i) [00;33mdifferent_file[0m : PARTIAL_WRITE_FAILURE
+Reordering: creat(23, /S779/data/file3.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(24, /S647/store/journal) <-> append( 25, /S779/data/file3.i) [00;33mdifferent_file[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(25, /S779/data/file3.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(26, /S779/data/file3.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(27, /S779/data/file3.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: creat(32, /S779/data/file4.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(33, /S647/store/journal) <-> append( 34, /S779/data/file4.i) [00;33mdifferent_file[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(34, /S779/data/file4.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(35, /S779/data/file4.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(36, /S779/data/file4.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(41, /S647/store/journal) <-> append( 42, /S647/store/00manifest.i) [00;33mdifferent_file[0m : PARTIAL_WRITE_FAILURE
+Reordering: append(42, /S647/store/00manifest.i) <-> rename( 58, /S947/.hg/.dirstate-nm8VB2 -> /S947/.hg/dirstate) [00;33mtwo_dir_ops[0m : PARTIAL_WRITE_FAILURE
