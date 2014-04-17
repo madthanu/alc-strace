@@ -9,6 +9,13 @@ import conv_micro
 import pprint
 import itertools
 
+if sys.argv[1] == '--print':
+	description = pickle.load(open(sys.argv[2], 'r'))
+	assert description['version'] == 2
+	for x in description['one']:
+		print x
+	exit()
+
 existing_description = pickle.load(open(sys.argv[1], 'r'))
 assert type(existing_description) == dict
 assert existing_description['version'] == 2
@@ -46,6 +53,7 @@ def assign_thread_symtabs(existing_thread, symtab_thread, mode):
 		if existing_micro_op.hidden_tid != existing_thread:
 			continue
 		if symtab_index >= len(symtab_description[mode]):
+			print 'Reached end of trace when trying to merge'
 			return False
 
 		while symtab_description[mode][symtab_index].hidden_tid != symtab_thread:
@@ -58,6 +66,9 @@ def assign_thread_symtabs(existing_thread, symtab_thread, mode):
 		symtab_index += 1
 
 		if not equivalent_micro_ops(existing_micro_op, symtab_micro_op):
+			print 'Not equivalent micro ops:'
+			print 'a.' + str(existing_micro_op)
+			print 'b.' + str(symtab_micro_op)
 			return False
 
 		existing_micro_op.hidden_stackinfo = symtab_micro_op.hidden_stackinfo
