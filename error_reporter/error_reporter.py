@@ -145,13 +145,19 @@ class FailureCategory:
 	FULL_WRITE_FAILURE = 56
 	CORRUPTED_READ_VALUES = 67
 	MISC = 78
+	DURABILITY = 79
 
 	@staticmethod
 	def repr(meaning):
 		inv_dict = {v:k for k, v in FailureCategory.__dict__.items()}
 		if type(meaning) == int:
 			return inv_dict[meaning]
-		ans = [inv_dict[x] for x in meaning]
+		ans = []
+		for x in meaning:
+			if x in inv_dict:
+				ans.append(inv_dict[x])
+			else:
+				ans.append(x)
 		return '|'.join(ans)
 
 class VulnerabilityCategory:
