@@ -1,0 +1,22 @@
+Prefix: stdout(33) <-> write(34):DURABILITY_VIOLATION
+Prefix: write(34) <-> write(35):DURABILITY_VIOLATION
+Atomicity:  trunc 4   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 10   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 16   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 22   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 29   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 36 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 37 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 38 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 39 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 40 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 41 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 42 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 43 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 44 across_boundary (('three', 'filled_garbage'), ('aligned', 'filled_garbage'), ('three', 'filled_zero'), ('one', 'filled_garbage')) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Atomicity:  append 45 across_boundary (filled_garbage) CORRUPTED_READ_VALUES|PARTIAL_READ_FAILURE
+Reordering: creat(3) <-> write(35):FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Reordering: creat(9) <-> write(35):FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Reordering: creat(15) <-> write(35):FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Reordering: creat(21) <-> write(35):FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Reordering: creat(28) <-> write(35):DURABILITY_VIOLATION

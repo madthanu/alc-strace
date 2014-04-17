@@ -1,0 +1,21 @@
+Prefix: stdout(32) <-> write(33):DURABILITY_VIOLATION
+Atomicity:  trunc 3   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 9   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 15   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 21   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  trunc 28   FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 37 across_boundary (filled_garbage) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 38 across_boundary (filled_garbage) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 39 across_boundary (filled_garbage) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 40 across_boundary (filled_garbage) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 41 across_boundary (filled_garbage) FULL_WRITE_FAILURE|FULL_READ_FAILURE
+Atomicity:  append 42 across_boundary (filled_zero, filled_garbage) DURABILITY_VIOLATION
+Reordering: write(34) <-> append(42):DURABILITY_VIOLATION
+Reordering: write(35) <-> append(42):DURABILITY_VIOLATION
+Reordering: append(37) <-> append(42):DURABILITY_VIOLATION
+Reordering: append(38) <-> append(42):DURABILITY_VIOLATION
+Reordering: append(39) <-> append(42):DURABILITY_VIOLATION
+Reordering: append(40) <-> append(42):DURABILITY_VIOLATION
+Reordering: append(41) <-> append(42):DURABILITY_VIOLATION
+Special reordering: write((34, 1)) <-> append((36, 0)):CORRUPTED_READ_VALUES
+Special reordering: write((35, 1)) <-> append((36, 0)):CORRUPTED_READ_VALUES
