@@ -6,4 +6,3 @@ mtrace/mtrace.so
 mtrace/obj*
 test/tmp/initial_snapshot
 *.pyc
-strace*/*

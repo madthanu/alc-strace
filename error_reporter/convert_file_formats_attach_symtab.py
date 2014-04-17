@@ -9,6 +9,8 @@ import conv_micro
 import pprint
 import itertools
 
+ignore_syscalls = ['mwrite']
+
 if sys.argv[1] == '--print':
 	description = pickle.load(open(sys.argv[2], 'r'))
 	assert description['version'] == 2
@@ -50,13 +52,14 @@ def assign_thread_symtabs(existing_thread, symtab_thread, mode):
 
 	symtab_index = 0
 	for existing_micro_op in existing_description[mode]:
-		if existing_micro_op.hidden_tid != existing_thread:
+		if existing_micro_op.hidden_parsed_line.syscall in ignore_syscalls or existing_micro_op.hidden_tid != existing_thread:
 			continue
+
 		if symtab_index >= len(symtab_description[mode]):
 			print 'Reached end of trace when trying to merge'
 			return False
 
-		while symtab_description[mode][symtab_index].hidden_tid != symtab_thread:
+		while symtab_description[mode][symtab_index].hidden_parsed_line.syscall in ignore_syscalls or symtab_description[mode][symtab_index].hidden_tid != symtab_thread:
 			symtab_index += 1
 			if symtab_index >= len(symtab_description[mode]):
 				print 'Symtab description length for thread is lesser than existing description length.'
@@ -67,8 +70,8 @@ def assign_thread_symtabs(existing_thread, symtab_thread, mode):
 
 		if not equivalent_micro_ops(existing_micro_op, symtab_micro_op):
 			print 'Not equivalent micro ops:'
-			print 'a.' + str(existing_micro_op)
-			print 'b.' + str(symtab_micro_op)
+			print 'a.' + str(existing_micro_op) + str(existing_micro_op.hidden_parsed_line)
+			print 'b.' + str(symtab_micro_op) + str(symtab_micro_op.hidden_parsed_line)
 			return False
 
 		existing_micro_op.hidden_stackinfo = symtab_micro_op.hidden_stackinfo

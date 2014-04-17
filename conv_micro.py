@@ -732,7 +732,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 			name = fdtracker.get_name(fd)
 			file_size = __replayed_stat(name).st_size
 			assert file_size <= offset + length
-			assert syscall_tid in mtrace_recorded
+			if not cmdline().mtrace_shadow: assert syscall_tid in mtrace_recorded
 			assert 'MAP_GROWSDOWN' not in flags
 			memtracker.insert(addr_start, addr_end, fdtracker.get_name(fd), fdtracker.get_inode(fd), offset)
 	elif parsed_line.syscall == 'munmap':
