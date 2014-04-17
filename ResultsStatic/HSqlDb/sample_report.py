@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
-sys.path.append('/home/ramnatthan/code/adsl-work/ALC/alc-strace/error_reporter')
+import os
+sys.path.append(os.getenv("ALC_STRACE_HOME") + '/error_reporter')
 import error_reporter
 from error_reporter import FailureCategory
 

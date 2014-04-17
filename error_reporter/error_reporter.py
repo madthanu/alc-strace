@@ -145,13 +145,19 @@ class FailureCategory:
 	FULL_WRITE_FAILURE = 56
 	CORRUPTED_READ_VALUES = 67
 	MISC = 78
+	DURABILITY = 79
 
 	@staticmethod
 	def repr(meaning):
 		inv_dict = {v:k for k, v in FailureCategory.__dict__.items()}
 		if type(meaning) == int:
 			return inv_dict[meaning]
-		ans = [inv_dict[x] for x in meaning]
+		ans = []
+		for x in meaning:
+			if x in inv_dict:
+				ans.append(inv_dict[x])
+			else:
+				ans.append(x)
 		return '|'.join(ans)
 
 class VulnerabilityCategory:
@@ -431,9 +437,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 					continue
 				assert not blank_found
 				output = replay_output.omitmicro[(Op(i), Op(j))]
+				
 				if not is_correct(output):
 					reordering_violators[i] = j
-					report_reordering(micro_operations, i, j, __failure_category(failure_category, wrong_output), stack_repr)
+					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr)
 					break
 
 	# Special re-orderings
