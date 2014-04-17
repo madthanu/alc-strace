@@ -11,7 +11,7 @@ import copy
 import conv_micro
 import argparse
 import myutils
-
+from mystruct import Struct
 
 class prettyDict(collections.defaultdict):
     def __init__(self, *args, **kwargs):
@@ -20,7 +20,13 @@ class prettyDict(collections.defaultdict):
     def __repr__(self):
         return str(dict(self))
 
-bugs = prettyDict(lambda: prettyDict(lambda: set()))
+vulnerabilities = list()
+
+
+REORDERING = 'Reordering:'
+ATOMICITY = 'Atomicity:'
+PREFIX = 'Prefix:'
+SPECIAL_REORDERING = 'Special reordering:'
 
 class Op:
 	def __repr__(self):
@@ -182,15 +188,16 @@ def __failure_category(failure_category, wrong_output):
 	else:
 		return FailureCategory.repr(failure_category(wrong_output))
 
-vulnerability = set()
-
 def __stack_repr(stack_repr, op):
-	backtrace = op.hidden_backtrace
-	if stack_repr != None:
-		return stack_repr(backtrace)
-	for stack_frame in backtrace:
-		if '/libc' not in stack_frame.binary_filename:
-			return stack_frame.src_filename + ':' + str(stack_frame.src_line_num) # + '[' + stack_frame.func_name.replace('(anonymous namespace)', '()') + ']'
+	try:
+		backtrace = op.hidden_backtrace
+		if stack_repr != None:
+			return stack_repr(backtrace)
+		for stack_frame in backtrace:
+			if '/libc' not in stack_frame.binary_filename:
+				return stack_frame.src_filename + ':' + str(stack_frame.src_line_num) # + '[' + stack_frame.func_name.replace('(anonymous namespace)', '()') + ']'
+	except Exception as e:
+		return 'Unknown:' + op.hidden_id
 
 def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 	global replay_output
@@ -293,14 +300,20 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 		else:
 			report[i] = str(report[i])
 	if cmdline.human: print ' '.join(report)
-	bugs['Atomicity:'][__stack_repr(stack_repr, op)].add((op.op, msg, report[3]))
+	vulnerabilities.append(Struct(type = ATOMICITY,
+			stack_repr = __stack_repr(stack_repr, op),
+			micro_op = op.op,
+			msg = msg,
+			subtype = report[3],
+			subtype2 = report[4],
+			details = Struct(micro_op = op)))
 
 def report_reordering(micro_operations, i, j, msg, stack_repr):
-	report_pair('Reordering:', micro_operations, i, j, msg, stack_repr)
+	report_pair(REORDERING, micro_operations, i, j, msg, stack_repr)
 def report_prefix(micro_operations, i, j, msg, stack_repr):
-	report_pair('Prefix:', micro_operations, i, j, msg, stack_repr)
+	report_pair(PREFIX, micro_operations, i, j, msg, stack_repr)
 def report_special_reordering(micro_operations, i, j, msg, stack_repr):
-	report_pair('Special reordering:', micro_operations, i, j, msg, stack_repr)
+	report_pair(SPECIAL_REORDERING, micro_operations, i, j, msg, stack_repr)
 def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 	first_index = str(i)
 	second_index = str(j)
@@ -333,7 +346,14 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 		else:
 			report[2] = 'different_dir'
 
-	bugs[vul_type][(__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j]))].add((micro_operations[i].op + ' -> ' + micro_operations[j].op, report[2], msg))
+
+	vulnerabilities.append(Struct(type = vul_type,
+			stack_repr = (__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])),
+			micro_op = (micro_operations[i].op, micro_operations[j].op),
+			msg = msg,
+			subtype = report[2],
+			details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
+
 	report[2] = myutils.colorize(report[2], 3)
 	if cmdline.human: print ' '.join(report)
 
@@ -361,7 +381,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 	micro_operations = micro_ops.one
 	replay_output = ReplayOutputParser(replay_output_file, delimiter)
 
-	# Finding prefix bugs
+	# Finding prefix machine_mode_bugs
 	prefix_problems = set()
 	for i in range(0, len(micro_operations)):
 		if micro_operations[i].op not in conv_micro.sync_ops and micro_ops.dops_len('one', i) > 0:
@@ -399,7 +419,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				assert (i + 1) not in prefix_problems
 				prefix_problems.add(i)
 
-	# Finding atomicity bugs
+	# Finding atomicity machine_mode_bugs
 	atomicity_violators = set()
 	for i in range(0, len(micro_operations)):
 		# If the i-th micro op does not have a prefix problem, and it is actually a real diskop-producing micro-op
@@ -490,7 +510,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						break
 				if special_reordering_found:
 					break
-	if cmdline.human != True: pprint.pprint(eval(pprint.pformat(bugs)))
+	if cmdline.mode == "machine-debug": pprint.pprint(vulnerabilities)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--human', dest = 'human', type = bool, default = True)
