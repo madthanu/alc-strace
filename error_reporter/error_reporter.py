@@ -189,21 +189,29 @@ def __failure_category(failure_category, wrong_output):
 	else:
 		return FailureCategory.repr(failure_category(wrong_output))
 
+def standard_stack_traverse(backtrace):
+	for i in range(0, len(backtrace)):
+		stack_frame = backtrace[i]
+		if stack_frame.src_filename != None and 'syscall-template' in stack_frame.src_filename:
+			continue
+		if '/libc' in stack_frame.binary_filename:
+			continue
+		if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
+			continue
+		return backtrace[i:]
+	return None
+
 def __stack_repr(stack_repr, op):
 	try:
 		backtrace = op.hidden_backtrace
 		if stack_repr != None:
 			return stack_repr(backtrace)
-		for stack_frame in backtrace:
-			if '/libc' not in stack_frame.binary_filename:
-				if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
-					continue
-				if stack_frame.src_filename == None:
-					return str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
-				return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
-		return 'Unknown:' + op.hidden_id
+		backtrace = standard_stack_traverse(backtrace)
+		stack_frame = backtrace[0]
+		if stack_frame.src_filename == None:
+			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
 	except Exception as e:
-		print e
 		return 'Unknown:' + op.hidden_id
 
 def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
