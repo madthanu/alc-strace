@@ -196,8 +196,14 @@ def __stack_repr(stack_repr, op):
 			return stack_repr(backtrace)
 		for stack_frame in backtrace:
 			if '/libc' not in stack_frame.binary_filename:
-				return stack_frame.src_filename + ':' + str(stack_frame.src_line_num) # + '[' + stack_frame.func_name.replace('(anonymous namespace)', '()') + ']'
+				if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
+					continue
+				if stack_frame.src_filename == None:
+					return str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+				return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		return 'Unknown:' + op.hidden_id
 	except Exception as e:
+		print e
 		return 'Unknown:' + op.hidden_id
 
 def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
@@ -307,7 +313,7 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 			msg = msg,
 			subtype = report[3],
 			subtype2 = report[4],
-			details = Struct(micro_op = op)))
+			hidden_details = Struct(micro_op = op)))
 
 def report_reordering(micro_operations, i, j, msg, stack_repr):
 	report_pair(REORDERING, micro_operations, i, j, msg, stack_repr)
@@ -353,7 +359,7 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 			micro_op = (micro_operations[i].op, micro_operations[j].op),
 			msg = msg,
 			subtype = report[2],
-			details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
+			hidden_details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
 
 	report[2] = myutils.colorize(report[2], 3)
 	if cmdline.human: print ' '.join(report)
