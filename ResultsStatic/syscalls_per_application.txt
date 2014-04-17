@@ -1,0 +1,12 @@
+                                      TOTAL  SYNC_STUFF
+BerkeleyDB-BTREE                      48     9
+BerkeleyDB-Hash                       46     9
+gdbm                                  43     7
+git                                   48     4
+HSqlDb                                47     6
+LevelDB1.10                           69     11
+LevelDB1.15                           86     11
+LMDB                                  6      2
+Mercurial-WithDirstateCorruption      61     0
+Mercurial-WithoutDirstateCorruption   61     0
+sqlite                                9      0

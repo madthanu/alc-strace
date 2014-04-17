@@ -1,0 +1,12 @@
+      125 LMDB
+    10333 BerkeleyDB-BTREE
+     4620 LevelDB1.10
+     6261 git
+   487164 Mercurial-WithoutDirstateCorruption-Dynamic
+   487164 Mercurial-WithDirstateCorruption-Dynamic
+     7683 BerkeleyDB-Hash
+    76320 LevelDB1.15
+     4548 gdbm
+        1 sqlite
+    12736 HSqlDb
+
