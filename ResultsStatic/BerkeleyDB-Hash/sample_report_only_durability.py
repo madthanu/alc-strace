@@ -5,9 +5,13 @@ sys.path.append(os.getenv("ALC_STRACE_HOME") + '/error_reporter')
 import error_reporter
 from error_reporter import FailureCategory
 
+
 def failure_category(msg):
 	
 	msg = msg.strip()
+
+	if '''Normal mode! -- Normal:WOR:Exception:(-30985, 'DB_PAGE_NOTFOUND: Requested page not found')--No of rows retrieved:0Normal:TWR: Durability signal present. No problem. No of rows retrieved:1200''' == msg:
+		return [FailureCategory.MISC, "DB Verify tool - False Negative!"]
 
 	if 'No of rows retrieved:' not in msg:
 		return[FailureCategory.FULL_WRITE_FAILURE, FailureCategory.FULL_READ_FAILURE]
@@ -20,7 +24,7 @@ def failure_category(msg):
 	
 	if '''Normal mode! -- Normal:WOR: Durability signal present. But No of rows retrieved:1''' in msg \
 		or '''TWR: Silent loss of durability - Recovered to old state''' in msg:
-		return [FailureCategory.MISC]	
+		return [FailureCategory.DURABILITY]	
 		
 	if '''TWR: Problematic! Silent corruption. No of rows retrieved''' in msg:
 		return [FailureCategory.CORRUPTED_READ_VALUES]	
@@ -33,15 +37,25 @@ def failure_category(msg):
 		raise 
 
 	if nrows > 0 and nrows < 1200 and 'Exception' in msg:
-		return [FailureCategory.CORRUPTED_READ_VALUES, FailureCategory.PARTIAL_READ_FAILURE]
+		return [FailureCategory.CORRUPTED_READ_VALUES, FailureCategory.PARTIAL_READ_FAILURE, "Note:Not Silent Corruption"]
 
 	if nrows == 0 and 'Exception' in msg:
 		return [FailureCategory.FULL_WRITE_FAILURE, FailureCategory.FULL_READ_FAILURE]
 
+	return [FailureCategory.CORRECT]
 	print 'This should not be prited at all: ' + msg
 
 def is_correct(msg):
+	if failure_category(msg) == [FailureCategory.DURABILITY]:
+		return False
+	assert FailureCategory.DURABILITY not in failure_category(msg)
+	return True
+
 	msg = msg.strip()
+
+	if '''Normal mode! -- Normal:WOR:Exception:(-30985, 'DB_PAGE_NOTFOUND: Requested page not found')--No of rows retrieved:0Normal:TWR: Durability signal present. No problem. No of rows retrieved:1200''' in msg:
+		print 'FOUND!!!!'
+		return False
 
 	correct_1 = 'Normal mode! -- Normal:WOR: Durability signal absent. No problem. No of rows retrieved:1'
 	correct_2 = 'Normal mode! -- Normal:WOR: Durability signal present. No problem. No of rows retrieved:1200'
