@@ -152,6 +152,7 @@ class FailureCategory:
 	CORRUPTED_READ_VALUES = 67
 	MISC = 78
 	DURABILITY = 79
+	SILENT_DATA_LOSS = 79
 
 	@staticmethod
 	def repr(meaning):

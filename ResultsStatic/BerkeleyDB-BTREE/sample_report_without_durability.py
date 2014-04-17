@@ -61,8 +61,9 @@ def is_correct(msg):
 	correct_2 = 'Normal mode! -- Normal:WOR: Durability signal present. No problem. No of rows retrieved:1200'
 	correct_3 = 'TWR: Durability signal present. No problem. No of rows retrieved:1200'
 	correct_4 = 'Recovery Suggested! -- RS:WOR: Durability signal present. But No of rows retrieved'
+	correct_5 = 'RS:WOR: Durability signal present. No problem. No of rows retrieved:1200'
 
-	if correct_1 in msg or correct_2 in msg or correct_3 in msg or correct_4 in msg:
+	if correct_1 in msg or correct_2 in msg or correct_3 in msg or correct_4 in msg or correct_5 in msg:
 		return True
 	else:
 		return False
