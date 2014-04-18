@@ -6,6 +6,7 @@ import uuid
 import copy
 import os
 import traceback
+import pprint
 from mystruct import Struct
 from myutils import *
 from collections import namedtuple
@@ -67,7 +68,7 @@ def parse_line(line):
 		time = line[m.start(1) : m.end(1)]
 		toret.str_time = time
 		time = time.split(':')
-		toret.time = int(time[0]) * 24 * 60.0 + int(time[1]) * 60.0 + float(time[2])
+		toret.time = int(time[0]) * 60.0 * 60.0 + int(time[1]) * 60.0 + float(time[2])
 
 		toret.syscall = line[m.start(2) : m.end(2)]
 		toret.ret = line[m.start(4) : m.end(4)]
@@ -363,6 +364,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 
 	global __directory_symlinks
 	parsed_line = parse_line(line)
+
 	if parsed_line == False:
 		return []
 
@@ -918,7 +920,7 @@ def get_micro_ops():
 						m = re.search(r'\) += [^,]*$', line)
 						line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[m.start(0) : ]
 						dump_offset += write_size
-					if parsed_line.syscall in innocent_syscalls:
+					if parsed_line.syscall in innocent_syscalls or parsed_line.syscall.startswith("ignore_"):
 						stackinfo_file.readline()
 						pass
 					else:
@@ -941,7 +943,6 @@ def get_micro_ops():
 		line = line.strip()
 		try:
 			micro_operations += __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded)
-
 		except:
 			traceback.print_exc()
 			print row
