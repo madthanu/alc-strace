@@ -21,13 +21,19 @@ for folder in subprocess.check_output('ls -F | grep /$', shell = True)[0:-1].spl
 	try:
 		print 'Trying ' + folder + ' ........'
 		cmd = 'ls  *report*.py'
-		file = subprocess.check_output(cmd, shell = True)[0:-1].split('\n')
-		assert len(file) == 1
-		file = file[0]
-		temp = dict()
-		error_reporter.vulnerabilities = []
-		exec(open('../' + folder + '/' + file)) in temp
-		vulnerabilities[folder] = copy.deepcopy(temp['error_reporter'].vulnerabilities)
+		files = subprocess.check_output(cmd, shell = True)[0:-1].split('\n')
+		assert len(files) >= 1
+		if len(files) > 1:
+			assert os.path.isfile('reporters')
+			reporters = open('reporters').read().split('\n')
+			reporters = [x.strip() for x in reporters if x.strip() != '']
+			assert sorted(reporters) == sorted(files)
+		for file in files:
+			print '   > Trying ' + file + ' ........'
+			temp = dict()
+			error_reporter.vulnerabilities = []
+			exec(open('../' + folder + '/' + file)) in temp
+			vulnerabilities[(folder, file)] = copy.deepcopy(temp['error_reporter'].vulnerabilities)
 	except Exception as e:
 		print 'Exception ' + str(e)
 

@@ -90,7 +90,6 @@ def failure_category(msg):
             errors += 'SF,'
 
     if errors is not '':
-    	print errors
         toret = []
         with open(os.getenv('ALC_STRACE_HOME') + '/Results/merc.auto/vulmap','r') as efd:
             for line in efd:
@@ -185,4 +184,4 @@ def mystack_repr(backtrace):
     for stack_frame in backtrace:
         return str(stack_frame.binary_filename) + str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + stack_frame.func_name + ']'
 
-error_reporter.report_errors('###', os.getenv('ALC_STRACE_HOME') + '/ResultsStatic/Mercurial-WithoutDirstateCorruption/strace_description', os.getenv('ALC_STRACE_HOME') + '/ResultsStatic/Mercurial-WithoutDirstateCorruption/replay_output', is_correct, failure_category = failure_category, stack_repr = mystack_repr)        
+error_reporter.report_errors('###', 'strace_description', 'replay_output', is_correct, failure_category = failure_category, stack_repr = mystack_repr)        
