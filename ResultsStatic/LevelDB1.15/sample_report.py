@@ -57,7 +57,16 @@ def failure_category(msg):
 
 #stack_repr for leveldb is hard coded in error_reporter.py
 
+def stack_repr(backtrace):
+	backtrace = error_reporter.standard_stack_traverse(backtrace)
+	for stack_frame in backtrace:
+		if 'PosixWritableFile' in stack_frame.func_name:
+			continue
+		if stack_frame.src_filename == None:
+			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+
 def run_me():
-	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
+	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category, stack_repr)
 
 run_me()
