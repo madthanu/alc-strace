@@ -1,0 +1,125 @@
+prefix-one E0(0, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E1(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E2(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E4(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E5(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E6(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E7(2, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-one E8(3, 0)	{n1,r2,r3,n4,}--Durability signal not seen - No problem!
+prefix-one E9(4, 0)	{n1,r2,r3,n4,}--Durability signal not seen - No problem!
+prefix-one E10(5, 0)	{n1,r2,r3,n4,}--Durabililty maintained - No problem!
+omitmicro RM0 EM1	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-one R0(0, 0) E1(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-one R0(0, 0) E2(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-one R0(0, 0) E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-one R1(1, 0) E2(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-one R1(1, 0) E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-one R2(1, 1) E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E0(0, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E1(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E2(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E4(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E5(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E6(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-aligned E8(3, 0)	{n1,r2,r3,n4,}--Durability signal not seen - No problem!
+omit_one-aligned R0(0, 0) E1(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-aligned R0(0, 0) E2(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-aligned R0(0, 0) E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-aligned R1(1, 0) E2(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-aligned R1(1, 0) E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-aligned R2(1, 1) E3(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E0(0, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E1(0, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E2(0, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E3(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E4(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E5(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E12(1, 9)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E13(1, 10)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E14(1, 11)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E15(1, 12)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E16(1, 13)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E17(1, 14)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E18(1, 15)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E19(1, 16)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E20(1, 17)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E22(3, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E23(3, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+prefix-three E24(3, 2)	{n1,r2,r3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E1(0, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E2(0, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E3(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E4(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E5(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R0(0, 0) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E2(0, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E3(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E4(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E5(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R1(0, 1) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E3(1, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E4(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E5(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R2(0, 2) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E4(1, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E5(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R3(1, 0) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E5(1, 2)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R4(1, 1) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R5(1, 2) E6(1, 3)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R5(1, 2) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R5(1, 2) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R5(1, 2) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R5(1, 2) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R5(1, 2) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R6(1, 3) E7(1, 4)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R6(1, 3) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R6(1, 3) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R6(1, 3) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R6(1, 3) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R7(1, 4) E8(1, 5)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R7(1, 4) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R7(1, 4) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R7(1, 4) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R8(1, 5) E9(1, 6)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R8(1, 5) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R8(1, 5) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R9(1, 6) E10(1, 7)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R9(1, 6) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R10(1, 7) E11(1, 8)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R13(3, 0) E14(3, 1)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
+omit_one-three R13(3, 0) E15(3, 2)	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.Aborted core dumped) Durability signal not seen - No problem!
+omit_one-three R14(3, 1) E15(3, 2)	{n1,r2,r3,n4,}--Durability signal not seen - No problem!

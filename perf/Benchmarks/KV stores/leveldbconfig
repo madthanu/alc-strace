@@ -1,0 +1,12 @@
+# LeveldbDriver Configuration File
+# Created 2014-04-05 11:37:15.931169
+[Leveldb]
+
+# Verify checksums on read
+verify_checksums     = off
+
+# Switch on paranoid checks
+paranoid_checks      = off
+
+# The durabilty of the key-value pairs being stored. 
+sync                 = off

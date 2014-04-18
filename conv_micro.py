@@ -8,6 +8,7 @@ import os
 import traceback
 from mystruct import Struct
 from myutils import *
+from collections import namedtuple
 
 innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
 "afs_syscall","alarm","alloc_hugepages","arch_prctl","bind","break","brk","cacheflush",
@@ -56,7 +57,6 @@ sync_ops = set(['fsync', 'fdatasync', 'file_sync_range'])
 expansive_ops = set(['append', 'trunc', 'write', 'unlink', 'rename'])
 pseudo_ops = sync_ops | set(['stderr', 'stdout'])
 real_ops = expansive_ops | set(['creat', 'link', 'mkdir', 'rmdir'])
-
 
 def parse_line(line):
 	try:
@@ -316,8 +316,44 @@ class ProcessTracker:
 		assert toret.pid == tid or tid in toret.child_tids
 		return toret
 
+symtab = None
+SymbolTableEntry = namedtuple('SymbolTableEntry',
+	['func_name', 'instr_offset', 'src_filename', 'src_line_num'])
+StackEntry = namedtuple('StackEntry',
+	['func_name', 'instr_offset', 'src_filename', 'src_line_num',
+	'binary_filename', 'addr_offset', 'raw_addr'])
+def __get_backtrace(stackinfo):
+	global symtab
+	backtrace = []
+
+	assert stackinfo[0] == '['
+	assert stackinfo[-2] == ']'
+	stackinfo = stackinfo[1:-2].strip()
+
+	if stackinfo == '':
+		return []
+
+	stack_addrs_lst = stackinfo.split()
+	for addr in stack_addrs_lst:
+		binary_filename, addr_offset, raw_addr = addr.split(':')
+		symtab_for_file = symtab[binary_filename]
+
+		# try both addr_offset and raw_addr to see if either one matches:
+		if addr_offset in symtab_for_file:
+			syms = SymbolTableEntry._make(symtab_for_file[addr_offset])
+		elif raw_addr in symtab_for_file:
+			syms = SymbolTableEntry._make(symtab_for_file[raw_addr])
+		else:
+			syms = SymbolTableEntry(None, None, None, None)
+
+		assert len(syms) == 4
+		t = StackEntry(syms.func_name, syms.instr_offset, syms.src_filename, syms.src_line_num, binary_filename, addr_offset, raw_addr)
+		backtrace.append(t)
+
+	return backtrace
+
 __directory_symlinks = []
-def __get_micro_op(syscall_tid, line, mtrace_recorded):
+def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 	micro_operations = []
 
 	assert type(syscall_tid) == int
@@ -697,7 +733,7 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 			name = fdtracker.get_name(fd)
 			file_size = __replayed_stat(name).st_size
 			assert file_size <= offset + length
-			assert syscall_tid in mtrace_recorded
+			if not cmdline().mtrace_shadow: assert syscall_tid in mtrace_recorded
 			assert 'MAP_GROWSDOWN' not in flags
 			memtracker.insert(addr_start, addr_end, fdtracker.get_name(fd), fdtracker.get_inode(fd), offset)
 	elif parsed_line.syscall == 'munmap':
@@ -820,16 +856,19 @@ def __get_micro_op(syscall_tid, line, mtrace_recorded):
 	else:
 		if parsed_line.syscall not in innocent_syscalls and not parsed_line.syscall.startswith("ignore_"):
 			raise Exception("Unhandled system call: " + parsed_line.syscall)
-	
 	for op in micro_operations:
 		op.hidden_tid = syscall_tid
 		op.hidden_time = parsed_line.str_time
 		op.hidden_pid = proctracker.pid
+		op.hidden_full_line = copy.deepcopy(line)
+		op.hidden_parsed_line = copy.deepcopy(parsed_line)
+		op.hidden_stackinfo = copy.deepcopy(stackinfo)
+		op.hidden_backtrace = __get_backtrace(stackinfo)
 	return micro_operations
 
 
 def get_micro_ops():
-	global innocent_syscalls
+	global innocent_syscalls, symtab, SymbolTableEntry
 
 	print '-------------------------------------------------------'
 	print 'WARNING: The following aspects of this script are still in the TODO list because the developer is lazy:'
@@ -850,7 +889,7 @@ def get_micro_ops():
 		(mtrace_recorded, rows) = pickle.load(open(cmdline().filter_cache_file, 'r'))
 		print 'loaded cache.'
 	else:
-		files = commands.getoutput("ls " + cmdline().prefix + ".* | grep -v byte_dump").split()
+		files = commands.getoutput("ls " + cmdline().prefix + ".* | grep -v byte_dump | grep -v stackinfo | grep -v symtab").split()
 		rows = []
 		mtrace_recorded = []
 		assert len(files) > 0
@@ -865,6 +904,7 @@ def get_micro_ops():
 			dump_offset = 0
 			m = re.search(r'\.[^.]*$', trace_file)
 			dump_file = trace_file[0 : m.start(0)] + '.byte_dump' + trace_file[m.start(0) : ]
+			stackinfo_file = open(trace_file[0 : m.start(0)] + '.stackinfo' + trace_file[m.start(0) : ], 'r')
 			for line in f:
 				cnt = cnt + 1
 				if(cnt % 100000 == 0):
@@ -877,10 +917,13 @@ def get_micro_ops():
 						else:
 							write_size = safe_string_to_int(parsed_line.args[-1])
 						m = re.search(r'\) += [^,]*$', line)
-						line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[ m.start(0) : ]
+						line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[m.start(0) : ]
 						dump_offset += write_size
-					if parsed_line.syscall not in innocent_syscalls:
-						rows.append((pid, parsed_line.time, line))
+					if parsed_line.syscall in innocent_syscalls:
+						stackinfo_file.readline()
+						pass
+					else:
+						rows.append((pid, parsed_line.time, line, stackinfo_file.readline()))
 		rows = sorted(rows, key = lambda row: row[1])
 		if cmdline().filter_cache_file:
 			pickle.dump((mtrace_recorded, rows), open(cmdline().filter_cache_file, 'wb'), 2)
@@ -890,13 +933,15 @@ def get_micro_ops():
 
 	path_inode_map = get_path_inode_map(cmdline().replayed_snapshot)
 
+	symtab = pickle.load(open(cmdline().prefix + '.symtab'))
 	micro_operations = []
 	for row in rows:
 		syscall_tid = row[0]
 		line = row[2]
+		stackinfo = row[3]
 		line = line.strip()
 		try:
-			micro_operations += __get_micro_op(syscall_tid, line, mtrace_recorded)
+			micro_operations += __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded)
 
 		except:
 			traceback.print_exc()

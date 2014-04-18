@@ -6901,6 +6901,335 @@ fi
 done
 
 
+
+
+{ $as_echo "$as_me:$LINENO: checking for  in -l" >&5
+$as_echo_n "checking for  in -l... " >&6; }
+if test "${ac_cv_lib__+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-l  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char  ();
+int
+main ()
+{
+return  ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib__=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib__=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib__" >&5
+$as_echo "$ac_cv_lib__" >&6; }
+if test "x$ac_cv_lib__" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIB 1
+_ACEOF
+
+  LIBS="-l $LIBS"
+
+fi
+
+
+
+# Check whether --with-libunwind was given.
+if test "${with_libunwind+set}" = set; then
+  withval=$with_libunwind;
+else
+  with_libunwind=yes
+fi
+
+
+if test "x$with_libunwind" != xno; then
+
+		if test "$arch" = "x86_64"; then
+
+{ $as_echo "$as_me:$LINENO: checking for _Ux86_64_init_local in -lunwind-x86_64" >&5
+$as_echo_n "checking for _Ux86_64_init_local in -lunwind-x86_64... " >&6; }
+if test "${ac_cv_lib_unwind_x86_64__Ux86_64_init_local+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lunwind-x86_64  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char _Ux86_64_init_local ();
+int
+main ()
+{
+return _Ux86_64_init_local ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_unwind_x86_64__Ux86_64_init_local=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_unwind_x86_64__Ux86_64_init_local=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_unwind_x86_64__Ux86_64_init_local" >&5
+$as_echo "$ac_cv_lib_unwind_x86_64__Ux86_64_init_local" >&6; }
+if test "x$ac_cv_lib_unwind_x86_64__Ux86_64_init_local" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUNWIND_X86_64 1
+_ACEOF
+
+  LIBS="-lunwind-x86_64 $LIBS"
+
+else
+  { $as_echo "$as_me:$LINENO: \"libunwind-x86_64 library could not be found!\"" >&5
+$as_echo "$as_me: \"libunwind-x86_64 library could not be found!\"" >&6;}
+fi
+
+		elif test "$arch" = "i386"; then
+
+{ $as_echo "$as_me:$LINENO: checking for _ULx86_init_local in -lunwind" >&5
+$as_echo_n "checking for _ULx86_init_local in -lunwind... " >&6; }
+if test "${ac_cv_lib_unwind__ULx86_init_local+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lunwind  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char _ULx86_init_local ();
+int
+main ()
+{
+return _ULx86_init_local ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_unwind__ULx86_init_local=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_unwind__ULx86_init_local=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_unwind__ULx86_init_local" >&5
+$as_echo "$ac_cv_lib_unwind__ULx86_init_local" >&6; }
+if test "x$ac_cv_lib_unwind__ULx86_init_local" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUNWIND 1
+_ACEOF
+
+  LIBS="-lunwind $LIBS"
+
+else
+  { $as_echo "$as_me:$LINENO: \"libunwind library could not be found!\"" >&5
+$as_echo "$as_me: \"libunwind library could not be found!\"" >&6;}
+fi
+
+		fi
+
+{ $as_echo "$as_me:$LINENO: checking for _UPT_create in -lunwind-ptrace" >&5
+$as_echo_n "checking for _UPT_create in -lunwind-ptrace... " >&6; }
+if test "${ac_cv_lib_unwind_ptrace__UPT_create+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lunwind-ptrace  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char _UPT_create ();
+int
+main ()
+{
+return _UPT_create ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_unwind_ptrace__UPT_create=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_unwind_ptrace__UPT_create=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_unwind_ptrace__UPT_create" >&5
+$as_echo "$ac_cv_lib_unwind_ptrace__UPT_create" >&6; }
+if test "x$ac_cv_lib_unwind_ptrace__UPT_create" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUNWIND_PTRACE 1
+_ACEOF
+
+  LIBS="-lunwind-ptrace $LIBS"
+
+else
+  { $as_echo "$as_me:$LINENO: \"libunwind-ptrace library could not be found!\"" >&5
+$as_echo "$as_me: \"libunwind-ptrace library could not be found!\"" >&6;}
+fi
+
+
+fi
+
+
 # Extract the first word of "perl", so it can be a program name with args.
 set dummy perl; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5

@@ -1,0 +1,12 @@
+BerkeleyDB                            3 hours
+gdbm                                  < 15 minutes
+git                                   30 minutes
+HSqlDb                                5 hours
+LevelDB1.10                           12 hours
+LevelDB1.15                           12 hours
+LMDB                                  < 15 minutes
+Mercurial                             14 hours
+sqlite                                < 15 minutes
+HDFS                                  2 days
+VMWare Player                         30 minutes
+Postgres                              12 hours

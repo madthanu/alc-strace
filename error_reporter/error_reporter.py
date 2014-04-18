@@ -3,12 +3,30 @@ import sys
 parent = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
 sys.path.append(parent)
 import diskops
-import pickle
+import cPickle as pickle
 import re
 import pprint
 import collections
 import copy
 import conv_micro
+import argparse
+import myutils
+from mystruct import Struct
+
+class prettyDict(collections.defaultdict):
+    def __init__(self, *args, **kwargs):
+        collections.defaultdict.__init__(self,*args,**kwargs)
+
+    def __repr__(self):
+        return str(dict(self))
+
+vulnerabilities = list()
+
+
+REORDERING = 'Reordering:'
+ATOMICITY = 'Atomicity:'
+PREFIX = 'Prefix:'
+SPECIAL_REORDERING = 'Special reordering:'
 
 class Op:
 	def __repr__(self):
@@ -133,14 +151,37 @@ class FailureCategory:
 	FULL_WRITE_FAILURE = 56
 	CORRUPTED_READ_VALUES = 67
 	MISC = 78
+	DURABILITY = 79
+	SILENT_DATA_LOSS = 79
 
 	@staticmethod
 	def repr(meaning):
 		inv_dict = {v:k for k, v in FailureCategory.__dict__.items()}
 		if type(meaning) == int:
 			return inv_dict[meaning]
-		ans = [inv_dict[x] for x in meaning]
+		ans = []
+		for x in meaning:
+			if x in inv_dict:
+				ans.append(inv_dict[x])
+			else:
+				ans.append(x)
 		return '|'.join(ans)
+
+class VulnerabilityCategory:
+	ids = range(0, 1000)
+	ATOMICITY = ids.pop()
+	APPEND = ids.pop()
+	OVERWRITE = ids.pop()
+	SHORTEN = ids.pop()
+	EXPAND = ids.pop()
+
+	WITHIN_BOUNDARY = ids.pop()
+	ACROSS_BOUNDARY = ids.pop()
+	ZEROS = ids.pop()
+	GARBAGE = ids.pop()
+	THREE_SPLITS = ids.pop()
+	PAGE_SPLITS = ids.pop()
+	ONE_SPLIT = ids.pop()
 
 def __failure_category(failure_category, wrong_output):
 	if not failure_category:
@@ -148,17 +189,57 @@ def __failure_category(failure_category, wrong_output):
 	else:
 		return FailureCategory.repr(failure_category(wrong_output))
 
-def report_atomicity(incorrect_under, op, msg, micro_ops, i):
+def standard_stack_traverse(backtrace):
+	for i in range(0, len(backtrace)):
+		stack_frame = backtrace[i]
+		if stack_frame.src_filename != None and 'syscall-template' in stack_frame.src_filename:
+			continue
+		if '/libc' in stack_frame.binary_filename:
+			continue
+		if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
+			continue
+		return backtrace[i:]
+	return None
+
+def __stack_repr(stack_repr, op):
+	try:
+		backtrace = op.hidden_backtrace
+		if stack_repr != None:
+			return stack_repr(backtrace)
+		backtrace = standard_stack_traverse(backtrace)
+		stack_frame = backtrace[0]
+		if stack_frame.src_filename == None:
+			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+	except Exception as e:
+		return 'Unknown:' + op.hidden_id
+
+def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 	global replay_output
+	if incorrect_under == None:
+		assert op.op == 'write'
+		incorrect_under = []
 	incorrect_subtypes = set([subtype for (subtype, disk_end) in incorrect_under])
 	append_partial_meanings = ['filled_zero', 'filled_garbage', 'partial']
-	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg]
-	if op.op == 'append':
+	expand_partial_meanings = ['garbage', 'partial']
+
+	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg, '', __stack_repr(stack_repr, op)]
+	if op.op in ['append', 'write']:
 		if op.offset / 4096 != (op.offset + op.count) / 4096:
 			# If append crosses page boundary
-			report[3] = 'across_boundary'
+			report[3] = 'across_boundary(' + str(op.count) + ')'
 		else:
-			report[3] = 'within_boundary'
+			report[3] = 'within_boundary(' + str(op.count) + ')'
+	if op.op == 'trunc':
+		if op.initial_size / 4096 != op.final_size / 4096:
+			report[3] = 'across_boundary(' + str(op.final_size - op.initial_size) + ')'
+		else:
+			report[3] = 'within_boundary(' + str(op.final_size - op.initial_size) + ')'
+		if op.initial_size > op.final_size:
+			report[3] = 'shorten_' + report[3]
+		else:
+			report[3] = 'expand_' + report[3]
+	report[6] = fname(op)
 	if op.op == 'rename':
 		rename_partial_meanings = collections.defaultdict(dict)
 		for subtype in replay_output.prefix:
@@ -182,37 +263,49 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 				rename_partial_meanings[subtype][l - 2] = 'source and destination point to new'
 				for x in range(1, l - 7):
 					rename_partial_meanings[subtype][x] = 'source points to new-destination partial truncate old'
+			# Converting to an actual list
+			t = rename_partial_meanings[subtype]
+			rename_partial_meanings[subtype] = []
+			for key in sorted(t.keys()):
+				rename_partial_meanings[subtype].append(t[key])
 
 	assert 'rename' in conv_micro.expansive_ops
 	assert 'append' in conv_micro.expansive_ops
+	assert 'trunc' in conv_micro.expansive_ops
 	if op.op not in conv_micro.expansive_ops:
 		assert len(incorrect_subtypes) == 1
 
-	if op.op in ['append', 'rename']:
+	if op.op in ['append', 'rename', 'trunc']:
 		if op.op == 'append':
 			partial_meaning = lambda subtype, disk_end: append_partial_meanings[disk_end % 3]
 			all_partial_meanings = append_partial_meanings
-		else:
-			partial_meaning = lambda subtype, disk_end: rename_partial_meanings[subtype][disk_end % 3]
+		elif op.op == 'rename':
+			partial_meaning = lambda subtype, disk_end: rename_partial_meanings[subtype][disk_end]
 			all_partial_meanings = rename_partial_meanings['three']
+		elif op.op == 'trunc':
+			partial_meaning = lambda subtype, disk_end: expand_partial_meanings[disk_end % 2]
+			all_partial_meanings = expand_partial_meanings
+
 
 		broken_incorrect_under = set()
 		for (subtype, disk_end) in incorrect_under:
 			broken_incorrect_under.add((subtype, partial_meaning(subtype, disk_end)))
 
-		differs_across_subtypes = False
+		same_across_subtypes = set()
 		for x in all_partial_meanings:
 			subtypes_with_incorrectness = set()
 			for (subtype, t) in broken_incorrect_under:
 				if t == x:
 					subtypes_with_incorrectness.add(subtype)
-			if len(subtypes_with_incorrectness) not in [0, 3]:
-				differs_across_subtypes = True
+			if len(subtypes_with_incorrectness) == 3:
+				same_across_subtypes.add(x)
 
-		if not differs_across_subtypes:
-			broken_incorrect_under = set()
-			for (subtype, disk_end) in incorrect_under:
-				broken_incorrect_under.add(partial_meaning(subtype, disk_end))
+		same_across_subtypes = list(same_across_subtypes)
+		for x in same_across_subtypes:
+			for y in [(subtype, x) for subtype in incorrect_subtypes]:
+				assert y in broken_incorrect_under
+				broken_incorrect_under.remove(y)
+			broken_incorrect_under.add(x)
 
 		report[4] = broken_incorrect_under
 
@@ -221,17 +314,89 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i):
 			report[i] = '(' + ', '.join([str(x) for x in report[i]]) + ')'
 		else:
 			report[i] = str(report[i])
-	print ' '.join(report)
+	if cmdline.human: print ' '.join(report)
+	vulnerabilities.append(Struct(type = ATOMICITY,
+			stack_repr = __stack_repr(stack_repr, op),
+			micro_op = op.op,
+			msg = msg,
+			subtype = report[3],
+			subtype2 = report[4],
+			hidden_details = Struct(micro_op = op)))
+
+def report_reordering(micro_operations, i, j, msg, stack_repr):
+	report_pair(REORDERING, micro_operations, i, j, msg, stack_repr)
+def report_prefix(micro_operations, i, j, msg, stack_repr):
+	report_pair(PREFIX, micro_operations, i, j, msg, stack_repr)
+def report_special_reordering(micro_operations, i, j, msg, stack_repr):
+	report_pair(SPECIAL_REORDERING, micro_operations, i, j, msg, stack_repr)
+def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
+	first_index = str(i)
+	second_index = str(j)
+	if type(i) == tuple: i = i[0]
+	if type(j) == tuple: j = j[0]
+	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
+	report = [vul_type, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
+
+	if micro_operations[i].op in ['rename', 'link'] or micro_operations[j].op in ['rename', 'link']:
+		report[2] = 'two_dir_ops'
+	elif micro_operations[i].op in ['trunc', 'append', 'write'] or micro_operations[j].op in ['trunc', 'append', 'write']:
+		if fname(micro_operations[i]) == fname(micro_operations[j]):
+			report[2] = 'same_file'
+		else:
+			report[2] = 'different_file'
+	else:
+		# Both are ordinary dir-ops
+		if micro_operations[i].op in ['unlink', 'creat', 'mkdir', 'rmdir']:
+			inode_i = micro_operations[i].inode
+		else:
+			assert micro_operations[i].op in ['stdout', 'stderr']
+			inode_i = ''
+		if micro_operations[j].op in ['unlink', 'creat', 'mkdir', 'rmdir']:
+			inode_j = micro_operations[j].inode
+		else:
+			assert micro_operations[j].op in ['stdout', 'stderr']
+			inode_j = ''
+		if inode_i == inode_j:
+			report[2] = 'same_dir'
+		else:
+			report[2] = 'different_dir'
+
+
+	vulnerabilities.append(Struct(type = vul_type,
+			stack_repr = (__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])),
+			micro_op = (micro_operations[i].op, micro_operations[j].op),
+			msg = msg,
+			subtype = report[2],
+			hidden_details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
+
+	report[2] = myutils.colorize(report[2], 3)
+	if cmdline.human: print ' '.join(report)
 
 replay_output = None
 
-def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None):
+def fname(op):
+	def shorter(name):
+		if name.endswith('/'): name = name[-1]
+		to_shorten = os.path.dirname(os.path.dirname(name))
+		name = '/S' + str(hash(to_shorten) % 1000) + name[len(to_shorten) : ]
+		return name
+	if op.op in ['trunc', 'append', 'write', 'unlink', 'creat', 'mkdir', 'rmdir']:
+		return shorter(op.name)
+	elif op.op in ['rename', 'link']:
+		return shorter(op.source) + ' -> ' + shorter(op.dest)
+	elif op.op in ['stdout', 'stderr']:
+		return ''
+	else:
+		print op
+		assert False
+
+def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None, stack_repr = None):
 	global replay_output
 	micro_ops = MicroOps(strace_description)
 	micro_operations = micro_ops.one
 	replay_output = ReplayOutputParser(replay_output_file, delimiter)
 
-	# Finding prefix bugs
+	# Finding prefix machine_mode_bugs
 	prefix_problems = set()
 	for i in range(0, len(micro_operations)):
 		if micro_operations[i].op not in conv_micro.sync_ops and micro_ops.dops_len('one', i) > 0:
@@ -264,17 +429,12 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				assert i not in prefix_problems
 				prefix_problems.add(i)
 			elif not correct:
-				report = ['Prefix: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[i + 1].op, '(', str(i + 1),')', ':']
-				if not failure_category:
-					report.append(wrong_output)
-				else:
-					report.append(FailureCategory.repr(failure_category(wrong_output)))
-				print ''.join(report)
+				report_prefix(micro_operations, i, i + 1, __failure_category(failure_category, wrong_output), stack_repr)
 				assert i not in prefix_problems
 				assert (i + 1) not in prefix_problems
 				prefix_problems.add(i)
 
-	# Finding atomicity bugs
+	# Finding atomicity machine_mode_bugs
 	atomicity_violators = set()
 	for i in range(0, len(micro_operations)):
 		# If the i-th micro op does not have a prefix problem, and it is actually a real diskop-producing micro-op
@@ -283,7 +443,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 			incorrect_under = []
 			for subtype in replay_output.prefix:
 				prefix_dict = replay_output.prefix[subtype]
-				for disk_end in range(0, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 2):
+				for disk_end in range(0, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 1):
 					end = Op(i, disk_end)
 					if subtype == 'one':
 						assert end in prefix_dict.keys()
@@ -295,7 +455,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						assert micro_operations[i].op not in conv_micro.expansive_ops
 			if len(incorrect_under) > 0:
 				atomicity_violators.add(i)
-				report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i)
+				report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i, stack_repr)
 
 	# Full re-orderings
 	reordering_violators = {}
@@ -312,14 +472,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 					continue
 				assert not blank_found
 				output = replay_output.omitmicro[(Op(i), Op(j))]
+				
 				if not is_correct(output):
 					reordering_violators[i] = j
-					report = ['Reordering: ', micro_operations[i].op, '(', str(i),')', ' <-> ', micro_operations[j].op, '(', str(j),')', ':']
-					if not failure_category:
-						report.append(output)
-					else:
-						report.append(FailureCategory.repr(failure_category(output)))
-					print ''.join(report)
+					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr)
 					break
 
 	# Special re-orderings
@@ -357,12 +513,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 								continue
 							output = replay_output.omit_one[subtype][(Op(i, x), Op(j, y))]
 							if not is_correct(output):
-								report = ['Special reordering: ', micro_operations[i].op, '(', str((i, x)),')', ' <-> ', micro_operations[j].op, '(', str((j, y)),')', ':']
-								if not failure_category:
-									report.append(output)
+								if i == j:
+									report_atomicity(None, micro_operations[i], __failure_category(failure_category, output), micro_ops, i, stack_repr)
 								else:
-									report.append(FailureCategory.repr(failure_category(output)))
-								print ''.join(report)
+									report_special_reordering(micro_operations, (i, x), (j, y), __failure_category(failure_category, output), stack_repr)
 								special_reordering_found = True
 								break
 						if special_reordering_found:
@@ -371,4 +525,12 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						break
 				if special_reordering_found:
 					break
+	if cmdline.mode == "machine-debug": pprint.pprint(vulnerabilities)
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--human', dest = 'human', type = bool, default = True)
+parser.add_argument('--mode', dest = 'mode', type = str, default = None)
+parser.add_argument('--vul_types', dest = 'vul_types', type = bool, default = False)
+cmdline = parser.parse_args()
+if cmdline.mode != None and cmdline.mode != 'human':
+	cmdline.human = False

@@ -10,6 +10,8 @@
 #include <syscall.h>
 #include <time.h>
 #include <unistd.h>
+#include <dlfcn.h>
+#include <stdlib.h>
 #include "pin.H"
 
 /******************************************************************************
@@ -49,7 +51,7 @@ LOCALVAR VOID *WriteEa[PIN_MAX_THREADS];
 LOCALVAR struct syscall_details_t thread_to_syscall[PIN_MAX_THREADS];
 LOCALVAR struct mwrite_tracker_t mwrite_tracker[PIN_MAX_THREADS];
 
-const unsigned int coalesce_microsecs = 20000;
+const unsigned int coalesce_microsecs = 200000;
 
 PIN_LOCK globalLock;
 bool standard_out;
@@ -162,6 +164,64 @@ class MemregionTracker {
 struct MemregionTracker::region_t MemregionTracker::region[MAX_MEM_REGIONS];
 int MemregionTracker::region_last = 0;
 
+void output_stacktrace() {
+	FILE *file;
+
+	if(standard_out) {
+		file = stdout;
+	} else {
+		char temp[1000];
+		sprintf(temp, "%s.mtrace.stackinfo.%u", KnobOutputFile.Value().c_str(), PIN_GetTid());
+		file = fopen(temp, "a");
+	}
+
+	assert(file != NULL);
+
+	static int initialized = 0;
+	static void (*actual_function)(FILE *) = NULL;
+	if(initialized == 0) {
+		char *errors;
+		char temp[1000];
+		void *dl_handle;
+
+		sprintf(temp, "%s/libstacktrace.so", getenv("MTRACE_HOME"));
+
+		errors = dlerror(); if(errors != NULL) printf("%s\n", errors);
+		dlopen("libunwind.so", RTLD_NOW | RTLD_GLOBAL);
+		errors = dlerror(); if(errors != NULL) printf("%s\n", errors);
+		dl_handle = dlopen(temp, RTLD_NOW | RTLD_GLOBAL);
+		errors = dlerror(); if(errors != NULL) printf("%s\n", errors);
+
+		actual_function = (void(*)(FILE*)) dlsym(dl_handle, "output_stacktrace");
+		assert(actual_function != NULL);
+
+		initialized = 1;
+	}
+	assert(actual_function != NULL);
+	(*actual_function)(file);
+
+	fflush(file);
+	fclose(file);
+}
+
+void output_dummy_stacktrace() {
+	FILE *file;
+
+	if(standard_out) {
+		file = stdout;
+	} else {
+		char temp[1000];
+		sprintf(temp, "%s.mtrace.stackinfo.%u", KnobOutputFile.Value().c_str(), PIN_GetTid());
+		file = fopen(temp, "a");
+	}
+
+	fprintf(file, "[]\n");
+
+	fflush(file);
+	fclose(file);
+}
+
+
 void mprintf(const char *format, ...) {
 	FILE *file;
 
@@ -262,6 +322,7 @@ VOID EmitWrite(THREADID threadid, UINT32 size) {
 		} else {
 			flush_mwrite(threadid);
 			PrintTime(&tv);
+			output_stacktrace();
 			if(print_chars) {
 				char tmp[100];
 				printable_string(bytes, tmp, 100);
@@ -329,9 +390,9 @@ VOID Image(IMG img, VOID * v) {
 		pid_t pid = fork();
 		if(!pid) {
 			if(standard_out) {
-				execlp("strace", "strace", "-ff", "-tt", "-b", "execve", "-q", "-s", temp2, "-p", temp, NULL);
+				execlp("strace", "strace", "-ff", "-tt", "-k", "-b", "execve", "-q", "-s", temp2, "-p", temp, NULL);
 			} else {
-				execlp("strace", "strace", "-ff", "-tt", "-b", "execve", "-q", "-o", KnobOutputFile.Value().c_str(), "-s", temp2, "-p", temp, NULL);
+				execlp("strace", "strace", "-ff", "-tt", "-k", "-b", "execve", "-q", "-o", KnobOutputFile.Value().c_str(), "-s", temp2, "-p", temp, NULL);
 			}
 			assert(false);
 		}
@@ -340,6 +401,7 @@ VOID Image(IMG img, VOID * v) {
 
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v) {
 	PrintTime(NULL);
+	output_dummy_stacktrace();
 	mprintf("mtrace_thread_start(%u, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
 	m_dump_bytes(NULL, 0);
 }
@@ -352,6 +414,7 @@ VOID SyscallEntry(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOI
 
 	if(num == SYS_execve) {	
 		PrintTime(NULL);
+		output_dummy_stacktrace();
 		mprintf("mtrace_execve(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadIndex, PIN_ThreadId());
 		m_dump_bytes(NULL, 0);
 		return;
@@ -400,6 +463,7 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			off_t offset = (off_t)(*args++);
 
 			PrintTime(NULL);
+			output_dummy_stacktrace();
 			mprintf("mtrace_mmap(%p, %lu, %d, %d, %d, %lu) = %p\n", given_addr, length, prot, flags, fd, offset, ret);
 
 			void *addr_start = ret;
@@ -431,6 +495,7 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 			size_t length = (size_t)(*args++);
 
 			PrintTime(NULL);
+			output_dummy_stacktrace();
 			mprintf("mtrace_munmap(%p, %lu) = %d\n", addr_start, length, ret);
 
 			void *addr_end = (void *)((UINT8 *) addr_start + length - 1);
@@ -442,9 +507,11 @@ VOID SyscallExit(THREADID threadIndex, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID
 
 VOID AfterForkInChild(THREADID threadid, const CONTEXT* ctxt, VOID * arg) {
 	PrintTime(NULL);
+	output_dummy_stacktrace();
 	mprintf("mtrace_fork_child(%ld, %u, %u, %u, %u) = 0\n", syscall(SYS_gettid), PIN_GetTid(), getpid(), threadid, PIN_ThreadId());
 	m_dump_bytes(NULL, 0);
 }
+
 
 
 int main(int argc, char *argv[]) {
@@ -457,6 +524,7 @@ int main(int argc, char *argv[]) {
 	print_chars = KnobPrintChars;
 
 	memset(mwrite_tracker, 0, sizeof(mwrite_tracker));
+
 	IMG_AddInstrumentFunction(Image, 0);
 	INS_AddInstrumentFunction(Instruction, 0);
 	PIN_AddSyscallEntryFunction(SyscallEntry, 0);

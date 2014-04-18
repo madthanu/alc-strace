@@ -306,6 +306,23 @@ AC_CHECK_HEADERS([libaio.h], [
 	AC_CHECK_DECLS([IO_CMD_PWRITE, IO_CMD_PWRITEV],,, [#include <libaio.h>])
 ])
 
+AC_CHECK_LIB()
+
+AC_ARG_WITH([libunwind], [AS_HELP_STRING([--without-libunwind],
+            [disable support for libunwind])],
+            [],
+            [with_libunwind=yes])
+          
+AS_IF([test "x$with_libunwind" != xno],
+	[
+		if test "$arch" = "x86_64"; then
+			AC_CHECK_LIB(unwind-x86_64,_Ux86_64_init_local,[],[AC_MSG_NOTICE("libunwind-x86_64 library could not be found!")])
+		elif test "$arch" = "i386"; then
+			AC_CHECK_LIB(unwind,_ULx86_init_local,[],[AC_MSG_NOTICE("libunwind library could not be found!")])
+		fi
+		AC_CHECK_LIB(unwind-ptrace,_UPT_create,[],[AC_MSG_NOTICE("libunwind-ptrace library could not be found!")])
+	])
+
 AC_PATH_PROG([PERL], [perl])
 
 AC_CONFIG_FILES([Makefile tests/Makefile])

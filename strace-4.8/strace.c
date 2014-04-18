@@ -71,6 +71,12 @@ extern char *optarg;
 # define fork() vfork()
 #endif
 
+#ifdef LIBUNWIND
+// integrate libunwind into strace ... from libunwind-1.0/tests/test-ptrace.c
+unw_addr_space_t libunwind_as;
+#endif
+
+
 cflag_t cflag = CFLAG_NONE;
 unsigned int followfork = 0;
 unsigned int ptrace_setoptions = 0;
@@ -149,6 +155,10 @@ static char *outfname = NULL;
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
 static int shared_dump_log_fd;
+static int shared_stackinfo_f;
+
+int output_stacktraces = 0;
+int use_libunwind = 1;
 
 struct tcb *printing_tcp = NULL;
 static struct tcb *current_tcp;
@@ -233,6 +243,9 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
 -E var=val -- put var=val in the environment for command\n\
 -E var -- remove var from the environment for command\n\
 -P path -- trace accesses to path\n\
+-k -- obtain stack traces (using libunwind by default, if compiled with it)\n\
+-w -- obtain stack trace by walking up the frame pointer chain\n\
+      rather than using libunwind (FASTER but requires frame pointers!)\n\
 "
 /* ancient, no one should use it
 -F -- attempt to follow vforks (deprecated, use -f)\n\
@@ -539,6 +552,18 @@ tprintf(const char *fmt, ...)
 }
 
 void
+tprintstackinfo(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	if (current_tcp) {
+		int n = strace_vfprintf(current_tcp->out_stack_f, fmt, args);
+	}
+	va_end(args);
+}
+
+void
 tdump(void *addr, long len)
 {
 	long ret = write(current_tcp->out_dump_f, addr, len);
@@ -652,12 +677,15 @@ newoutf(struct tcb *tcp)
 {
 	tcp->outf = shared_log; /* if not -ff mode, the same file is for all */
 	tcp->out_dump_f = shared_dump_log_fd; /* if not -ff mode, the same file is for all */
+	tcp->out_stack_f = shared_stackinfo_f; /* if not -ff mode, the same file is for all */
 	if (followfork >= 2) {
 		char name[520 + sizeof(int) * 3];
 		sprintf(name, "%.512s.%u", outfname, tcp->pid);
 		tcp->outf = strace_fopen(name);
 		sprintf(name, "%.512s.byte_dump.%u", outfname, tcp->pid);
 		tcp->out_dump_f = open(name, O_CREAT | O_WRONLY | O_TRUNC, 00666);
+		sprintf(name, "%.512s.stackinfo.%u", outfname, tcp->pid);
+		tcp->out_stack_f = fopen(name, "w+");
 	}
 }
 
@@ -695,6 +723,15 @@ alloctcb(int pid)
 			memset(tcp, 0, sizeof(*tcp));
 			tcp->pid = pid;
 			tcp->flags = TCB_INUSE;
+
+			tcp->mmap_cache = NULL;
+			tcp->mmap_cache_size = 0;
+
+#ifdef LIBUNWIND
+			if (use_libunwind)
+				tcp->libunwind_ui = _UPT_create(tcp->pid);
+#endif
+
 #if SUPPORTED_PERSONALITIES > 1
 			tcp->currpers = current_personality;
 #endif
@@ -728,6 +765,12 @@ droptcb(struct tcb *tcp)
 			fflush(tcp->outf);
 		}
 	}
+
+	delete_mmap_cache(tcp);
+#ifdef LIBUNWIND
+	if (use_libunwind)
+		_UPT_destroy(tcp->libunwind_ui);
+#endif
 
 	if (current_tcp == tcp)
 		current_tcp = NULL;
@@ -1555,6 +1598,17 @@ init(int argc, char *argv[])
 	int optF = 0;
 	struct sigaction sa;
 
+#ifdef LIBUNWIND
+	if (use_libunwind) {
+		/* Create libunwind address space for the process */
+		libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
+		if (!libunwind_as) {
+			fprintf(stderr, "Fatal error: unw_create_addr_space() from libunwind failed\n");
+			exit(1);
+		}
+	}
+#endif
+
 	progname = argv[0] ? argv[0] : "strace";
 
 	/* Make sure SIGCHLD has the default action so that waitpid
@@ -1581,6 +1635,7 @@ init(int argc, char *argv[])
 
 	shared_log = stderr;
 	shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
+	shared_stackinfo_f = fopen("/tmp/strace_stackinfo", "w");
 	set_sortby(DEFAULT_SORTBY);
 	set_personality(DEFAULT_PERSONALITY);
 	qualify("trace=all");
@@ -1591,7 +1646,7 @@ init(int argc, char *argv[])
 #endif
 	qualify("signal=all");
 	while ((c = getopt(argc, argv,
-		"+b:cCdfFhiqrtTvVxyz"
+		"+b:cCdfFhiqrtTvVxyzkw"
 		"D"
 		"a:e:o:O:p:s:S:u:E:P:I:")) != EOF) {
 		switch (c) {
@@ -1703,6 +1758,12 @@ init(int argc, char *argv[])
 			if (opt_intr <= 0 || opt_intr >= NUM_INTR_OPTS)
 				error_opt_arg(c, optarg);
 			break;
+		case 'k':
+			output_stacktraces = 1;
+			break;
+		case 'w':
+			use_libunwind = 0;
+			break;
 		default:
 			usage(stderr, 1);
 			break;
@@ -1773,10 +1834,12 @@ init(int argc, char *argv[])
 				error_msg_and_die("Piping the output and -ff are mutually exclusive");
 			shared_log = strace_popen(outfname + 1);
 			shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
+			shared_stackinfo_f = fopen("/tmp/strace_stackinfo", "w");
 		}
 		else if (followfork < 2)
 			shared_log = strace_fopen(outfname);
 			shared_dump_log_fd = open("/tmp/strace_dump", O_CREAT | O_TRUNC | O_WRONLY, 0666);
+			shared_stackinfo_f = fopen("/tmp/strace_stackinfo", "w");
 	} else {
 		/* -ff without -o FILE is the same as single -f */
 		if (followfork >= 2)
@@ -2089,6 +2152,9 @@ trace(void)
 			fd = execve_thread->out_dump_f;
 			execve_thread->out_dump_f = tcp->out_dump_f;
 			tcp->out_dump_f = fd;
+			fp = execve_thread->out_stack_f;
+			execve_thread->out_stack_f = tcp->out_stack_f;
+			tcp->out_stack_f = fp;
 			/* And their column positions */
 			execve_thread->curcol = tcp->curcol;
 			tcp->curcol = 0;

@@ -33,6 +33,7 @@ def init_cmdline():
 	parser.add_argument('--special_stdout_prefix', dest = 'special_stdout_prefix', type = str, default = None)
 	parser.add_argument('--special_stdout_suffix', dest = 'special_stdout_suffix', type = str, default = None)
 	parser.add_argument('--scratchpad_dir', dest = 'scratchpad_dir', type = str, default = '/tmp')
+	parser.add_argument('--mtrace_shadow', dest = 'mtrace_shadow', type = bool, default = False)
 	__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:
