@@ -905,7 +905,8 @@ def get_micro_ops():
 			dump_offset = 0
 			m = re.search(r'\.[^.]*$', trace_file)
 			dump_file = trace_file[0 : m.start(0)] + '.byte_dump' + trace_file[m.start(0) : ]
-			stackinfo_file = open(trace_file[0 : m.start(0)] + '.stackinfo' + trace_file[m.start(0) : ], 'r')
+			if not cmdline().ignore_stacktrace:
+				stackinfo_file = open(trace_file[0 : m.start(0)] + '.stackinfo' + trace_file[m.start(0) : ], 'r')
 			for line in f:
 				cnt = cnt + 1
 				if(cnt % 100000 == 0):
@@ -920,11 +921,11 @@ def get_micro_ops():
 						m = re.search(r'\) += [^,]*$', line)
 						line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[m.start(0) : ]
 						dump_offset += write_size
+					stacktrace = '[]\n' if cmdline().ignore_stacktrace else stackinfo_file.readline()
 					if parsed_line.syscall in innocent_syscalls or parsed_line.syscall.startswith("ignore_"):
-						stackinfo_file.readline()
 						pass
 					else:
-						rows.append((pid, parsed_line.time, line, stackinfo_file.readline()))
+						rows.append((pid, parsed_line.time, line, stacktrace))
 		rows = sorted(rows, key = lambda row: row[1])
 		if cmdline().filter_cache_file:
 			pickle.dump((mtrace_recorded, rows), open(cmdline().filter_cache_file, 'wb'), 2)
