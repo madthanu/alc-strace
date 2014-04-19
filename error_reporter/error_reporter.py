@@ -21,7 +21,7 @@ class prettyDict(collections.defaultdict):
         return str(dict(self))
 
 vulnerabilities = list()
-
+overall_stats = Struct()
 
 REORDERING = 'Reordering:'
 ATOMICITY = 'Atomicity:'
@@ -47,7 +47,7 @@ class Op:
 		return hash((self.micro, self.disk))
 
 class ReplayOutputParser:
-	def __init__(self, fname, delimiter):
+	def __init__(self, fname, delimiter, is_correct):
 		self.prefix = collections.defaultdict(dict)
 		self.omitmicro = {}
 		self.omit_one = collections.defaultdict(dict)
@@ -56,6 +56,8 @@ class ReplayOutputParser:
 		inputstr = f.read()
 		f.close()
 		testcases = inputstr.split(delimiter)
+		overall_stats.total_crash_states = len(testcases)
+		overall_stats.failure_crash_states = 0
 
 		for testcase in testcases:
 			testcase = testcase.strip()
@@ -74,6 +76,8 @@ class ReplayOutputParser:
 				if testcase[m.start(i):m.end(i)] != '':
 					args.append(testcase[m.start(i):m.end(i)])
 			output = testcase[m.start(6):m.end(6)]
+			if not is_correct(output):
+				overall_stats.failure_crash_states += 1
 
 			type = case.split('-')[0]
 			type_dict = eval('self.' + type)
@@ -183,11 +187,18 @@ class VulnerabilityCategory:
 	PAGE_SPLITS = ids.pop()
 	ONE_SPLIT = ids.pop()
 
-def __failure_category(failure_category, wrong_output):
+def __failure_category(failure_category, wrong_outputs_list):
 	if not failure_category:
-		return wrong_output
-	else:
-		return FailureCategory.repr(failure_category(wrong_output))
+		if type(wrong_outputs_list) == str:
+			return wrong_outputs_list
+		else:
+			return ', '.join(wrong_outputs_list)
+	if type(wrong_outputs_list) == str:
+		wrong_outputs_list = [wrong_outputs_list]
+	failure_categories = set()
+	for wrong_output in wrong_outputs_list:
+		failure_categories = failure_categories.union(set(failure_category(wrong_output)))
+	return FailureCategory.repr(list(failure_categories))
 
 def standard_stack_traverse(backtrace):
 	for i in range(0, len(backtrace)):
@@ -318,7 +329,7 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 	vulnerabilities.append(Struct(type = ATOMICITY,
 			stack_repr = __stack_repr(stack_repr, op),
 			micro_op = op.op,
-			msg = msg,
+			failure_category = msg,
 			subtype = report[3],
 			subtype2 = report[4],
 			hidden_details = Struct(micro_op = op)))
@@ -326,7 +337,29 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 def report_reordering(micro_operations, i, j, msg, stack_repr):
 	report_pair(REORDERING, micro_operations, i, j, msg, stack_repr)
 def report_prefix(micro_operations, i, j, msg, stack_repr):
-	report_pair(PREFIX, micro_operations, i, j, msg, stack_repr)
+	first_index = str(i)
+	second_index = str(j)
+	if type(i) == tuple: i = i[0]
+	if type(j) == tuple: j = j[0]
+	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' ... ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
+	report = [PREFIX, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
+	if cmdline.human: print ' '.join(report)
+
+	micro_op = []
+	stacks = []
+	hidden_details_micro_op = []
+	for x in range(i, j + 1):
+		stacks.append(__stack_repr(stack_repr, micro_operations[x]))
+		micro_op.append(micro_operations[x].op)
+		hidden_details_micro_op.append(micro_operations[x])
+
+	vulnerabilities.append(Struct(type = PREFIX,
+			stack_repr = tuple(sorted(stacks)),
+			micro_op = tuple(sorted(micro_op)),
+			failure_category = msg,
+			subtype = report[2],
+			hidden_details = Struct(micro_op = tuple(sorted(hidden_details_micro_op)))))
+
 def report_special_reordering(micro_operations, i, j, msg, stack_repr):
 	report_pair(SPECIAL_REORDERING, micro_operations, i, j, msg, stack_repr)
 def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
@@ -365,7 +398,7 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 	vulnerabilities.append(Struct(type = vul_type,
 			stack_repr = (__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])),
 			micro_op = (micro_operations[i].op, micro_operations[j].op),
-			msg = msg,
+			failure_category = msg,
 			subtype = report[2],
 			hidden_details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
 
@@ -394,10 +427,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 	global replay_output
 	micro_ops = MicroOps(strace_description)
 	micro_operations = micro_ops.one
-	replay_output = ReplayOutputParser(replay_output_file, delimiter)
+	replay_output = ReplayOutputParser(replay_output_file, delimiter, is_correct)
 
 	# Finding prefix machine_mode_bugs
-	prefix_problems = set()
+	prefix_problems = {}
 	for i in range(0, len(micro_operations)):
 		if micro_operations[i].op not in conv_micro.sync_ops and micro_ops.dops_len('one', i) > 0:
 			correct = None
@@ -427,12 +460,33 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 			if ending and not correct:
 				print 'WARNING: Incorrect in the ending'
 				assert i not in prefix_problems
-				prefix_problems.add(i)
+				prefix_problems[i] = wrong_output
 			elif not correct:
-				report_prefix(micro_operations, i, i + 1, __failure_category(failure_category, wrong_output), stack_repr)
+				# report_prefix(micro_operations, i, i + 1, __failure_category(failure_category, wrong_output), stack_repr)
 				assert i not in prefix_problems
 				assert (i + 1) not in prefix_problems
-				prefix_problems.add(i)
+				prefix_problems[i] = wrong_output
+
+	range_start = None
+	last_i = None
+	for i in sorted(list(prefix_problems.keys())):
+		if last_i != None and i != last_i + 1:
+			assert range_start != None
+			wrong_outputs_list = []
+			for j in range(range_start, last_i + 1):
+				wrong_outputs_list.append(prefix_problems[j])
+			report_prefix(micro_operations, range_start, last_i + 1, __failure_category(failure_category, wrong_outputs_list), stack_repr)
+			range_start = i
+		if last_i == None:
+			range_start = i
+		last_i = i
+	if last_i != None:
+		assert range_start != None
+		wrong_outputs_list = []
+		for j in range(range_start, last_i + 1):
+			wrong_outputs_list.append(prefix_problems[j])
+		report_prefix(micro_operations, range_start, last_i + 1, __failure_category(failure_category, wrong_outputs_list), stack_repr)
+	prefix_problems = set(prefix_problems.keys())
 
 	# Finding atomicity machine_mode_bugs
 	atomicity_violators = set()
@@ -525,7 +579,9 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						break
 				if special_reordering_found:
 					break
-	if cmdline.mode == "machine-debug": pprint.pprint(vulnerabilities)
+	if cmdline.mode == "machine-debug":
+		pprint.pprint(vulnerabilities)
+		print overall_stats
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--human', dest = 'human', type = bool, default = True)
