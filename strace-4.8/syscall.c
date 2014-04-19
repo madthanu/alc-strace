@@ -2200,7 +2200,7 @@ trace_syscall_entering(struct tcb *tcp)
 			(strcmp("rt_sigprocmask", tcp->s_ent->sys_name) == 0) ||
 			(strcmp("gettimeofday", tcp->s_ent->sys_name) == 0) ||
 			(strcmp("stat", tcp->s_ent->sys_name) == 0) ||
-			(strcmp("mprotect", tcp->s_ent->sys_name) == 0) ||
+			(strcmp("mprotect", tcp->s_ent->sys_name) == 0)
 			) {
 			really_output_stacktrace = 0;
 		}
