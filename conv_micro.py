@@ -456,7 +456,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 					else:
 						buf = buf[starting  + len(cmdline().special_stdout_prefix) : ending + 1]
 				if fd == 1 or special_stdout:
-					if not cmdline().omit_stdout:
+					if not cmdline().omit_stdout and (special_stdout or not cmdline().omit_actual_stdout):
 						new_op = Struct(op = 'stdout', data = buf)
 						micro_operations.append(new_op)
 				elif fd == 2:

@@ -32,6 +32,7 @@ def init_cmdline():
 	parser.add_argument('--special_stdout', dest = 'special_stdout', type = str, default = None)
 	parser.add_argument('--special_stdout_prefix', dest = 'special_stdout_prefix', type = str, default = None)
 	parser.add_argument('--special_stdout_suffix', dest = 'special_stdout_suffix', type = str, default = None)
+	parser.add_argument('--omit_actual_stdout', dest = 'omit_actual_stdout', type = bool, default = False)
 	parser.add_argument('--scratchpad_dir', dest = 'scratchpad_dir', type = str, default = '/tmp')
 	parser.add_argument('--mtrace_shadow', dest = 'mtrace_shadow', type = bool, default = False)
 	parser.add_argument('--ignore_stacktrace', dest = 'ignore_stacktrace', type = bool, default = False)

@@ -18,6 +18,10 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
 		toret = []
 
+		if initial_size == final_size:
+			print 'Warning: trunc_disk_ops called for the same initial and final size'
+			return toret
+
 		# If we are making the file smaller, follow the same algorithm
 		# as making the file bigger. But, exchange the initial_size and
 		# final_size in the beginning, and then reverse the final
