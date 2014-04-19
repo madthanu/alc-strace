@@ -96,6 +96,59 @@ class MultiThreadedReplayer(threading.Thread):
 		f.close()
 
 class Replayer:
+	def get_additional_dependencies(self, ops):
+		last_sync = None
+		for i in range(0, len(ops)):
+			if last_sync != None:
+				ops[i].hidden_dependencies.add(last_sync)
+			if ops[i].op in ['sync', 'stdout', 'stderr']:
+				last_sync = i
+			else:
+				assert ops[i].op in ['truncate', 'write', 'delete_dir_entry', 'create_dir_entry']
+			if ops[i].op == 'sync':
+				for j in range(i - 1, -1, -1):
+					if ops[j].op == 'sync' and ops[i].inode == ops[j].inode:
+						# If j-sync overlaps i-sync
+						if ops[j].offset <= ops[i].offset and \
+								ops[j].offset + ops[j].count >= ops[i].offset + ops[i].count:
+						break
+					elif ops[j].op == 'truncate':
+						if not ops[j].inode != ops[i].inode:
+							continue
+						assert ops[i].hidden_micro_op.hidden_parsed_line.syscall in ['fsync', 'fdatasync']
+						ops[i].hidden_dependencies.add(j)
+						if False:
+							i_final = ops[i].offset + ops[i].count
+							i_initial = ops[i].offset
+							j_final = ops[j].final_size
+							j_initial = ops[j].initial_size
+							# If final size of j-truncate is overlapped by i-sync
+							if j_final >= i_initial and j_final <= i_final:
+								ops[i].hidden_dependencies.add(j)
+								# Assert final size of j-truncate is overlapped by i-sync. Otherwise, undefined behavior according to model.
+								assert j_initial >= i_initial and j_initial <= i_final
+							else:
+								# Assert final size of j-truncate is not overlapped by i-sync. Otherwise, undefined behavior according to model.
+								assert not (j_initial >= i_initial and j_initial <= i_final)
+					elif ops[j].op == 'write':
+						if not ops[j].inode != ops[i].inode:
+							continue
+						i_final = ops[i].offset + ops[i].count
+						i_initial = ops[i].offset
+						j_final = ops[j].offset + ops[j].count
+						j_initial = ops[j].offset
+						
+						# If j_initial is within i's range
+						if j_initial >= i_initial and j_initial <= i_final:
+							assert j_final >= i_initial and j_final <= i_final
+							ops[i].hidden_dependencies.add(j)
+						else:
+							assert not (j_final >= i_initial and j_final <= i_final)
+					elif ops[j].op == 'create_dir_entry':
+
+					else:
+						assert line.op in ['stdout', 'stderr']
+		
 	def __init__(self, path_inode_map, original_micro_ops):
 		self.micro_ops = copy.deepcopy(original_micro_ops)
 		cnt = 0
@@ -125,6 +178,7 @@ class Replayer:
 				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
+		self.get_additional_dependencies(all_diskops)
 		if cmdline().debug_level >= 1: print "... done."
 		self.test_suite_initialized = True
 		self.save(0)
