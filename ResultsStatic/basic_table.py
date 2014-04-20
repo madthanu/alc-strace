@@ -26,7 +26,10 @@ folders = ['BerkeleyDB-BTREE',
 'gdbm', 
 'git', 
 'MercurialDynamic',
-'HSqlDb'
+'HSqlDb',
+'Sqlite-WAL',
+'Sqlite-Rollback',
+'VMWare'
 ]
 
 
@@ -56,9 +59,12 @@ for folder in folders:
 	except Exception as e:
 		if debug: print 'Error in ' + folder
 
+os.chdir(cwd)
+
 def do_table(consider_bug_type, get_columns):
 	rows = defaultdict(lambda: defaultdict(lambda: list()))
 	columns = set(['ztotal'])
+	toret = ''
 
 	for app in vulnerabilities:
 		for bug in vulnerabilities[app]:
@@ -72,7 +78,7 @@ def do_table(consider_bug_type, get_columns):
 	line = ' ;'
 	for column in columns:
 		line += column + ';'
-	print line
+	toret += line + '\n'
 	for folder in folders:
 		if folder not in rows:
 			continue
@@ -84,32 +90,43 @@ def do_table(consider_bug_type, get_columns):
 				dynamic_uniques = set()
 				output = str(len(set(rows[row][column]))) + '(' + str(len(rows[row][column])) + ')'
 			line += output + ';'
-		print line
+		toret += line + '\n'
+	return toret
+
+def columnize_write(str, filename):
+	open('/tmp/x', 'w').write(str)
+	ret = os.system('cat /tmp/x | column -s \';\' -t >| ' + filename)
+	assert(ret == 0)
 
 if __name__ == '__main__':
-	print '    '
-	print 'ATOMICITY VULNERABILITIES:'
-	do_table(lambda x: x == error_reporter.ATOMICITY, lambda x: [x.micro_op])
+	output = ''
 
-	print '    '
-	print 'REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:'
-	do_table(lambda x: x == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
+	output += '    \n'
+	output += 'ATOMICITY VULNERABILITIES:\n'
+	output += do_table(lambda x: x == error_reporter.ATOMICITY, lambda x: [x.micro_op])
 
-	print '    '
-	print 'INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:'
-	do_table(lambda x: x == error_reporter.PREFIX, lambda x: list(x.micro_op))
+	output += '    \n'
+	output += 'REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:\n'
+	output += do_table(lambda x: x == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
 
-	print '    '
-	print 'INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:'
-	do_table(lambda x: x == error_reporter.PREFIX, lambda x: [x.micro_op[0]])
+	output += '    \n'
+	output += 'INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:\n'
+	output += do_table(lambda x: x == error_reporter.PREFIX, lambda x: list(x.micro_op))
 
-	print '    '
-	print 'SPECIAL_REORDERING VULNERABILITIES:'
-	do_table(lambda x: x == error_reporter.SPECIAL_REORDERING, lambda x: [x.micro_op[1]])
+	output += '    \n'
+	output += 'INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:\n'
+	output += do_table(lambda x: x == error_reporter.PREFIX, lambda x: [x.micro_op[0]])
 
-	print '    '
-	print 'TOTAL VULNERABILITIES:'
-	do_table(lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else [x.micro_op[0], x.micro_op[1]])
+	output += '    \n'
+	output += 'SPECIAL_REORDERING VULNERABILITIES:\n'
+	output += do_table(lambda x: x == error_reporter.SPECIAL_REORDERING, lambda x: [x.micro_op[1]])
+
+	output += '    \n'
+	output += 'TOTAL VULNERABILITIES:\n'
+	output += do_table(lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else [x.micro_op[0], x.micro_op[1]])
+
+	columnize_write(output, 'basic_table1.txt')
+	output = ''
 
 	def failure_categories_classify(failure_categories, report_standard):
 		answer = []
@@ -121,29 +138,43 @@ if __name__ == '__main__':
 				answer.append(x)
 		return answer
 
-	print '    '
-	print 'CATEGORIZED FAILURES:'
-	do_table(lambda x: True, lambda x: failure_categories_classify(x.failure_category, True))
+	output += '    \n'
+	output += 'CATEGORIZED FAILURES:\n'
+	output += do_table(lambda x: True, lambda x: failure_categories_classify(x.failure_category, True))
 
-	print '    '
-	print 'NON-CATEGORIZED FAILURES:'
-	do_table(lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
+	output += '    \n'
+	output += 'NON-CATEGORIZED FAILURES:\n'
+	output += do_table(lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
 
-	print '    '
-	print 'OVERALL_STATS:'
-	print ' ;Total states;Failed states'
+	columnize_write(output, 'basic_table2.txt')
+	output = ''
+
+	output += '    \n'
+	output += 'OVERALL_STATS:\n'
+	output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls\n'
 	for folder in folders:
-		if folder not in rows:
+		if folder not in stats:
 			continue
 		row = folder
 		total_crash_states = None
 		failure_crash_states = 0
+		nonoutput_syscalls = 0
+		sync_sycalls = 0
+		output_syscalls = 0
 		for version in stats[row]:
 			failure_crash_states = max(failure_crash_states, version.failure_crash_states)
 			if total_crash_states != None:
 				assert total_crash_states == version.total_crash_states
+				assert non_output_syscalls == version.total_ops - version.pseudo_ops + version.sync_ops
+				assert sync_syscalls == version.sync_ops
+				assert output_syscalls == version.pseudo_ops - version.sync_ops
 			total_crash_states = version.total_crash_states
+			non_output_syscalls = version.total_ops - version.pseudo_ops + version.sync_ops
+			sync_syscalls = version.sync_ops
+			output_syscalls = version.pseudo_ops - version.sync_ops
 
-		print row + ';' + str(total_crash_states) + ';' + str(failure_crash_states)
+		output += row + ';' + str(total_crash_states) + ';' + str(failure_crash_states) + ';' + str(non_output_syscalls) + ';' + str(sync_syscalls) + ';' + str(output_syscalls) + '\n'
 
+	columnize_write(output, 'basic_table3.txt')
+	output = ''
 
