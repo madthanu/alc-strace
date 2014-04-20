@@ -35,7 +35,7 @@ def init_cmdline():
 	parser.add_argument('--omit_actual_stdout', dest = 'omit_actual_stdout', type = bool, default = False)
 	parser.add_argument('--scratchpad_dir', dest = 'scratchpad_dir', type = str, default = '/tmp')
 	parser.add_argument('--mtrace_shadow', dest = 'mtrace_shadow', type = bool, default = False)
-	parser.add_argument('--ignore_stacktrace', dest = 'ignore_stacktrace', type = bool, default = False)
+	parser.add_argument('--no_replay', dest = 'no_replay', type = bool, default = False)
 	__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:
@@ -45,26 +45,27 @@ def init_cmdline():
 			if key in tmp:
 				__cmdline.__dict__[key] = tmp[key]
 
-	assert __cmdline.prefix != False
-	assert __cmdline.initial_snapshot != False
-	assert __cmdline.base_path != False and __cmdline.base_path.startswith('/')
-	if __cmdline.base_path.endswith('/'):
-		__cmdline.base_path = __cmdline.base_path[0 : -1]
+	if not __cmdline.no_replay:
+		assert __cmdline.prefix != False
+		assert __cmdline.initial_snapshot != False
+		assert __cmdline.base_path != False and __cmdline.base_path.startswith('/')
+		if __cmdline.base_path.endswith('/'):
+			__cmdline.base_path = __cmdline.base_path[0 : -1]
 
-	if __cmdline.interesting_path_string == False:
-		__cmdline.interesting_path_string = r'^' + __cmdline.base_path
+		if __cmdline.interesting_path_string == False:
+			__cmdline.interesting_path_string = r'^' + __cmdline.base_path
 
-	if 'starting_cwd' not in __cmdline.__dict__ or __cmdline.starting_cwd == False:
-		__cmdline.starting_cwd = __cmdline.base_path
-	
-	if __cmdline.scratchpad_dir not in ['/tmp', '/tmp/']:
-		assert not __cmdline.replayed_snapshot
-		__cmdline.replayed_snapshot = os.path.join(__cmdline.scratchpad_dir, 'replayed_snapshot')
-	
-	if not os.path.isdir(__cmdline.scratchpad_dir):
-		os.makedirs(__cmdline.scratchpad_dir)
+		if 'starting_cwd' not in __cmdline.__dict__ or __cmdline.starting_cwd == False:
+			__cmdline.starting_cwd = __cmdline.base_path
+		
+		if __cmdline.scratchpad_dir not in ['/tmp', '/tmp/']:
+			assert not __cmdline.replayed_snapshot
+			__cmdline.replayed_snapshot = os.path.join(__cmdline.scratchpad_dir, 'replayed_snapshot')
+		
+		if not os.path.isdir(__cmdline.scratchpad_dir):
+			os.makedirs(__cmdline.scratchpad_dir)
 
-	assert __cmdline.replayed_snapshot != False
+		assert __cmdline.replayed_snapshot != False
 
 def cmdline():
 	return __cmdline

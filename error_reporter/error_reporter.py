@@ -525,12 +525,17 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 
 	# Full re-orderings
 	reordering_violators = {}
+	filtered_reorderings_seen = set()
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \
 				and micro_operations[i].op not in conv_micro.pseudo_ops \
 				and micro_ops.dops_len('one', i) > 0:
 			blank_found = False
 			for j in range(i + 1, len(micro_operations)):
+				if cmdline.reorder_filter != None:
+					if (i, j) not in cmdline.reorder_filter:
+						continue
+					filtered_reorderings_seen.add((i, j))
 				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
 					continue
 				if not (Op(i), Op(j)) in replay_output.omitmicro:
@@ -544,6 +549,12 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr)
 					break
 
+#	if cmdline.reorder_filter != None:
+#		print '---------------'
+#		print sorted(list(filtered_reorderings_seen))
+#		print '---------------'
+#		print sorted(list(cmdline.reorder_filter))
+#		assert len(filtered_reorderings_seen) == len(cmdline.reorder_filter)
 	# Special re-orderings
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \
@@ -599,6 +610,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--human', dest = 'human', type = bool, default = True)
 parser.add_argument('--mode', dest = 'mode', type = str, default = None)
 parser.add_argument('--vul_types', dest = 'vul_types', type = bool, default = False)
+parser.add_argument('--reorder_filter', dest = 'reorder_filter', type = str, default = None)
 cmdline = parser.parse_args()
 if cmdline.mode != None and cmdline.mode != 'human':
 	cmdline.human = False
+if cmdline.reorder_filter != None:
+	cmdline.reorder_filter = pickle.load(open(cmdline.reorder_filter))
