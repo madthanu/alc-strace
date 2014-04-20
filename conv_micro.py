@@ -326,6 +326,8 @@ def __get_backtrace(stackinfo):
 	global symtab
 	backtrace = []
 
+	if cmdline().ignore_stacktrace: return backtrace
+
 	assert stackinfo[0] == '['
 	assert stackinfo[-2] == ']'
 	stackinfo = stackinfo[1:-2].strip()
@@ -935,7 +937,8 @@ def get_micro_ops():
 
 	path_inode_map = get_path_inode_map(cmdline().replayed_snapshot)
 
-	symtab = pickle.load(open(cmdline().prefix + '.symtab'))
+	if not cmdline().ignore_stacktrace:
+		symtab = pickle.load(open(cmdline().prefix + '.symtab'))
 	micro_operations = []
 	for row in rows:
 		syscall_tid = row[0]

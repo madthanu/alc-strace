@@ -138,6 +138,16 @@ class MicroOps:
 				diskops.get_disk_ops(line, 3, 'count', True)
 			for line in self.aligned_expanded:
 				diskops.get_disk_ops(line, 4096, 'aligned', True)
+		overall_stats.pseudo_ops = 0
+		overall_stats.sync_ops = 0
+		overall_stats.total_ops = 0
+		for op in self.one:
+			if op.op in conv_micro.sync_ops:
+				overall_stats.sync_ops += 1
+			if op.op in conv_micro.pseudo_ops:
+				overall_stats.pseudo_ops += 1
+			overall_stats.total_ops += 1
+
 	def dops_len(self, mode, op, expanded_atomicity = False):
 		if expanded_atomicity:
 			return len(eval('self.' + mode + '_expanded')[op].hidden_disk_ops)
@@ -210,13 +220,15 @@ def standard_stack_traverse(backtrace):
 		if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
 			continue
 		return backtrace[i:]
-	return None
+	raise Exception('Standard stack traverse did not work')
 
 def __stack_repr(stack_repr, op):
 	try:
 		backtrace = op.hidden_backtrace
 		if stack_repr != None:
-			return stack_repr(backtrace)
+			ret_value = stack_repr(backtrace)
+			assert ret_value != None
+			return ret_value
 		backtrace = standard_stack_traverse(backtrace)
 		stack_frame = backtrace[0]
 		if stack_frame.src_filename == None:
