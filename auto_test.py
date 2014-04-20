@@ -56,45 +56,12 @@ ordering_calls = ["sync"]
 # Metadata calls.
 metadata_calls = ["create_dir_entry", "delete_dir_entry"]
 
-# Number of operations of each type per file.
-num_ops_per_file = {}
-
-# Map of parent per file.
-parent_dir = {}
-
-# Map of children per parent.
-child_list = defaultdict(set)
-
-# Global list of operations.
-op_list = []
-
-# Creation op for each filename and generation.
-creation_op = {} 
-
-# Unlink op for each filename.
-unlink_op = {}
-
-# Current generation of each filename.
-current_gen = {}
-
-# Set of global ids for operations per filename, per generation.
-file_operation_set = defaultdict(Set)
-
-# Set of all files involved in the trace.
-filename_set = Set() 
-
 # Set of all current dirty writes for a file.
 dirty_write_ops = defaultdict(set) 
 dirty_write_ops_inode = defaultdict(set)
 
-# Latest fsync on a file.
-latest_fsync_op = {}
-
 # Latest global fsync (on any file).
 latest_fsync_on_any_file = None 
-
-# Number of links currently for this inode.
-num_links = {}
 
 # Map inodes to filenames (one inode can map to many names) and filenames to
 # inode,
@@ -105,35 +72,19 @@ filename_to_inode = {}
 def is_parent(path_a, path_b):
     return path_b.startswith(path_a)
 
-# Get the current gen of a file. Bootstrap if necessary.
-def get_current_gen(inode):
-    global current_gen
-    if inode not in current_gen:
-        current_gen[inode] = 0
-    return current_gen[inode]
-
-# Increment generation.
-def incr_current_gen(inode):
-    global current_gen
-    if inode not in current_gen:
-        current_gen[inode] = 0
-    current_gen[inode] += 1
-    return current_gen[inode]
-
 # Class to encapsulate operation details.
 class Operation:
 
     # All the setup
     def __init__(self, micro_op, micro_op_id):
-        global num_ops_per_file
-        global file_operation_set
-        global filename_set
+        global inode_to_filenames
+        global filename_to_inode
+
         #print(micro_op)
         self.syscall = micro_op.op 
         self.micro_op = micro_op
         # Set of ops that depend on this op: dropping this op means dropping those ops
         # also.
-        self.dependent_ops = Set()
         self.inode = micro_op.inode
         self.total_num_combos = 0
         # Get the filename for metadata calls. 
@@ -141,7 +92,6 @@ class Operation:
             if micro_op.op in ["create_dir_entry", "delete_dir_entry"]:
                 self.parent = micro_op.parent
             self.filename = micro_op.entry
-            filename_set.add(self.filename)
             # Set up the maps
             filename_to_inode[self.filename] = self.inode
             inode_to_filenames[self.inode].add(self.filename)
@@ -162,32 +112,11 @@ class Operation:
 
         # The file specific ID for each inode 
         op_index = (self.inode, self.syscall)
-        self.op_id = num_ops_per_file[op_index] = num_ops_per_file.get(op_index, 0) + 1
         self.micro_op_id = micro_op_id
-        # The global id for each operation
-        self.global_id = len(op_list)
         # The set of ops that this is dependent on.
         self.deps = Set()
-        # Process parental relationships.
-        #self.process_parental_relationship()
-        # Handle creation and unlink links. 
-        self.process_creation_and_unlinking()
-        # The generation of the file involved in this op. This comes last since
-        # generation can be updated by creation and unlinking.
-        self.file_gen = get_current_gen(self.inode) 
-        # Update the operation set for this file.
-        # file_operation_set[(self.filename, self.file_gen)].add(self)
         # Update dirty write collection if required.
         self.update_dirty_write_collection()
-        # If the file has a parent, add operation set for the parent as well.
-        # TODO: Make this work for multiple levels: currently only works for
-        # single level up.
-        '''
-        if self.filename in parent_dir:
-            parent_file = parent_dir[self.filename]
-            file_operation_set[(parent_file, self.file_gen)].add(self)
-        '''
-
         # Finally, calculate dependencies
         self.calculate_dependencies()
         # Clear write dependencies if required.
@@ -230,7 +159,6 @@ class Operation:
     def clear_dirty_write_collection(self):
         global dirty_write_ops
         global dirty_write_ops_inode
-        global latest_fsync_op
         global latest_fsync_on_any_file
         if self.syscall in ["sync"]: 
             # Remove the dirty writes which will be flushed by this sync.
@@ -242,39 +170,7 @@ class Operation:
             for dop in set_of_dops_to_remove:
                 dirty_write_ops_inode[self.inode].remove(dop) 
 
-            #latest_fsync_op[self.filename] = self
             latest_fsync_on_any_file = self
-
-    # This sets up the parent child relationships.
-    def process_parental_relationship(self):
-        global filename_set
-        global parent_dir
-        global child_list
-        # Process parent and child information.
-        for f in filename_set:
-            if self.filename != f and is_parent(f, self.filename)\
-            and (self.filename not in parent_dir):
-                parent_dir[self.filename] = f
-                child_list[f].add(self.filename)
-            # Also check for self.dest
-            if self.syscall in ["link", "rename"]:
-                if self.dest != f and is_parent(f, self.dest)\
-                and (self.dest not in parent_dir):
-                    parent_dir[self.dest] = f
-                    child_list[f].add(self.dest)
-
-    # This handles creation and unlink relationships.
-    def process_creation_and_unlinking(self):
-        global creation_op
-        global unlink_op
-        if self.syscall in ["create_dir_entry"]:
-            gen = incr_current_gen(self.inode)
-            fg_key = (self.filename, gen)
-            creation_op[fg_key] = self 
-        elif self.syscall in "del_dir_entry": 
-            gen = get_current_gen(self.inode)
-            fg_key = (self.filename, gen)
-            unlink_op[fg_key] = self 
 
     # This method returns a nice short representation of the operation. This
     # needs to be updated as we support new operations. See design doc for what
@@ -292,7 +188,7 @@ class Operation:
         elif self.syscall == "truncate":
             rstr += "T"
 
-        rstr += str(self.op_id)
+        rstr += str(self.micro_op_id)
         if self.syscall in ["create_dir_entry"]:
             rstr += "(p= " + str(self.parent) + ", " + self.filename + ", c=" + str(self.inode)
         elif self.syscall in ["delete_dir_entry"]:
@@ -307,7 +203,6 @@ class Operation:
     # basically, we can only include this operation in an combination if one of
     # the conditions for this operation evaluates to true. 
     def calculate_dependencies(self):
-        global op_list
     
         # If this is an fsync, then it depends on all the dirty writes to this
         # file previously, which fall within the sync range.
@@ -323,13 +218,7 @@ class Operation:
         # fsync happening.
         # CLARIFY: does the op depend on the last fsync *on the same file* or
         # just the last fsync (on any file) in the thread?
-        '''
-        if self.filename in latest_fsync_op:
-            fop = latest_fsync_op[self.filename]
-            self.deps = self.deps | fop.deps
-            self.deps.add(fop)
-        '''
-        # fsync: offset = 0, count = full size of file.
+       # fsync: offset = 0, count = full size of file.
         if latest_fsync_on_any_file:
             self.deps = self.deps | latest_fsync_on_any_file.deps
             self.deps.add(latest_fsync_on_any_file)
@@ -339,17 +228,12 @@ class Operation:
         self.deps_vector = BitVector.BitVector(size = total_len)
         # Set the relevant bits
         for x in self.deps:
-            self.deps_vector[x.global_id] = 1
+            self.deps_vector[x.micro_op_id] = 1
 
     # Add a dependecy to the operation.
     def add_dep(self, op):
         self.deps = self.deps | op.deps
         self.deps.add(op)
-
-# Process deps to form populate dependent_ops.
-for op in op_list:
-    for dep in op.deps():
-        dep.dependent_ops.add(op)	
 
 def test_validity(op_list):
     valid = True
@@ -402,6 +286,16 @@ def get_micro_ops_set(vijayops_set):
 class ALCTestSuite:
     # Load it up with a list of micro ops 
     def __init__(self, micro_op_list):
+        global dirty_write_ops, dirty_write_ops_inode
+        global latest_fsync_on_any_file, inode_to_filenames, filename_to_inode
+
+        # Reset all the global things
+        dirty_write_ops = defaultdict(set) 
+        dirty_write_ops_inode = defaultdict(set)
+        latest_fsync_on_any_file = None 
+        inode_to_filenames = defaultdict(set)
+        filename_to_inode = {} 
+
         self.op_list = [] 
         self.generated_combos = set()
         self.max_combo_limit = None
@@ -450,7 +344,8 @@ class ALCTestSuite:
 
         # Create the combo set.
         op_set_so_far = Set(self.op_list[start:(end+1)]) - drop_set
-        op_set_so_far = sorted(op_set_so_far, key=lambda Operation: Operation.global_id)
+        op_set_so_far = sorted(op_set_so_far, key=lambda Operation:
+                               Operation.micro_op_id)
         if len(op_set_so_far):
             self.generated_combos.add(tuple(op_set_so_far))
 
@@ -662,7 +557,6 @@ if __name__ == '__main__':
     result_set = testSuite.keep_list_of_ops(op_id_list)
     print("Keep list answer: " + str(len(result_set)))
 
-    '''
     # Testing adding lots of dependencies and seeing if it reduces the number
     # of combos.
     testSuite2 = ALCTestSuite(micro_op_list[:10]) 
@@ -674,7 +568,6 @@ if __name__ == '__main__':
     testSuite2.add_deps_to_ops(list_of_deps)
     after_combo = testSuite2.count_all_combos()
     print(before_combo, after_combo)
-    '''
 
     # Print out the list of operations
     if args.very_verbose:
