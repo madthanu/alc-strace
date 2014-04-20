@@ -4,7 +4,9 @@ parent = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
 sys.path.append(parent)
 import conv_micro
 
+count = 0
 def prefix_run(msg, consider_only = None):
+	global count
 	for i in range(0, dops_len()):
 		op = get_op(dops_double(i)[0]).op
 		if consider_only and (not op in consider_only):
@@ -14,10 +16,16 @@ def prefix_run(msg, consider_only = None):
 		E = str(i) + str(dops_double(i))
 		dops_end_at(dops_double(i))
 		dops_replay(msg + ' E' + E)
+		'''
+		count += 1
+		if not count % 10000:
+			print(count)
+		'''	
+
 	print 'finished ' + msg
 
-
 def omit_one_micro_op(msg):
+	global count
 	for i in range(0, micro_len()):
 		if dops_len(i) == 0:
 			continue
@@ -45,12 +53,18 @@ def omit_one_micro_op(msg):
 				continue
 			dops_end_at((j, dops_len(j) - 1))
 			dops_replay(msg + ' RM' + str(i) + ' EM' + str(j))
+			'''
+			count += 1
+			if not count % 10000:
+				print(count)
+			'''	
 
 		for j in range(0, dops_len(i)):
 			dops_include((i, j))
 	print 'finished ' + msg
 
 def omit_one(msg, consider_only = None):
+	global count
 	for i in range(0, dops_len()):
 		op = get_op(dops_double(i)[0]).op
 		if op in conv_micro.pseudo_ops:
@@ -77,9 +91,16 @@ def omit_one(msg, consider_only = None):
 			dops_end_at(dops_double(j))
 			dops_omit(dops_double(i))
 			dops_replay(msg + ' R' + R + ' E' + E)
+			'''
+			count+=1
+			if not count % 10000:
+				print(count)
+			'''
+
 			dops_include(dops_double(i))
 	print 'finished ' + msg
 
+#print(count)
 dops_generate(splits=1, expanded_atomicity = True)
 dops_set_legal()
 prefix_run('prefix-one')
@@ -105,5 +126,8 @@ dops_generate(splits=3)
 dops_set_legal()
 omit_one('omit_one-three', conv_micro.expansive_ops)
 
+#print(count)
 os.system('rm -rf ' + os.path.join(cmdline.scratchpad_dir, 'micro_cache_file'))
 _export(os.path.join(cmdline.scratchpad_dir, 'strace_description'))
+
+#print(count)

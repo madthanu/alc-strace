@@ -25,6 +25,7 @@ function initialize_workload {
     chmod 700 /tmp/mydisk/*
     killall postgres || true
     service postgresql start
+    #sudo -u postgres /usr/lib/postgresql/9.1/bin/postgres -c config_file=/etc/postgresql/9.1/main/postgresql.conf &
     sudo -u postgres psql -f /root/postgres-stuff/init-db.f
     sudo -u postgres psql testingdb -f /root/postgres-stuff/init-table.f
     sudo -u postgres psql testingdb -f /root/postgres-stuff/list.f
@@ -41,6 +42,7 @@ function do_workload {
     echo "Doing workload"
 	cp -R /tmp/mydisk "$wd"/tmp/initial_snapshot
 	sudo -u postgres strace -s 0 -ff -tt -o "$wd"/tmp/strace.out bash /root/alc-strace/test/start_and_trace.sh
+	/root/alc-strace/strace-4.8/retrieve_symbols.py  "$wd"/tmp/strace.out
 	killall postgres
 }
 

@@ -43,11 +43,11 @@
 
 /* Define to 1 if you have the declaration of `IO_CMD_PWRITE', and to 0 if you
    don't. */
-/* #undef HAVE_DECL_IO_CMD_PWRITE */
+#define HAVE_DECL_IO_CMD_PWRITE 1
 
 /* Define to 1 if you have the declaration of `IO_CMD_PWRITEV', and to 0 if
    you don't. */
-/* #undef HAVE_DECL_IO_CMD_PWRITEV */
+#define HAVE_DECL_IO_CMD_PWRITEV 1
 
 /* Define to 1 if you have the declaration of `LO_FLAGS_AUTOCLEAR', and to 0
    if you don't. */
@@ -152,7 +152,7 @@
 /* #undef HAVE_IOCTLS_H */
 
 /* Define to 1 if you have the <libaio.h> header file. */
-/* #undef HAVE_LIBAIO_H */
+#define HAVE_LIBAIO_H 1
 
 /* Define to 1 if you have the <linux/capability.h> header file. */
 #define HAVE_LINUX_CAPABILITY_H 1
@@ -197,7 +197,7 @@
 /* #undef HAVE_NDIR_H */
 
 /* Define to 1 if you have the <netinet/sctp.h> header file. */
-#define HAVE_NETINET_SCTP_H 1
+/* #undef HAVE_NETINET_SCTP_H */
 
 /* Define to 1 if you have the <netinet/tcp.h> header file. */
 #define HAVE_NETINET_TCP_H 1
@@ -266,7 +266,7 @@
 /* #undef HAVE_STRUCT_IA64_FPREG */
 
 /* Define to 1 if `u.c.flags' is a member of `struct iocb'. */
-/* #undef HAVE_STRUCT_IOCB_U_C_FLAGS */
+#define HAVE_STRUCT_IOCB_U_C_FLAGS 1
 
 /* Define to 1 if `msg_control' is a member of `struct msghdr'. */
 #define HAVE_STRUCT_MSGHDR_MSG_CONTROL 1
@@ -332,7 +332,7 @@
 #define HAVE_STRUCT___OLD_KERNEL_STAT 1
 
 /* Define to 1 if you have the <sys/acl.h> header file. */
-#define HAVE_SYS_ACL_H 1
+/* #undef HAVE_SYS_ACL_H */
 
 /* Define to 1 if you have the <sys/asynch.h> header file. */
 /* #undef HAVE_SYS_ASYNCH_H */

@@ -10,27 +10,28 @@ sleep 5
 #echo "Doing vaccum"
 #psql testingdb -f /root/postgres-stuff/index.f
 #echo "vaccum done"
+
 #echo "Creating new database"
 #psql -f /root/postgres-stuff/init-db2.f
 #echo "Database created"
 #echo "Creating new table"
 #psql testingdb2 -f /root/postgres-stuff/init-table.f
 #echo "create done"
-#echo "async insert"
-#psql testingdb2 -f /root/postgres-stuff/async-insert-new.f
-#echo "async inserts done" 
+echo "async insert"
+psql testingdb2 -f /root/postgres-stuff/async-insert-new.f
+echo "async inserts done" 
+echo "sync insert"
+psql testingdb2 -f /root/postgres-stuff/insert-new.f
+echo "sync inserts done" 
+echo "async insert"
+psql testingdb2 -f /root/postgres-stuff/async-insert-new.f
+echo "async inserts done" 
 #echo "sync insert"
 #psql testingdb2 -f /root/postgres-stuff/insert-new.f
 #echo "sync inserts done" 
-#echo "async insert"
-#psql testingdb2 -f /root/postgres-stuff/async-insert-new.f
-#echo "async inserts done" 
-#echo "sync insert"
-#psql testingdb2 -f /root/postgres-stuff/insert-new.f
-#echo "sync inserts done" 
-echo "sync tx insert"
-psql testingdb2 -f /root/postgres-stuff/insert-tx.f
-echo "sync tx inserts done" 
+#echo "sync tx insert"
+#psql testingdb2 -f /root/postgres-stuff/insert-tx.f
+#echo "sync tx inserts done" 
 echo "Doing checkpointing."
 psql testingdb2 -f /root/postgres-stuff/checkpoint.f
 echo "Done checkpointing."

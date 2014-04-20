@@ -323,9 +323,11 @@ StackEntry = namedtuple('StackEntry',
 	['func_name', 'instr_offset', 'src_filename', 'src_line_num',
 	'binary_filename', 'addr_offset', 'raw_addr'])
 def __get_backtrace(stackinfo):
+	return []
 	global symtab
 	backtrace = []
 
+	print stackinfo
 	assert stackinfo[0] == '['
 	assert stackinfo[-2] == ']'
 	stackinfo = stackinfo[1:-2].strip()

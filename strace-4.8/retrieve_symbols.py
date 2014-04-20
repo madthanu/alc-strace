@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # Pretty-print the output of strace++, using gdb to print out the
 # function/file/line info for stack traces
@@ -9,7 +9,7 @@
 #
 # by Philip Guo
 
-import os, sys, re, subprocess, cPickle
+import os, sys, re, subprocess, cPickle 
 from collections import defaultdict, namedtuple
 import commands
 
