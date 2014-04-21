@@ -7,7 +7,7 @@ from error_reporter import FailureCategory
 def failure_category(msg):
 	msg = msg.strip()
 	if 'Violated durability' in msg:
-		return [FailureCategory.DURABILITY_VIOLATION]
+		return [FailureCategory.DURABILITY]
 	else:
 		return[FailureCategory.FULL_WRITE_FAILURE, FailureCategory.MISC]
 
