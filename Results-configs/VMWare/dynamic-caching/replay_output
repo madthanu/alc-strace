@@ -1,8 +1,3 @@
-No mounted disks.
--------------------
--------------------
-Disks with mounted partitions:
-	/home/ramnatthan/workload_snapshots/vm/replayedsnapshot/testvm-dynamicsplit.vmdk	/mntpt/flat
 ###prefix-one E0(0, 0)	Both durability signal absent - Ignoring data!
 ###prefix-one E1(1, 0)	Both durability signal absent - Ignoring data!
 ###prefix-one E2(2, 0)	Both durability signal absent - Ignoring data!

@@ -642,12 +642,8 @@ omitmicro RM21 EM33	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omitmicro RM21 EM34	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omitmicro RM21 EM35	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omitmicro RM21 EM36	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
-omitmicro RM21 EM38	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.
-Aborted (core dumped)
-lity signal not seen - No problem!
-omitmicro RM21 EM39	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.
-Aborted (core dumped)
-lilty maintained - No problem!
+omitmicro RM21 EM38	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.Aborted (core dumped)Durality signal not seen - No problem!
+omitmicro RM21 EM39	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.Aborted (core dumped)Durabililty maintained - No problem!
 omitmicro RM22 EM23	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omitmicro RM22 EM24	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omitmicro RM22 EM25	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
@@ -1404,9 +1400,7 @@ omit_one-one R22(21, 0) E34(33, 0)	{n1,n2,n3,n4,}--Durability signal not seen - 
 omit_one-one R22(21, 0) E35(34, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omit_one-one R22(21, 0) E36(35, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omit_one-one R22(21, 0) E37(36, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
-omit_one-one R22(21, 0) E39(38, 0)	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.
-Aborted (core dumped)
-lity signal not seen - No problem!
+omit_one-one R22(21, 0) E39(38, 0)	python: lib/mdb.c:1921: mdb_page_touch: Assertion `mp->mp_p.p_pgno != pgno' failed.Aborted (core dumped) Durability signal not seen - No problem!
 omit_one-one R23(22, 0) E24(23, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omit_one-one R23(22, 0) E25(24, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
 omit_one-one R23(22, 0) E26(25, 0)	{n1,n2,n3,n4,}--Durability signal not seen - No problem!
