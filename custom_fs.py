@@ -72,7 +72,61 @@ def ext3_dependencies(replayer, ops):
 				continue
 			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
 
-def omit_one(replayer, consider_only = None):
+def writeback_atomicity_validate(mode, micro_op, selected):
+	selected = sorted(list(set(selected)))
+	for x in selected:
+		assert x >= 0 and x < len(micro_op.hidden_disk_ops)
+	if micro_op.op not in conv_micro.expansive_ops:
+		assert len(micro_op.hidden_disk_ops) == 1
+
+	if len(micro_op.hidden_disk_ops) == len(selected) or len(selected) == 0:
+		return True
+
+	if micro_op.op in ['rename', 'unlink']:
+		return False
+	elif micro_op.op in ['write', 'append', 'trunc']:
+		if mode in ['prefix-one', 'prefix-aligned', 'omit_one-one', 'omit_one-aligned']:
+			return True
+		assert mode in ['prefix-three', 'omit_one-three']
+		return False
+	else:
+		assert False
+
+def ordered_atomicity_validate(mode, micro_op, selected):
+	if writeback_microcode_validate(mode, micro_op, selected) == False:
+		return False
+	if micro_op.op not in ['append', 'trunc']:
+		return True
+	assert micro_op.op != 'truncate' # Confusing, really. The programmer who coded this up is stupid.
+	selected = sorted(list(set(selected)))
+
+	if len(micro_op.hidden_disk_ops) == len(selected) or len(selected) == 0:
+		return True
+
+	if micro_op.op == 'trunc' and micro_op.initial_size >= micro_op.final_size:
+		return False
+
+	assert mode not in ['prefix-three', 'omit_one-three']
+	if mode in ['prefix-one', 'omit_one-one']:
+		return False
+	elif mode in ['prefix-aligned', 'omit_one-aligned']:
+		regions = dict{}
+		for i in selected:
+			x = micro_op.hidden_disk_ops[i]
+			assert x.op == 'write'
+			regions[(x.offset, x.count)] = x.special_write
+		for x in regions:
+			if micro_op.op == 'write' and regions[x] != None:
+				assert regions[x] in ['GARBAGE', 'ZEROS']
+				return False
+			if micro_op.op == 'trunc' and regions[x] != 'ZEROS':
+				assert regions[x] == 'GARBAGE'
+				return False
+		return True
+	else:
+		assert False
+
+def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 	output = list()
 	for i in range(0, replayer.dops_len()):
 		double_i = replayer.dops_double(i)
@@ -89,22 +143,34 @@ def omit_one(replayer, consider_only = None):
 		if op == 'trunc' and dop.op == 'truncate' and double_i[1] != replayer.dops_len(double_i[0]) - 1:
 			continue
 
+		selected = set(range(0, replayer.dops_len(double_i[0])))
+		selected.remove(double_i[1])
+		if not atomicity_validation(msg, replayer.get_op(double_i[0]), selected):
+			continue
+
 		for j in range(i + 1, replayer.dops_len()):
 			double_j = replayer.dops_double(j)
 			op = replayer.get_op(double_j[0]).op
 			if op in conv_micro.sync_ops:
 				continue
+
+			selected = set(range(0, double_j[1] + 1))
+			if double_j[0] == double_i[0]: # If same micro_op
+				selected.remove(double_i[1])
+			if not atomicity_validation(msg, replayer.get_op(double_j[0]), selected):
+				continue
+
 			replayer.dops_end_at(double_j)
 			replayer.dops_omit(double_i)
 			if replayer.is_legal():
 				R = str(i) + str(double_i)
 				E = str(j) + str(double_j)
-				print 'R' + R + ' E' + E
+				print msg + ' R' + R + ' E' + E
 				output.append((double_i, double_j))
 			replayer.dops_include(double_i)
 	return output
 
-def omit_micro(replayer):
+def omit_micro(msg, replayer):
 	output = list()
 	for i in range(0, replayer.micro_len()):
 		if replayer.dops_len(i) == 0:
@@ -125,7 +191,7 @@ def omit_micro(replayer):
 			replayer.dops_end_at((j, replayer.dops_len(j) - 1))
 			if replayer.is_legal():
 				output.append((i, j))
-				print 'RM' + str(i) + ' EM' + str(j)
+				print msg + ' RM' + str(i) + ' EM' + str(j)
 
 		for j in range(0, replayer.dops_len(i)):
 			replayer.dops_include((i, j))
@@ -134,6 +200,8 @@ def omit_micro(replayer):
 
 def do_main():
 	dependencies_function = ext3_dependencies
+	atomicity_validation = ordered_atomicity_validate
+
 	myutils.init_cmdline()
 	strace_description = pickle.load(open(myutils.cmdline().micro_cache_file))
 	assert strace_description['version'] == 2
@@ -147,20 +215,20 @@ def do_main():
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
 
-	output.omitmicro = omit_micro(replayer)
-	output.omit_one['one'] = omit_one(replayer)
+	output.omitmicro = omit_micro('omitmicro', replayer)
+	output.omit_one['one'] = omit_one('omit_one-one', atomicity_validation, replayer)
 
 	replayer.dops_generate(splits=4096, split_mode='aligned')
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
 
-	output.omit_one['aligned'] = omit_one(replayer, conv_micro.expansive_ops)
+	output.omit_one['aligned'] = omit_one('omit_one-aligned', atomicity_validation, replayer, conv_micro.expansive_ops)
 
 	replayer.dops_generate(splits=3)
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
 
-	output.omit_one['three'] = omit_one(replayer, conv_micro.expansive_ops)
+	output.omit_one['three'] = omit_one('omit_one-three', atomicity_validation, replayer, conv_micro.expansive_ops)
 
 	pickle.dump(output, open('/tmp/x', 'w'))
 	print 'finished'
