@@ -117,6 +117,7 @@ class Replayer:
 				if not micro_op.hidden_disk_ops[j].hidden_omitted:
 					included_diskops.append(diskops_index)
 				diskops_index += 1
+	#	print '+++' + str(included_diskops) + '+++'
 		return self.test_suite.test_combo_validity(included_diskops)
 	def str_micro_ops_dependencies(self):
 		output = ''

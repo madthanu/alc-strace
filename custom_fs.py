@@ -4,6 +4,7 @@ import pickle
 import simulate_crashes
 import conv_micro
 import myutils
+import cProfile
 from mystruct import Struct
 def abstract_dependencies(ops):
 	last_sync = None
@@ -62,12 +63,23 @@ def thanufs_dependencies(replayer, ops):
 			depends_from = replayer.dops_single((replayer.dops_double(i)[0], 0)) - 1 # Last disk op of the previos micro op
 			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(depends_from, -1, -1))
 
-def omit_one():
+def ext3_dependencies(replayer, ops):
+	abstract_dependencies(ops)
+	for i in range(0, len(ops)):
+		if ops[i].op not in ['stdout', 'stderr']:
+			# If overwrites
+			if ops[i].op == 'write' and ops[i].hidden_micro_op.op == 'write':
+				continue
+			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
+
+def omit_one(replayer, consider_only = None):
 	output = list()
 	for i in range(0, replayer.dops_len()):
 		double_i = replayer.dops_double(i)
 		op = replayer.get_op(double_i[0]).op
 		if op in conv_micro.pseudo_ops:
+			continue
+		if consider_only and (not op in consider_only):
 			continue
 		dop = replayer.dops_get_op(double_i)
 		if op == 'append' and dop.special_write != None:
@@ -82,28 +94,18 @@ def omit_one():
 			op = replayer.get_op(double_j[0]).op
 			if op in conv_micro.sync_ops:
 				continue
-			replayer.dops_end_at(replayer.dops_double(j))
+			replayer.dops_end_at(double_j)
 			replayer.dops_omit(double_i)
 			if replayer.is_legal():
 				R = str(i) + str(double_i)
 				E = str(j) + str(double_j)
 				print 'R' + R + ' E' + E
 				output.append((double_i, double_j))
-			dops_include(dops_double(i))
+			replayer.dops_include(double_i)
 	return output
 
-
-if __name__ == '__main__':
-	myutils.init_cmdline()
-	strace_description = pickle.load(open(myutils.cmdline().micro_cache_file))
-	assert strace_description['version'] == 2
-	path_inode_map = strace_description['path_inode_map']
-	micro_operations = strace_description['one']
-	replayer = simulate_crashes.Replayer(path_inode_map, micro_operations)
-	replayer.set_additional_dependencies(thanufs_dependencies)
-	output = Struct()
-	output.omitmicro = list()
-	# Omit micro-op
+def omit_micro(replayer):
+	output = list()
 	for i in range(0, replayer.micro_len()):
 		if replayer.dops_len(i) == 0:
 			continue
@@ -122,12 +124,46 @@ if __name__ == '__main__':
 				continue
 			replayer.dops_end_at((j, replayer.dops_len(j) - 1))
 			if replayer.is_legal():
-				output.omitmicro.append((i, j))
+				output.append((i, j))
 				print 'RM' + str(i) + ' EM' + str(j)
 
 		for j in range(0, replayer.dops_len(i)):
 			replayer.dops_include((i, j))
 	
+	return output
+
+def do_main():
+	dependencies_function = ext3_dependencies
+	myutils.init_cmdline()
+	strace_description = pickle.load(open(myutils.cmdline().micro_cache_file))
+	assert strace_description['version'] == 2
+	path_inode_map = strace_description['path_inode_map']
+	micro_operations = strace_description['one']
+	replayer = simulate_crashes.Replayer(path_inode_map, micro_operations)
+	output = Struct()
+	output.omit_one = dict()
+
+	replayer.dops_generate(splits=1)
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+
+	output.omitmicro = omit_micro(replayer)
+	output.omit_one['one'] = omit_one(replayer)
+
+	replayer.dops_generate(splits=4096, split_mode='aligned')
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+
+	output.omit_one['aligned'] = omit_one(replayer, conv_micro.expansive_ops)
+
+	replayer.dops_generate(splits=3)
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+
+	output.omit_one['three'] = omit_one(replayer, conv_micro.expansive_ops)
 
 	pickle.dump(output, open('/tmp/x', 'w'))
 	print 'finished'
+
+if __name__ == '__main__':
+	cProfile.run('do_main()')

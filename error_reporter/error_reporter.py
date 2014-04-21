@@ -525,7 +525,6 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 
 	# Full re-orderings
 	reordering_violators = {}
-	filtered_reorderings_seen = set()
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \
 				and micro_operations[i].op not in conv_micro.pseudo_ops \
@@ -533,9 +532,8 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 			blank_found = False
 			for j in range(i + 1, len(micro_operations)):
 				if cmdline.reorder_filter != None:
-					if (i, j) not in cmdline.reorder_filter:
+					if (i, j) not in cmdline.reorder_filter.omitmicro:
 						continue
-					filtered_reorderings_seen.add((i, j))
 				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
 					continue
 				if not (Op(i), Op(j)) in replay_output.omitmicro:
@@ -585,9 +583,11 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 							if (Op(i, x), Op(j, y)) not in replay_output.omit_one[subtype]:
 								blank_found = True
 								continue
-							if blank_found:
-								assert (Op(i, x), Op(j, y)) not in replay_output.omit_one[subtype]
-								continue
+							if cmdline.reorder_filter != None:
+								if (i, j) not in cmdline.reorder_filter.omit_one[subtype]:
+									blank_found = True
+									continue
+							assert not blank_found
 							output = replay_output.omit_one[subtype][(Op(i, x), Op(j, y))]
 							if not is_correct(output):
 								if i == j:
