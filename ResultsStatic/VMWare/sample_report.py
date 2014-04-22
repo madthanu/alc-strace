@@ -30,4 +30,4 @@ def mystack_repr(backtrace):
 		# For java programs we have a done a manual static bug analysis. So return the first stack frame.
 		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
 
-error_reporter.report_errors('###', './micro_cache_file', './replay_output', is_correct = is_correct, stack_repr = mystack_repr, failure_category = failure_category)
+error_reporter.report_errors('###', './strace_description', './replay_output', is_correct = is_correct, stack_repr = mystack_repr, failure_category = failure_category)

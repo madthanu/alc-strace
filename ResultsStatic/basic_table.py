@@ -1,5 +1,6 @@
-°import os
+import os
 import sys
+import traceback
 parent = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
 sys.path.append(parent)
 sys.path.append(parent + '/error_reporter')
@@ -48,7 +49,7 @@ def get_vulnerabilities(fs):
 	vulnerabilities = dict()
 	stats = dict()
 	cwd = os.getcwd()
-	debug = False
+	debug = True
 	for folder in folders:
 		os.chdir(cwd)
 		os.chdir(folder)
@@ -78,6 +79,8 @@ def get_vulnerabilities(fs):
 				vulnerabilities[folder] += copy.deepcopy(error_reporter_output[0])
 				stats[folder].append(copy.deepcopy(error_reporter_output[1]))
 		except Exception as e:
+			traceback.print_exc()
+			raise e
 			print 'Error in ' + folder
 
 	os.chdir(cwd)
@@ -119,12 +122,14 @@ def do_table(vulnerabilities, consider_bug_type, get_columns):
 def columnize_write(str, filename):
 	open('/tmp/x', 'w').write(str)
 	ret = os.system('cat /tmp/x | column -s \';\' -t >| ' + filename)
+	print filename
 	assert(ret == 0)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--fs', dest = 'fs', type = str, default = None)
 	cmdline = parser.parse_args()
+	fs_name = 'basic' if cmdline.fs == None else cmdline.fs
 
 	(vulnerabilities, stats) = get_vulnerabilities(cmdline.fs)
 
@@ -154,7 +159,7 @@ if __name__ == '__main__':
 	output += 'TOTAL VULNERABILITIES:\n'
 	output += do_table(vulnerabilities, lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else [x.micro_op[0], x.micro_op[1]])
 
-	columnize_write(output, 'basic_table1.txt')
+	columnize_write(output, fs_name + '_table1.txt')
 	output = ''
 
 	def failure_categories_classify(failure_categories, report_standard):
@@ -175,12 +180,12 @@ if __name__ == '__main__':
 	output += 'NON-CATEGORIZED FAILURES:\n'
 	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
 
-	columnize_write(output, 'basic_table2.txt')
+	columnize_write(output, fs_name + '_table2.txt')
 	output = ''
 
 	output += '    \n'
 	output += 'OVERALL_STATS:\n'
-	output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls\n'
+	output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls;Unfiltered states\n'
 	for folder in folders:
 		if folder not in stats:
 			continue
@@ -190,6 +195,7 @@ if __name__ == '__main__':
 		non_output_syscalls = 0
 		sync_syscalls = 0
 		output_syscalls = 0
+		unfiltered_crash_states = 0
 		for version in stats[row]:
 			failure_crash_states = max(failure_crash_states, version.failure_crash_states)
 			if total_crash_states != None:
@@ -197,13 +203,15 @@ if __name__ == '__main__':
 				assert non_output_syscalls == version.total_ops - version.pseudo_ops + version.sync_ops
 				assert sync_syscalls == version.sync_ops
 				assert output_syscalls == version.pseudo_ops - version.sync_ops
+				assert unfiltered_crash_states == version.total_unfiltered_crash_states
 			total_crash_states = version.total_crash_states
 			non_output_syscalls = version.total_ops - version.pseudo_ops + version.sync_ops
 			sync_syscalls = version.sync_ops
 			output_syscalls = version.pseudo_ops - version.sync_ops
+			unfiltered_crash_states = version.total_unfiltered_crash_states
 
-		output += row + ';' + str(total_crash_states) + ';' + str(failure_crash_states) + ';' + str(non_output_syscalls) + ';' + str(sync_syscalls) + ';' + str(output_syscalls) + '\n'
+		output += row + ';' + str(total_crash_states) + ';' + str(failure_crash_states) + ';' + str(non_output_syscalls) + ';' + str(sync_syscalls) + ';' + str(output_syscalls) + ';' + str(unfiltered_crash_states) + '\n'
 
-	columnize_write(output, 'basic_table3.txt')
+	columnize_write(output, fs_name + '_table3.txt')
 	output = ''
 

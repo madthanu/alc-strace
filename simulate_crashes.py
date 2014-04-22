@@ -310,7 +310,8 @@ class Replayer:
 		self.set_data(i, data = '\0', randomize = True)
 	def get_op(self, i):
 		assert i <= len(self.micro_ops)
-		return copy.deepcopy(self.micro_ops[i])
+		return self.micro_ops[i]
+#		return copy.deepcopy(self.micro_ops[i])
 	def split(self, i, count = None, sizes = None):
 		self.test_suite_initialized = False
 		assert i < len(self.micro_ops)
@@ -401,7 +402,8 @@ class Replayer:
 			self.__replay_and_check(True, summary_string, checker_params)
 	def dops_get_op(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
-		return copy.deepcopy(self.micro_ops[i].hidden_disk_ops[j])
+#		return copy.deepcopy(self.micro_ops[i].hidden_disk_ops[j])
+		return self.micro_ops[i].hidden_disk_ops[j]
 	def dops_len(self, i = None):
 		if i == None:
 			total = 0
@@ -440,12 +442,18 @@ class Replayer:
 			else:
 				assert type(drop_list[0]) == int
 		single_answers = sorted(self.test_suite.drop_list_of_ops(drop_list))
+
 		if len(single_answers) == 0:
 			return None
-		max_single_answers = single_answers[-1]
-		for j in range(0, max_single_answers):
-			assert j in drop_list or j in single_answers
-		return self.dops_double(max_single_answers)
+#		max_single_answers = single_answers[-1]
+#		for j in range(0, max_single_answers):
+#			assert j in drop_list or j in single_answers
+		max_found = single_answers[0]
+		for j in single_answers[1:]:
+			if j != max_found + 1:
+				break
+			max_found = j
+		return self.dops_double(max_found)
 	def _dops_export(self, fname):
 		to_export = []
 		for micro_op in self.micro_ops:

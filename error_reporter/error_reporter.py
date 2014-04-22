@@ -11,6 +11,7 @@ import copy
 import conv_micro
 import argparse
 import myutils
+import subprocess
 import __main__
 from mystruct import Struct
 
@@ -65,6 +66,7 @@ class Op:
 
 class ReplayOutputParser:
 	def __init__(self, fname, delimiter, is_correct):
+		global filter
 		self.prefix = collections.defaultdict(dict)
 		self.omitmicro = {}
 		self.omit_one = collections.defaultdict(dict)
@@ -73,8 +75,9 @@ class ReplayOutputParser:
 		inputstr = f.read()
 		f.close()
 		testcases = inputstr.split(delimiter)
-		overall_stats.total_crash_states = len(testcases)
+		overall_stats.total_crash_states = 0
 		overall_stats.failure_crash_states = 0
+		overall_stats.total_unfiltered_crash_states = 0
 
 		for testcase in testcases:
 			testcase = testcase.strip()
@@ -93,22 +96,32 @@ class ReplayOutputParser:
 				if testcase[m.start(i):m.end(i)] != '':
 					args.append(testcase[m.start(i):m.end(i)])
 			output = testcase[m.start(6):m.end(6)]
-			if not is_correct(output):
-				overall_stats.failure_crash_states += 1
 
 			type = case.split('-')[0]
 			type_dict = eval('self.' + type)
 			if type in ['prefix', 'omit_one']:
 				subtype = case.split('-')[1]
 				type_dict = type_dict[subtype]
+				if filter != None:
+					filter_type_dict = filter.__dict__[type][subtype]
 			else:
 				assert type == 'omitmicro'
+				if filter != None:
+					filter_type_dict = filter.__dict__[type]
+
+			if filter == None:
+				overall_stats.total_crash_states += 1
+				if not is_correct(output): overall_stats.failure_crash_states += 1
 
 			if type == 'prefix':
 				assert len(args) == 2
 				assert args[0].startswith('E')
 				(micro, disk) = eval(args[1])
 				type_dict[Op(micro, disk)] = output
+				if filter != None and (micro, disk) in filter_type_dict:
+					overall_stats.total_crash_states += 1
+					if not is_correct(output): overall_stats.failure_crash_states += 1
+				overall_stats.total_unfiltered_crash_states += 1
 			elif type == 'omitmicro':
 				assert len(args) == 2
 				assert args[0].startswith('RM')
@@ -116,6 +129,10 @@ class ReplayOutputParser:
 				omit = int(args[0][2:])
 				end = int(args[1][2:])
 				type_dict[(Op(omit), Op(end))] = output
+				if filter != None and (omit, end) in filter_type_dict:
+					overall_stats.total_crash_states += 1
+					if not is_correct(output): overall_stats.failure_crash_states += 1
+				overall_stats.total_unfiltered_crash_states += 1
 			elif type == 'omit_one':
 				assert len(args) == 4
 				assert args[0].startswith('R')
@@ -125,6 +142,11 @@ class ReplayOutputParser:
 				(micro, disk) = eval(args[3])
 				end = Op(micro = micro, disk = disk)
 				type_dict[(omit, end)] = output
+				if filter != None and (eval(args[1]), eval(args[3])) in filter_type_dict:
+					overall_stats.total_crash_states += 1
+					if not is_correct(output): overall_stats.failure_crash_states += 1
+				if subtype not in ['aligned', 'three']:
+					overall_stats.total_unfiltered_crash_states += 1
 			else:
 				assert False
 
@@ -630,4 +652,6 @@ if '__file__' in __main__.__dict__.keys() and 'report.py' in __main__.__file__ o
 	cmdline = parser.parse_args()
 	if cmdline.filter != None:
 		cmdline.filter = pickle.load(open(cmdline.filter))
+		if type(cmdline.filter) == dict and 'content' in cmdline.filter.keys():
+			cmdline.filter = cmdline.filter['content']
 	initialize_options(filter = cmdline.filter, readable_output = True)
