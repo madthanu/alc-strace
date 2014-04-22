@@ -1,67 +1,90 @@
-import os
+°import os
 import sys
 parent = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../')
 sys.path.append(parent)
 sys.path.append(parent + '/error_reporter')
 import subprocess
-sys.argv.append('--mode')
-sys.argv.append('machine')
 import error_reporter
+import custom_fs
 import copy
+import argparse
+import pickle
 from collections import defaultdict
 from mystruct import Struct
-
-vulnerabilities = dict()
-stats = dict()
-cwd = os.getcwd()
-debug = False
 
 folders = subprocess.check_output('ls -F | grep /$', shell = True)[0:-1].split('\n')
 
 folders = ['BerkeleyDB-BTREE', 
-'BerkeleyDB-Hash', 
-'LevelDB1.10', 
-'LevelDB1.15', 
-'LMDB', 
-'gdbm', 
-'git', 
-'MercurialDynamic',
-'HSqlDb',
-'Sqlite-WAL',
-'Sqlite-Rollback',
-'VMWare'
+	'BerkeleyDB-Hash', 
+	'LevelDB1.10', 
+	'LevelDB1.15', 
+	'LMDB', 
+	'gdbm', 
+	'git', 
+	'MercurialDynamic',
+	'HSqlDb',
+	'Sqlite-WAL',
+	'Sqlite-Rollback',
+	'VMWare'
 ]
 
-
-for folder in folders:
-	os.chdir(cwd)
-	os.chdir(folder)
+def get_filter(fs, strace_description):
 	try:
-		vulnerabilities[folder] = []
-		stats[folder] = []
-		if debug: print 'Trying ' + folder + ' ........'
-		cmd = 'ls  *report*.py'
-		files = subprocess.check_output(cmd, shell = True)[0:-1].split('\n')
-		assert len(files) >= 1
-		if len(files) > 1:
-			assert os.path.isfile('reporters')
-			reporters = open('reporters').read().split('\n')
-			reporters = [x.strip() for x in reporters if x.strip() != '']
-			assert sorted(reporters) == sorted(files)
-		for file in files:
-			if debug: print '   > Trying ' + file + ' ........'
-			temp = dict()
-			error_reporter.vulnerabilities = []
-			error_reporter.overall_stats = Struct()
-			exec(open('../' + folder + '/' + file)) in temp
-			vulnerabilities[folder] += copy.deepcopy(temp['error_reporter'].vulnerabilities)
-			stats[folder].append(copy.deepcopy(temp['error_reporter'].overall_stats))
-	except Exception as e:
-		if debug: print 'Error in ' + folder
+		checksums = subprocess.check_output('sum ' + strace_description, shell = True)
+		f = pickle.load(open(fs + ".cache"))
+		if f['checksums'] == checksums:
+			return (checksums, f['content'])
+	except:
+		pass
 
-os.chdir(cwd)
+	strace_description = pickle.load(open(strace_description))
+	filter = custom_fs.get_crash_states(strace_description, custom_fs.filesystems[fs][0], custom_fs.filesystems[fs][1])
+	tostore = {'checksums': checksums, 'content': filter}
+	pickle.dump(tostore, open(fs + ".cache", 'w'))
+	return (checksums, filter)
 
-def do_table(consider_bug_type, get_columns):
+def get_vulnerabilities(fs):
+	global folders
+	vulnerabilities = dict()
+	stats = dict()
+	cwd = os.getcwd()
+	debug = False
+	for folder in folders:
+		os.chdir(cwd)
+		os.chdir(folder)
+		try:
+			vulnerabilities[folder] = []
+			stats[folder] = []
+			if debug: print 'Trying ' + folder + ' ........'
+			cmd = 'ls  *report*.py'
+			files = subprocess.check_output(cmd, shell = True)[0:-1].split('\n')
+			assert len(files) >= 1
+			if len(files) > 1:
+				assert os.path.isfile('reporters')
+				reporters = open('reporters').read().split('\n')
+				reporters = [x.strip() for x in reporters if x.strip() != '']
+				assert sorted(reporters) == sorted(files)
+			for file in files:
+				if debug: print '   > Trying ' + file + ' ........'
+				temp = dict()
+
+				if fs != None:
+					(checksums, filter) = get_filter(fs, './strace_description')
+					error_reporter.initialize_options(filter = filter, strace_description_checksum = checksums)
+				else:
+					error_reporter.initialize_options()
+				exec(open('../' + folder + '/' + file)) in temp
+				error_reporter_output = error_reporter.get_results()
+				vulnerabilities[folder] += copy.deepcopy(error_reporter_output[0])
+				stats[folder].append(copy.deepcopy(error_reporter_output[1]))
+		except Exception as e:
+			print 'Error in ' + folder
+
+	os.chdir(cwd)
+	return (vulnerabilities, stats)
+
+def do_table(vulnerabilities, consider_bug_type, get_columns):
+	global folders
 	rows = defaultdict(lambda: defaultdict(lambda: list()))
 	columns = set(['ztotal'])
 	toret = ''
@@ -99,31 +122,37 @@ def columnize_write(str, filename):
 	assert(ret == 0)
 
 if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--fs', dest = 'fs', type = str, default = None)
+	cmdline = parser.parse_args()
+
+	(vulnerabilities, stats) = get_vulnerabilities(cmdline.fs)
+
 	output = ''
 
 	output += '    \n'
 	output += 'ATOMICITY VULNERABILITIES:\n'
-	output += do_table(lambda x: x == error_reporter.ATOMICITY, lambda x: [x.micro_op])
+	output += do_table(vulnerabilities, lambda x: x == error_reporter.ATOMICITY, lambda x: [x.micro_op])
 
 	output += '    \n'
 	output += 'REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:\n'
-	output += do_table(lambda x: x == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
+	output += do_table(vulnerabilities, lambda x: x == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
 
 	output += '    \n'
 	output += 'INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:\n'
-	output += do_table(lambda x: x == error_reporter.PREFIX, lambda x: list(x.micro_op))
+	output += do_table(vulnerabilities, lambda x: x == error_reporter.PREFIX, lambda x: list(x.micro_op))
 
 	output += '    \n'
 	output += 'INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:\n'
-	output += do_table(lambda x: x == error_reporter.PREFIX, lambda x: [x.micro_op[0]])
+	output += do_table(vulnerabilities, lambda x: x == error_reporter.PREFIX, lambda x: [x.micro_op[0]])
 
 	output += '    \n'
 	output += 'SPECIAL_REORDERING VULNERABILITIES:\n'
-	output += do_table(lambda x: x == error_reporter.SPECIAL_REORDERING, lambda x: [x.micro_op[1]])
+	output += do_table(vulnerabilities, lambda x: x == error_reporter.SPECIAL_REORDERING, lambda x: [x.micro_op[1]])
 
 	output += '    \n'
 	output += 'TOTAL VULNERABILITIES:\n'
-	output += do_table(lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else [x.micro_op[0], x.micro_op[1]])
+	output += do_table(vulnerabilities, lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else [x.micro_op[0], x.micro_op[1]])
 
 	columnize_write(output, 'basic_table1.txt')
 	output = ''
@@ -140,11 +169,11 @@ if __name__ == '__main__':
 
 	output += '    \n'
 	output += 'CATEGORIZED FAILURES:\n'
-	output += do_table(lambda x: True, lambda x: failure_categories_classify(x.failure_category, True))
+	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, True))
 
 	output += '    \n'
 	output += 'NON-CATEGORIZED FAILURES:\n'
-	output += do_table(lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
+	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
 
 	columnize_write(output, 'basic_table2.txt')
 	output = ''
@@ -158,8 +187,8 @@ if __name__ == '__main__':
 		row = folder
 		total_crash_states = None
 		failure_crash_states = 0
-		nonoutput_syscalls = 0
-		sync_sycalls = 0
+		non_output_syscalls = 0
+		sync_syscalls = 0
 		output_syscalls = 0
 		for version in stats[row]:
 			failure_crash_states = max(failure_crash_states, version.failure_crash_states)

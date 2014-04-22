@@ -11,6 +11,7 @@ import copy
 import conv_micro
 import argparse
 import myutils
+import __main__
 from mystruct import Struct
 
 class prettyDict(collections.defaultdict):
@@ -22,6 +23,22 @@ class prettyDict(collections.defaultdict):
 
 vulnerabilities = list()
 overall_stats = Struct()
+replay_output = None
+readable_output = True
+strace_description_checksum = None
+filter = None
+
+def initialize_options(filter = None, readable_output = False, strace_description_checksum = None):
+	global vulnerabilities, overall_stats, replay_output
+	vulnerabilities = list()
+	overall_stats = Struct()
+	replay_output = None
+	globals()['filter'] = filter
+	globals()['readable_output']= readable_output
+	globals()['strace_description_checksum']= strace_description_checksum
+
+def get_results():
+	return (vulnerabilities, overall_stats)
 
 REORDERING = 'Reordering:'
 ATOMICITY = 'Atomicity:'
@@ -337,7 +354,7 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 			report[i] = '(' + ', '.join([str(x) for x in report[i]]) + ')'
 		else:
 			report[i] = str(report[i])
-	if cmdline.human: print ' '.join(report)
+	if readable_output: print ' '.join(report)
 	vulnerabilities.append(Struct(type = ATOMICITY,
 			stack_repr = __stack_repr(stack_repr, op),
 			micro_op = op.op,
@@ -355,7 +372,7 @@ def report_prefix(micro_operations, i, j, msg, stack_repr):
 	if type(j) == tuple: j = j[0]
 	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' ... ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
 	report = [PREFIX, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
-	if cmdline.human: print ' '.join(report)
+	if readable_output: print ' '.join(report)
 
 	micro_op = []
 	stacks = []
@@ -415,9 +432,7 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 			hidden_details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
 
 	report[2] = myutils.colorize(report[2], 3)
-	if cmdline.human: print ' '.join(report)
-
-replay_output = None
+	if readable_output: print ' '.join(report)
 
 def fname(op):
 	def shorter(name):
@@ -436,10 +451,14 @@ def fname(op):
 		assert False
 
 def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None, stack_repr = None):
-	global replay_output
+	global replay_output, strace_description_checksum
 	micro_ops = MicroOps(strace_description)
 	micro_operations = micro_ops.one
 	replay_output = ReplayOutputParser(replay_output_file, delimiter, is_correct)
+
+	if strace_description_checksum != None:
+		checksums = subprocess.check_output('sum ' + strace_description, shell = True)
+		assert strace_description_checksum == checksums
 
 	# Finding prefix machine_mode_bugs
 	prefix_problems = {}
@@ -474,11 +493,11 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				assert i not in prefix_problems
 				prefix_problems[i] = wrong_output
 			elif not correct:
-				# report_prefix(micro_operations, i, i + 1, __failure_category(failure_category, wrong_output), stack_repr)
 				assert i not in prefix_problems
 				assert (i + 1) not in prefix_problems
 				prefix_problems[i] = wrong_output
 
+	# Reporting patches of prefix inter-syscall-atomicity vulnerabilities
 	range_start = None
 	last_i = None
 	for i in sorted(list(prefix_problems.keys())):
@@ -514,9 +533,11 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 					if subtype == 'one':
 						assert end in prefix_dict.keys()
 					if end in prefix_dict.keys():
-						if not is_correct(prefix_dict[end]):
-							wrong_output = prefix_dict[end]
-							incorrect_under.append((subtype, disk_end))
+						assert subtype in ['aligned', 'three', 'one']
+						if filter == None or (i, disk_end) in filter.prefix[subtype]:
+							if not is_correct(prefix_dict[end]):
+								wrong_output = prefix_dict[end]
+								incorrect_under.append((subtype, disk_end))
 					else:
 						assert micro_operations[i].op not in conv_micro.expansive_ops
 			if len(incorrect_under) > 0:
@@ -531,8 +552,8 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				and micro_ops.dops_len('one', i) > 0:
 			blank_found = False
 			for j in range(i + 1, len(micro_operations)):
-				if cmdline.reorder_filter != None:
-					if (i, j) not in cmdline.reorder_filter.omitmicro:
+				if filter != None:
+					if (i, j) not in filter.omitmicro:
 						continue
 				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
 					continue
@@ -547,12 +568,12 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr)
 					break
 
-#	if cmdline.reorder_filter != None:
+#	if filter != None:
 #		print '---------------'
 #		print sorted(list(filtered_reorderings_seen))
 #		print '---------------'
-#		print sorted(list(cmdline.reorder_filter))
-#		assert len(filtered_reorderings_seen) == len(cmdline.reorder_filter)
+#		print sorted(list(filter))
+#		assert len(filtered_reorderings_seen) == len(filter)
 	# Special re-orderings
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \
@@ -583,8 +604,8 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 							if (Op(i, x), Op(j, y)) not in replay_output.omit_one[subtype]:
 								blank_found = True
 								continue
-							if cmdline.reorder_filter != None:
-								if (i, j) not in cmdline.reorder_filter.omit_one[subtype]:
+							if filter != None:
+								if (i, j) not in filter.omit_one[subtype]:
 									blank_found = True
 									continue
 							assert not blank_found
@@ -602,17 +623,11 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						break
 				if special_reordering_found:
 					break
-	if cmdline.mode == "machine-debug":
-		pprint.pprint(vulnerabilities)
-		print overall_stats
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--human', dest = 'human', type = bool, default = True)
-parser.add_argument('--mode', dest = 'mode', type = str, default = None)
-parser.add_argument('--vul_types', dest = 'vul_types', type = bool, default = False)
-parser.add_argument('--reorder_filter', dest = 'reorder_filter', type = str, default = None)
-cmdline = parser.parse_args()
-if cmdline.mode != None and cmdline.mode != 'human':
-	cmdline.human = False
-if cmdline.reorder_filter != None:
-	cmdline.reorder_filter = pickle.load(open(cmdline.reorder_filter))
+if '__file__' in __main__.__dict__.keys() and 'report.py' in __main__.__file__ or 'report2.py' in __main__.__file__:
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--filter', dest = 'filter', type = str, default = None)
+	cmdline = parser.parse_args()
+	if cmdline.filter != None:
+		cmdline.filter = pickle.load(open(cmdline.filter))
+	initialize_options(filter = cmdline.filter, readable_output = True)

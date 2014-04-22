@@ -5,7 +5,7 @@ import subprocess
 import re
 
 __cmdline = None
-def init_cmdline():
+def init_cmdline(default_initialize = False):
 	global current_original_path, __cmdline
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--prefix', dest = 'prefix', type = str, default = False)
@@ -35,8 +35,11 @@ def init_cmdline():
 	parser.add_argument('--omit_actual_stdout', dest = 'omit_actual_stdout', type = bool, default = False)
 	parser.add_argument('--scratchpad_dir', dest = 'scratchpad_dir', type = str, default = '/tmp')
 	parser.add_argument('--mtrace_shadow', dest = 'mtrace_shadow', type = bool, default = False)
-	parser.add_argument('--no_replay', dest = 'no_replay', type = bool, default = False)
-	__cmdline = parser.parse_args()
+
+	if default_initialize:
+		__cmdline = parser.parse_args([])
+	else:
+		__cmdline = parser.parse_args()
 
 	if __cmdline.config_file != False:
 		tmp = dict([])
@@ -45,7 +48,7 @@ def init_cmdline():
 			if key in tmp:
 				__cmdline.__dict__[key] = tmp[key]
 
-	if not __cmdline.no_replay:
+	if not default_initialize:
 		assert __cmdline.prefix != False
 		assert __cmdline.initial_snapshot != False
 		assert __cmdline.base_path != False and __cmdline.base_path.startswith('/')

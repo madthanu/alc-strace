@@ -5,7 +5,9 @@ import simulate_crashes
 import conv_micro
 import myutils
 import cProfile
+import argparse
 from mystruct import Struct
+debug = False
 def abstract_dependencies(ops):
 	last_sync = None
 	for i in range(0, len(ops)):
@@ -93,7 +95,7 @@ def writeback_atomicity_validate(mode, micro_op, selected):
 		assert False
 
 def ordered_atomicity_validate(mode, micro_op, selected):
-	if writeback_microcode_validate(mode, micro_op, selected) == False:
+	if writeback_atomicity_validate(mode, micro_op, selected) == False:
 		return False
 	if micro_op.op not in ['append', 'trunc']:
 		return True
@@ -110,13 +112,13 @@ def ordered_atomicity_validate(mode, micro_op, selected):
 	if mode in ['prefix-one', 'omit_one-one']:
 		return False
 	elif mode in ['prefix-aligned', 'omit_one-aligned']:
-		regions = dict{}
+		regions = dict()
 		for i in selected:
 			x = micro_op.hidden_disk_ops[i]
 			assert x.op == 'write'
 			regions[(x.offset, x.count)] = x.special_write
 		for x in regions:
-			if micro_op.op == 'write' and regions[x] != None:
+			if micro_op.op == 'append' and regions[x] != None:
 				assert regions[x] in ['GARBAGE', 'ZEROS']
 				return False
 			if micro_op.op == 'trunc' and regions[x] != 'ZEROS':
@@ -125,6 +127,32 @@ def ordered_atomicity_validate(mode, micro_op, selected):
 		return True
 	else:
 		assert False
+
+filesystems = {}
+filesystems['thanufs'] = (thanufs_dependencies, lambda x, y, z: True)
+filesystems['ext3_o'] = (ext3_dependencies, ordered_atomicity_validate)
+filesystems['ext3_w'] = (ext3_dependencies, writeback_atomicity_validate)
+
+def prefix_run(msg, atomicity_validation, replayer, consider_only = None):
+	output = list()
+	for i in range(0, replayer.dops_len()):
+		double_i = replayer.dops_double(i)
+		op = replayer.get_op(double_i[0]).op
+		if consider_only and (not op in consider_only):
+			continue
+		if op == 'sync':
+			continue
+		E = str(i) + str(double_i)
+		#replayer.dops_end_at(double_i)
+
+		selected = set(range(0, double_i[1] + 1))
+		if not atomicity_validation(msg, replayer.get_op(double_i[0]), selected):
+			continue
+
+		output.append(double_i)
+		if debug: print msg + ' E' + E
+
+	return output
 
 def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 	output = list()
@@ -165,7 +193,7 @@ def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 			if replayer.is_legal():
 				R = str(i) + str(double_i)
 				E = str(j) + str(double_j)
-				print msg + ' R' + R + ' E' + E
+				if debug: print msg + ' R' + R + ' E' + E
 				output.append((double_i, double_j))
 			replayer.dops_include(double_i)
 	return output
@@ -191,47 +219,64 @@ def omit_micro(msg, replayer):
 			replayer.dops_end_at((j, replayer.dops_len(j) - 1))
 			if replayer.is_legal():
 				output.append((i, j))
-				print msg + ' RM' + str(i) + ' EM' + str(j)
+				if debug: print msg + ' RM' + str(i) + ' EM' + str(j)
 
 		for j in range(0, replayer.dops_len(i)):
 			replayer.dops_include((i, j))
 	
 	return output
 
-def do_main():
-	dependencies_function = ext3_dependencies
-	atomicity_validation = ordered_atomicity_validate
-
-	myutils.init_cmdline()
-	strace_description = pickle.load(open(myutils.cmdline().micro_cache_file))
+def get_crash_states(strace_description, dependencies_function, atomicity_validation):
+	myutils.init_cmdline(default_initialize = True)
 	assert strace_description['version'] == 2
 	path_inode_map = strace_description['path_inode_map']
 	micro_operations = strace_description['one']
 	replayer = simulate_crashes.Replayer(path_inode_map, micro_operations)
 	output = Struct()
 	output.omit_one = dict()
+	output.prefix = dict()
+
+	replayer.dops_generate(splits=1, expanded_atomicity = True)
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+	output.prefix['one'] = prefix_run('prefix-one', atomicity_validation, replayer)
 
 	replayer.dops_generate(splits=1)
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
-
 	output.omitmicro = omit_micro('omitmicro', replayer)
 	output.omit_one['one'] = omit_one('omit_one-one', atomicity_validation, replayer)
+
+	replayer.dops_generate(splits=4096, split_mode='aligned', expanded_atomicity = True)
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+	output.prefix['aligned'] = prefix_run('prefix-aligned', atomicity_validation, replayer)
 
 	replayer.dops_generate(splits=4096, split_mode='aligned')
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
-
 	output.omit_one['aligned'] = omit_one('omit_one-aligned', atomicity_validation, replayer, conv_micro.expansive_ops)
+
+	replayer.dops_generate(splits=3, expanded_atomicity = True)
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+	output.prefix['three'] = prefix_run('prefix-three', atomicity_validation, replayer)
 
 	replayer.dops_generate(splits=3)
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
-
 	output.omit_one['three'] = omit_one('omit_one-three', atomicity_validation, replayer, conv_micro.expansive_ops)
 
-	pickle.dump(output, open('/tmp/x', 'w'))
-	print 'finished'
+	return output
 
 if __name__ == '__main__':
-	cProfile.run('do_main()')
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--fs', dest = 'fs', type = str, default = False)
+	parser.add_argument('--strace_description', dest = 'strace_description', type = str, default = False)
+	parser.add_argument('--outfile', dest = 'outfile', type = str, default = False)
+	parser.add_argument('--debug', dest = 'debug', type = bool, default = False)
+	cmdline = parser.parse_args()
+	debug = cmdline.debug
+	cmdline.strace_description = pickle.load(open(cmdline.strace_description))
+	output = get_crash_states(cmdline.strace_description, filesystems[cmdline.fs][0], filesystems[cmdline.fs][1])
+	pickle.dump(output, open(cmdline.outfile, 'w'))
