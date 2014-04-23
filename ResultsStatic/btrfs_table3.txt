@@ -1,0 +1,15 @@
+                                                
+OVERALL_STATS:
+                  Total states  Failed states  Total non-output syscalls   Sync syscalls   Output syscalls  Total abstract states
+BerkeleyDB-BTREE  469           4              47                         9               3                 1838
+BerkeleyDB-Hash   433           9              45                         9               2                 1459
+LevelDB1.10       2008          199            68                         11              12                4466
+LevelDB1.15       1749          296            85                         11              12                8322
+LMDB              14            0              5                          2               1                 50
+gdbm              287           23             42                         7               6                 1333
+git               508           121            47                         4               6                 2841
+MercurialDynamic  1135          336            60                         0               0                 9703
+HSqlDb            855           46             46                         6               4                 4213
+Sqlite-WAL        734           0              42                         5               3                 2032
+Sqlite-Rollback   70            1              16                         4               2                 334
+VMWare            632           0              47                         13              2                 1487

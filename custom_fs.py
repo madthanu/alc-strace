@@ -9,11 +9,11 @@ import argparse
 import traceback
 from mystruct import Struct
 debug = False
-def abstract_dependencies(ops):
+def abstract_dependencies(replayer, ops):
 	last_sync = None
 	for i in range(0, len(ops)):
 		ops[i].hidden_dependencies = set()
-		ops[i].hidden_thanufs_stuff = Struct(reverse_fsync_dependencies = set())
+		ops[i].hidden_twojournalfs_stuff = Struct(reverse_fsync_dependencies = set())
 		if last_sync != None:
 			ops[i].hidden_dependencies.add(last_sync)
 		if ops[i].op in ['sync', 'stdout', 'stderr']:
@@ -38,7 +38,7 @@ def abstract_dependencies(ops):
 						continue
 					assert ops[i].hidden_micro_op.hidden_parsed_line.syscall in ['fsync', 'fdatasync']
 					ops[i].hidden_dependencies.add(j)
-					ops[j].hidden_thanufs_stuff.reverse_fsync_dependencies.add(i)
+					ops[j].hidden_twojournalfs_stuff.reverse_fsync_dependencies.add(i)
 				elif ops[j].op == 'write':
 					if not ops[j].inode == ops[i].inode:
 						continue
@@ -52,7 +52,7 @@ def abstract_dependencies(ops):
 								print '----------------------------------------------------------'
 							globals()['warned_xxxx1'] = 1
 						ops[i].hidden_dependencies.add(j)
-						ops[j].hidden_thanufs_stuff.reverse_fsync_dependencies.add(i)
+						ops[j].hidden_twojournalfs_stuff.reverse_fsync_dependencies.add(i)
 					else:
 						if (j_final >= i_initial and j_final <= i_final):
 							if not 'warned_xxxx2' in globals():
@@ -66,21 +66,52 @@ def abstract_dependencies(ops):
 						continue
 					assert ops[i].hidden_micro_op.hidden_parsed_line.syscall == 'fsync'
 					ops[i].hidden_dependencies.add(j)
-					ops[j].hidden_thanufs_stuff.reverse_fsync_dependencies.add(i)
+					ops[j].hidden_twojournalfs_stuff.reverse_fsync_dependencies.add(i)
 				else:
 					assert ops[j].op in ['stdout', 'stderr']
 
-def thanufs_dependencies(replayer, ops):
-	abstract_dependencies(ops)
+def twojournalfs_dependencies(replayer, ops):
+	abstract_dependencies(replayer, ops)
 	for i in range(0, len(ops)):
 		if ops[i].op not in ['sync', 'stdout', 'stderr'] and \
-				len(ops[i].hidden_thanufs_stuff.reverse_fsync_dependencies) == 0:
+				len(ops[i].hidden_twojournalfs_stuff.reverse_fsync_dependencies) == 0:
 			depends_from = replayer.dops_single((replayer.dops_double(i)[0], 0)) - 1 # Last disk op of the previos micro op
 			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(depends_from, -1, -1))
 
+def twojournalfs_dj_dependencies(replayer, ops):
+	abstract_dependencies(replayer, ops)
+	prev_fsyncj_op = None
+	for i in range(0, len(ops)):
+		if ops[i].op in ['sync', 'stdout', 'stderr']:
+			continue
+		if len(ops[i].hidden_twojournalfs_stuff.reverse_fsync_dependencies) == 0:
+			depends_from = replayer.dops_single((replayer.dops_double(i)[0], 0)) - 1 # Last disk op of the previos micro op
+			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(depends_from, -1, -1))
+		else:
+			if prev_fsyncj_op != None:
+				ops[i].hidden_dependencies.add(prev_fsyncj_op)
+			prev_fsyncj_op = i
+
+def btrfs_dependencies(replayer, ops):
+	abstract_dependencies(replayer, ops)
+	for i in range(0, len(ops)):
+		if ops[i].op == 'write':
+			for j in range(i - 1, -1, -1):
+				if ops[j].op == 'create_dir_entry' and ops[j].inode == ops[i].inode:
+					ops[i].hidden_dependencies.add(j)
+		if ops[i].hidden_micro_op.op == 'rename':
+			for j in range(i - 1, -1, -1):
+				if ops[j].op == 'write' and ops[j].inode == ops[i].inode:
+					ops[i].hidden_dependencies.add(j)
+		if ops[i].op == 'create_dir_entry':
+			for j in range(i - 1, -1, -1):
+				if ops[j].op == 'create_dir_entry' and ops[j].inode == ops[i].parent:
+					ops[i].hidden_dependencies.add(j)
+
+
 def ext3o_dependencies(replayer, ops):
 	# Metadata operations and appends are ordered. Writes are ordered before subsequent metadata operations.
-	abstract_dependencies(ops)
+	abstract_dependencies(replayer, ops)
 	for i in range(0, len(ops)):
 		if ops[i].op not in ['stdout', 'stderr']:
 			# If overwrites
@@ -90,7 +121,7 @@ def ext3o_dependencies(replayer, ops):
 			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
 
 def ext4o_noautodaalloc_dependencies(replayer, ops):
-	abstract_dependencies(ops)
+	abstract_dependencies(replayer, ops)
 	prev_metadata_operation = None
 	for i in range(0, len(ops)):
 		if ops[i].op not in ['stdout', 'stderr', 'sync']:
@@ -119,7 +150,7 @@ def ext4o_dependencies(replayer, ops):
 
 def ext3w_dependencies(replayer, ops):
 	# Metadata operations are ordered. Others aren't.
-	abstract_dependencies(ops)
+	abstract_dependencies(replayer, ops)
 	prev_metadata_operation = None
 	for i in range(0, len(ops)):
 		if ops[i].op not in ['stdout', 'stderr', 'sync']:
@@ -176,11 +207,25 @@ def ordered_atomicity_validate(mode, micro_op, selected):
 	if mode in ['prefix-one', 'omit_one-one']:
 		return False
 	elif mode in ['prefix-aligned', 'omit_one-aligned']:
-		regions = collections.OrderedDict()
+		regions = {}
 		for i in selected:
 			x = micro_op.hidden_disk_ops[i]
 			assert x.op == 'write'
 			regions[(x.offset, x.count)] = x.special_write
+
+		# Validate prefix
+		all_regions = set()
+		for x in micro_op.hidden_disk_ops:
+			assert x.op == 'write'
+			all_regions.add((x.offset, x.count))
+		all_regions = sorted(list(all_regions))
+		given_regions = sorted(regions.keys())
+		assert len(given_regions) <= len(all_regions)
+		for x in range(0, len(given_regions)):
+			if all_regions[x] != given_regions[x]:
+				return False
+
+		# Validate non-garbage
 		for x in regions:
 			if micro_op.op == 'append' and regions[x] != None:
 				assert regions[x] in ['GARBAGE', 'ZEROS']
@@ -193,11 +238,16 @@ def ordered_atomicity_validate(mode, micro_op, selected):
 		assert False
 
 filesystems = {}
-filesystems['thanufs'] = (thanufs_dependencies, lambda x, y, z: True)
+filesystems['twojournalfs'] = (twojournalfs_dependencies, lambda x, y, z: True)
+filesystems['twojournalfs_atomic'] = (twojournalfs_dependencies, ordered_atomicity_validate)
+filesystems['twojournalfs_dj_atomic'] = (twojournalfs_dj_dependencies, ordered_atomicity_validate)
+filesystems['twojournalfs_dj'] = (twojournalfs_dependencies, lambda x, y, z: True)
 filesystems['ext3_o'] = (ext3o_dependencies, ordered_atomicity_validate)
 filesystems['ext3_w'] = (ext3w_dependencies, writeback_atomicity_validate)
 filesystems['ext4_o'] = (ext4o_dependencies, ordered_atomicity_validate)
 filesystems['ext4_o_noauto_da'] = (ext4o_noautodaalloc_dependencies, ordered_atomicity_validate)
+filesystems['abstractfs'] = (abstract_dependencies, lambda x, y, z: True)
+filesystems['btrfs'] = (btrfs_dependencies, ordered_atomicity_validate)
 
 def prefix_run(msg, atomicity_validation, replayer, consider_only = None):
 	output = list()
@@ -223,7 +273,7 @@ def prefix_run(msg, atomicity_validation, replayer, consider_only = None):
 def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 	output = list()
 	for i in range(0, replayer.dops_len()):
-		if debug: print 'omit_one(' + msg + '), testing with R' + str(i) + '/' + str(replayer.dops_len())
+#		if debug: print 'omit_one(' + msg + '), testing with R' + str(i) + '/' + str(replayer.dops_len())
 		double_i = replayer.dops_double(i)
 		op = replayer.get_op(double_i[0]).op
 		if op in conv_micro.pseudo_ops:
@@ -241,7 +291,6 @@ def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 		selected = set(range(0, replayer.dops_len(double_i[0])))
 		selected.remove(double_i[1])
 		if not atomicity_validation(msg, replayer.get_op(double_i[0]), selected):
-			print 'Continuing because atomicity invalid'
 			continue
 
 		till = replayer.dops_single(replayer.dops_independent_till(double_i))
@@ -249,6 +298,10 @@ def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 		for j in range(i + 1, till + 1):
 			double_j = replayer.dops_double(j)
 			op = replayer.get_op(double_j[0]).op
+			# Testing only atomicity
+			if double_j[0] != double_i[0]:
+				continue
+
 			if op in conv_micro.sync_ops:
 				continue
 
@@ -256,7 +309,6 @@ def omit_one(msg, atomicity_validation, replayer, consider_only = None):
 			if double_j[0] == double_i[0]: # If same micro_op
 				selected.remove(double_i[1])
 			if not atomicity_validation(msg, replayer.get_op(double_j[0]), selected):
-				print 'Continuing because atomicity invalid'
 				continue
 
 			replayer.dops_end_at(double_j)
@@ -330,20 +382,21 @@ def get_crash_states(strace_description, dependencies_function, atomicity_valida
 
 	output.omit_one['aligned'] = []
 	output.omit_one['three'] = []
-#	replayer.dops_generate(splits=4096, split_mode='aligned')
-#	replayer.dops_set_legal()
-#	replayer.set_additional_dependencies(dependencies_function)
-#	output.omit_one['aligned'] = omit_one('omit_one-aligned', atomicity_validation, replayer, conv_micro.expansive_ops)
+	replayer.dops_generate(splits=4096, split_mode='aligned')
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+	output.omit_one['aligned'] = omit_one('omit_one-aligned', atomicity_validation, replayer, conv_micro.expansive_ops)
 
 	replayer.dops_generate(splits=3, expanded_atomicity = True)
 	replayer.dops_set_legal()
 	replayer.set_additional_dependencies(dependencies_function)
 	output.prefix['three'] = prefix_run('prefix-three', atomicity_validation, replayer)
 
-#	replayer.dops_generate(splits=3)
-#	replayer.dops_set_legal()
-#	replayer.set_additional_dependencies(dependencies_function)
-#	output.omit_one['three'] = omit_one('omit_one-three', atomicity_validation, replayer, conv_micro.expansive_ops)
+	replayer.dops_generate(splits=3)
+	replayer.dops_set_legal()
+	replayer.set_additional_dependencies(dependencies_function)
+	replayer.print_ops()
+	output.omit_one['three'] = omit_one('omit_one-three', atomicity_validation, replayer, conv_micro.expansive_ops)
 
 	return output
 
@@ -356,5 +409,6 @@ if __name__ == '__main__':
 	cmdline = parser.parse_args()
 	debug = cmdline.debug
 	cmdline.strace_description = pickle.load(open(cmdline.strace_description))
-	output = cProfile.run('get_crash_states(cmdline.strace_description, filesystems[cmdline.fs][0], filesystems[cmdline.fs][1])')
+	output = get_crash_states(cmdline.strace_description, filesystems[cmdline.fs][0], filesystems[cmdline.fs][1])
+#	output = cProfile.run('get_crash_states(cmdline.strace_description, filesystems[cmdline.fs][0], filesystems[cmdline.fs][1])')
 	pickle.dump(output, open(cmdline.outfile, 'w'))

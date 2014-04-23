@@ -1,0 +1,72 @@
+                                                                           
+ATOMICITY VULNERABILITIES:
+                                                          append  rename  trunc   unlink  write   ztotal
+BerkeleyDB-BTREE                                          1(10)           1(5)            1(1)    2(16)
+BerkeleyDB-Hash                                           1(7)            1(5)                    2(12)
+LevelDB1.10                                                                               1(5)    1(5)
+LevelDB1.15                                               1(5)                                    1(5)
+LMDB                                                                                      1(1)    1(1)
+gdbm                                                              1(1)                            1(1)
+git                                                               1(1)                            1(1)
+MercurialDynamic                                          1(5)    1(3)                            2(8)
+HSqlDb                                                    1(1)    1(1)            1(3)            3(5)
+VMWare                                                            1(1)                            1(1)
+                                                                           
+REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:
+                                                          append  rename  stdout  unlink  write   ztotal
+BerkeleyDB-BTREE                                          1(1)                            1(5)    2(6)
+BerkeleyDB-Hash                                           1(7)                                    1(7)
+LevelDB1.10                                                               1(1)    1(4)    2(3)    3(8)
+LevelDB1.15                                               3(16)                                   3(16)
+gdbm                                                                      3(3)                    3(3)
+git                                                       2(2)    3(8)    1(1)                    6(11)
+MercurialDynamic                                          2(5)    2(10)                           4(15)
+HSqlDb                                                    1(1)    1(1)            3(5)            5(7)
+Sqlite-Rollback                                                           1(1)                    1(1)
+                                                                           
+INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:
+                                                          append  creat   rename  stdout  trunc   unlink  write  ztotal
+BerkeleyDB-BTREE                                                                  1(1)                    1(2)   1(1)
+BerkeleyDB-Hash                                                                   1(1)                    1(1)   1(1)
+gdbm                                                      1(2)    1(1)                                           1(1)
+git                                                       1(1)            1(1)                                   1(1)
+MercurialDynamic                                          3(3)    3(3)    3(7)            2(2)    2(2)           4(4)
+HSqlDb                                                    1(1)                    1(2)                           1(1)
+                                                                           
+INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:
+                                                          append  creat   stdout  ztotal
+BerkeleyDB-BTREE                                                          1(1)    1(1)
+BerkeleyDB-Hash                                                           1(1)    1(1)
+gdbm                                                      1(1)                    1(1)
+git                                                       1(1)                    1(1)
+MercurialDynamic                                          3(3)    1(1)            4(4)
+HSqlDb                                                    1(1)                    1(1)
+                                                                           
+SPECIAL_REORDERING VULNERABILITIES:
+                                                          ztotal
+                                                                           
+SPECIAL_AND_NORMAL_REORDERING VULNERABILITIES:
+                                                          append  rename  stdout  unlink  write   ztotal
+BerkeleyDB-BTREE                                          1(1)                            1(5)    2(6)
+BerkeleyDB-Hash                                           1(7)                                    1(7)
+LevelDB1.10                                                               1(1)    1(4)    2(3)    3(8)
+LevelDB1.15                                               3(16)                                   3(16)
+gdbm                                                                      3(3)                    3(3)
+git                                                       2(2)    3(8)    1(1)                    6(11)
+MercurialDynamic                                          2(5)    2(10)                           4(15)
+HSqlDb                                                    1(1)    1(1)            3(5)            5(7)
+Sqlite-Rollback                                                           1(1)                    1(1)
+                                                                           
+TOTAL VULNERABILITIES:
+                                                          append  creat   link    mkdir   rename  stdout  trunc  unlink  write  ztotal
+BerkeleyDB-BTREE                                          2(11)   1(5)                            1(1)    1(5)           4(8)   5(23)
+BerkeleyDB-Hash                                           2(19)                                   1(1)    1(5)           2(3)   4(20)
+LevelDB1.10                                                       2(4)                            1(1)    2(3)   1(4)    3(9)   4(13)
+LevelDB1.15                                               4(37)                                                                 4(21)
+LMDB                                                                                                                     1(1)   1(1)
+gdbm                                                      3(4)                            1(1)    3(3)                   1(1)   5(5)
+git                                                       4(5)            2(4)    2(4)    6(11)   1(1)                          8(13)
+MercurialDynamic                                          7(25)   5(6)                    4(14)                  1(1)           10(27)
+HSqlDb                                                    3(3)    3(3)                    3(5)    1(1)           4(9)           9(13)
+Sqlite-Rollback                                                                                   1(1)           1(1)           1(1)
+VMWare                                                                                    1(1)                                  1(1)

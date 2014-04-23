@@ -441,7 +441,7 @@ class Replayer:
 				drop_list = [self.dops_single(double) for double in drop_list]
 			else:
 				assert type(drop_list[0]) == int
-		single_answers = sorted(self.test_suite.drop_list_of_ops(drop_list))
+		single_answers = sorted(list(set(self.test_suite.drop_list_of_ops(drop_list) + drop_list)))
 
 		if len(single_answers) == 0:
 			return None

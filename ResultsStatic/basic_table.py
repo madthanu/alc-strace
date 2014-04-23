@@ -135,27 +135,31 @@ if __name__ == '__main__':
 
 	output = ''
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'ATOMICITY VULNERABILITIES:\n'
 	output += do_table(vulnerabilities, lambda x: x == error_reporter.ATOMICITY, lambda x: [x.micro_op])
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:\n'
 	output += do_table(vulnerabilities, lambda x: x == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:\n'
 	output += do_table(vulnerabilities, lambda x: x == error_reporter.PREFIX, lambda x: list(x.micro_op))
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:\n'
 	output += do_table(vulnerabilities, lambda x: x == error_reporter.PREFIX, lambda x: [x.micro_op[0]])
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'SPECIAL_REORDERING VULNERABILITIES:\n'
 	output += do_table(vulnerabilities, lambda x: x == error_reporter.SPECIAL_REORDERING, lambda x: [x.micro_op[1]])
 
-	output += '    \n'
+	output += ' ; ; ; \n'
+	output += 'SPECIAL_AND_NORMAL_REORDERING VULNERABILITIES:\n'
+	output += do_table(vulnerabilities, lambda x: x == error_reporter.SPECIAL_REORDERING or x == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
+
+	output += ' ; ; ; \n'
 	output += 'TOTAL VULNERABILITIES:\n'
 	output += do_table(vulnerabilities, lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else [x.micro_op[0], x.micro_op[1]])
 
@@ -172,20 +176,20 @@ if __name__ == '__main__':
 				answer.append(x)
 		return answer
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'CATEGORIZED FAILURES:\n'
 	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, True))
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'NON-CATEGORIZED FAILURES:\n'
 	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
 
 	columnize_write(output, fs_name + '_table2.txt')
 	output = ''
 
-	output += '    \n'
+	output += ' ; ; ; \n'
 	output += 'OVERALL_STATS:\n'
-	output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls;Unfiltered states\n'
+	output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls;Total abstract states\n'
 	for folder in folders:
 		if folder not in stats:
 			continue

@@ -1,0 +1,28 @@
+                                                                                   
+CATEGORIZED FAILURES:
+                           CORRUPTED_READ_VALUES             FULL_READ_FAILURE    FULL_WRITE_FAILURE  MISC                        PARTIAL_READ_FAILURE  PARTIAL_WRITE_FAILURE  SILENT_DATA_LOSS       ztotal
+BerkeleyDB-BTREE           1(9)                              3(11)                3(11)               1(1)                        1(9)                                         2(2)                   5(23)
+BerkeleyDB-Hash            1(2)                              2(11)                2(11)                                                                                        3(9)                   4(22)
+LevelDB1.10                4(15)                                                                                                                                                                      4(15)
+LevelDB1.15                4(31)                                                                                                                                                                      4(31)
+LMDB                                                                              1(1)                1(1)                                                                                            1(1)
+gdbm                                                         2(2)                 2(2)                1(1)                                                                     2(2)                   5(5)
+git                                                          3(4)                 4(10)               5(11)                       3(3)                                         1(1)                   8(14)
+MercurialDynamic                                             2(2)                 3(5)                                            9(22)                 6(19)                                         10(31)
+HSqlDb                     2(2)                              4(7)                 4(7)                                                                                         4(4)                   9(13)
+Sqlite-Rollback                                                                                                                                                                1(1)                   1(1)
+VMWare                                                       1(1)                 1(1)                                                                                                                1(1)
+                                                                                   
+NON-CATEGORIZED FAILURES:
+                           DB Verify tool - False Negative!  Dirstate corruption  FSCK-only errors    Note:Not Silent Corruption  Reflog error only     Repository Corruption  Repository corruption  Silent data loss  ztotal
+BerkeleyDB-BTREE           1(1)                                                                       1(9)                                                                                                              5(23)
+BerkeleyDB-Hash                                                                                                                                                                                                         4(22)
+LevelDB1.10                                                                                                                                                                                                             4(15)
+LevelDB1.15                                                                                                                                                                                                             4(31)
+LMDB                                                                                                                                                                                                                    1(1)
+gdbm                                                                                                                                                                                                                    5(5)
+git                                                                               2(2)                                            1(1)                                         4(10)                  1(1)              8(14)
+MercurialDynamic                                             7(7)                                                                                       6(24)                                                           10(31)
+HSqlDb                                                                                                                                                                                                                  9(13)
+Sqlite-Rollback                                                                                                                                                                                                         1(1)
+VMWare                                                                                                                                                                                                                  1(1)

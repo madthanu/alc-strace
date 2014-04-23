@@ -1,0 +1,24 @@
+                                                                                   
+CATEGORIZED FAILURES:
+                           CORRUPTED_READ_VALUES             FULL_READ_FAILURE    FULL_WRITE_FAILURE          MISC               PARTIAL_READ_FAILURE   PARTIAL_WRITE_FAILURE  SILENT_DATA_LOSS  ztotal
+BerkeleyDB-BTREE           1(9)                              2(6)                 2(6)                        1(1)               1(9)                                          1(1)              4(17)
+BerkeleyDB-Hash                                              2(11)                2(11)                                                                                        3(4)              4(15)
+LevelDB1.10                2(6)                                                                                                                                                                  2(6)
+LevelDB1.15                1(5)                                                                                                                                                                  1(5)
+gdbm                                                         1(1)                 1(1)                        1(1)                                                             1(1)              3(3)
+git                                                                                                                              1(1)                                          1(1)              2(2)
+MercurialDynamic                                                                                                                 5(5)                   1(4)                                     5(9)
+HSqlDb                                                                                                                                                                         1(1)              1(1)
+Sqlite-Rollback                                                                                                                                                                1(1)              1(1)
+                                                                                   
+NON-CATEGORIZED FAILURES:
+                           DB Verify tool - False Negative!  Dirstate corruption  Note:Not Silent Corruption  Reflog error only  Repository Corruption  Silent data loss       ztotal
+BerkeleyDB-BTREE           1(1)                                                   1(9)                                                                                         4(17)
+BerkeleyDB-Hash                                                                                                                                                                4(15)
+LevelDB1.10                                                                                                                                                                    2(6)
+LevelDB1.15                                                                                                                                                                    1(5)
+gdbm                                                                                                                                                                           3(3)
+git                                                                                                           1(1)                                      1(1)                   2(2)
+MercurialDynamic                                             5(5)                                                                1(4)                                          5(9)
+HSqlDb                                                                                                                                                                         1(1)
+Sqlite-Rollback                                                                                                                                                                1(1)
