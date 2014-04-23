@@ -577,14 +577,14 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				if filter != None:
 					if (i, j) not in filter.omitmicro:
 						continue
-				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
+				if (micro_operations[j].op not in ['stdout', 'stderr'] and j in prefix_problems) or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
 					continue
 				if not (Op(i), Op(j)) in replay_output.omitmicro:
 					blank_found = True
 					continue
 				assert not blank_found
 				output = replay_output.omitmicro[(Op(i), Op(j))]
-				
+
 				if not is_correct(output):
 					reordering_violators[i] = j
 					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr)
@@ -627,7 +627,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 								blank_found = True
 								continue
 							if filter != None:
-								if (i, j) not in filter.omit_one[subtype]:
+								if ((i, x), (j, y)) not in filter.omit_one[subtype]:
 									blank_found = True
 									continue
 							assert not blank_found
