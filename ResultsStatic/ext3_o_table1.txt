@@ -4,19 +4,18 @@ ATOMICITY VULNERABILITIES:
 LevelDB1.10                                               1(5)    1(5)
                                                                            
 REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:
-                                                          stdout  ztotal
-gdbm                                                      2(2)    2(2)
-git                                                       1(1)    1(1)
-Sqlite-Rollback                                           1(1)    1(1)
+                                                          stdout  write   ztotal
+gdbm                                                      1(1)    3(3)    4(4)
+git                                                       1(1)            1(1)
+Sqlite-Rollback                                           1(1)            1(1)
                                                                            
 INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:
                                                           append  creat   rename  stdout  trunc   unlink  write   ztotal
 BerkeleyDB-BTREE                                                                  1(1)                    1(2)    1(1)
 BerkeleyDB-Hash                                                                   1(1)                    1(1)    1(1)
-gdbm                                                      1(2)    1(1)                                            1(1)
+gdbm                                                      1(3)    1(1)                                            1(1)
 git                                                       1(1)            1(1)                                    1(1)
 MercurialDynamic                                          3(3)    3(3)    3(7)            2(2)    2(2)            4(4)
-HSqlDb                                                    1(1)                    1(2)                            1(1)
                                                                            
 INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:
                                                           append  creat   stdout  ztotal
@@ -25,24 +24,22 @@ BerkeleyDB-Hash                                                           1(1)  
 gdbm                                                      1(1)                    1(1)
 git                                                       1(1)                    1(1)
 MercurialDynamic                                          3(3)    1(1)            4(4)
-HSqlDb                                                    1(1)                    1(1)
                                                                            
 SPECIAL_REORDERING VULNERABILITIES:
                                                           ztotal
                                                                            
 SPECIAL_AND_NORMAL_REORDERING VULNERABILITIES:
-                                                          stdout  ztotal
-gdbm                                                      2(2)    2(2)
-git                                                       1(1)    1(1)
-Sqlite-Rollback                                           1(1)    1(1)
+                                                          stdout  write   ztotal
+gdbm                                                      1(1)    3(3)    4(4)
+git                                                       1(1)            1(1)
+Sqlite-Rollback                                           1(1)            1(1)
                                                                            
 TOTAL VULNERABILITIES:
                                                           append  creat   rename  stdout  unlink  write   ztotal
 BerkeleyDB-BTREE                                                                  1(1)            1(1)    1(1)
 BerkeleyDB-Hash                                                                   1(1)            1(1)    1(1)
 LevelDB1.10                                                                                       1(5)    1(5)
-gdbm                                                      2(3)                    2(2)            1(1)    3(3)
+gdbm                                                      4(5)                    1(1)            4(4)    5(5)
 git                                                       1(1)            2(2)    1(1)                    2(2)
 MercurialDynamic                                          3(3)    3(3)    1(1)            1(1)            4(4)
-HSqlDb                                                    1(1)                    1(1)                    1(1)
 Sqlite-Rollback                                                                   1(1)    1(1)            1(1)

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os
 import sys
 sys.path.append(os.getenv('ALC_STRACE_HOME') + '/error_reporter')
@@ -15,9 +16,9 @@ def meaning(x):
 	elif 'Assertion `it->status().ok()\' failed.' in x:
 		return 'Exception'
 	elif 'Assertion `replayed_entries == ' in x:
-		return 'Wrong'
+		return 'DurabilityWrong'
 	elif 'Assertion `replayed_entries >= ' in x:
-		return 'Wrong'
+		return 'DurabilityWrong'
 	elif 'what():  basic_string::_S_create' in x:
 		return 'Wrong'
 	elif x in ['C', '']:
@@ -34,7 +35,7 @@ def is_correct(msg):
 		return False
 	if meaning(msg[3]) == 'Exception':
 		return False
-	if meaning(msg[2]) == 'Wrong':
+	if 'Wrong' in meaning(msg[2]):
 		return False
 	return True
 
@@ -51,10 +52,24 @@ def failure_category(msg):
 		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
 	if meaning(msg[2]) == 'Wrong':
 		toret.add(FailureCategory.MISC)
+	for x in msg:
+		if 'Durability' in meaning(x):
+			toret.add(FailureCategory.DURABILITY)
 	assert len(toret) > 0
 	return list(toret)
 
+#stack_repr for leveldb is hard coded in error_reporter.py
+
+def stack_repr(backtrace):
+	backtrace = error_reporter.standard_stack_traverse(backtrace)
+	for stack_frame in backtrace:
+		if 'PosixWritableFile' in stack_frame.func_name:
+			continue
+		if stack_frame.src_filename == None:
+			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+
 def run_me():
-	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
+	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category, stack_repr)
 
 run_me()

@@ -13,6 +13,10 @@ def failure_category(msg):
 	if '''Normal mode! -- Normal:WOR:Exception:(-30985, 'DB_PAGE_NOTFOUND: Requested page not found')--No of rows retrieved:0Normal:TWR: Durability signal present. No problem. No of rows retrieved:1200''' == msg:
 		return [FailureCategory.MISC, "DB Verify tool - False Negative!"]
 
+	if '''Normal mode! -- Normal:WOR: Durability signal present. But No of rows retrieved:1''' in msg \
+		or '''TWR: Silent loss of durability - Recovered to old state''' in msg:
+		return [FailureCategory.DURABILITY]	
+
 	if 'No of rows retrieved:' not in msg:
 		return[FailureCategory.FULL_WRITE_FAILURE, FailureCategory.FULL_READ_FAILURE]
 	
@@ -22,10 +26,6 @@ def failure_category(msg):
 	if  '''TWR: Could not recover''' in msg:
 		return [FailureCategory.FULL_WRITE_FAILURE, FailureCategory.FULL_READ_FAILURE]
 	
-	if '''Normal mode! -- Normal:WOR: Durability signal present. But No of rows retrieved:1''' in msg \
-		or '''TWR: Silent loss of durability - Recovered to old state''' in msg:
-		return [FailureCategory.DURABILITY]	
-		
 	if '''TWR: Problematic! Silent corruption. No of rows retrieved''' in msg:
 		return [FailureCategory.CORRUPTED_READ_VALUES]	
 

@@ -12,6 +12,7 @@ import conv_micro
 import argparse
 import myutils
 import subprocess
+import inspect
 import __main__
 from mystruct import Struct
 
@@ -263,9 +264,16 @@ def standard_stack_traverse(backtrace):
 
 def __stack_repr(stack_repr, op):
 	try:
-		backtrace = op.hidden_backtrace
+		backtrace = 0
+		try:
+			backtrace = op.hidden_backtrace
+		except:
+			pass
 		if stack_repr != None:
-			ret_value = stack_repr(backtrace)
+			if len(inspect.getargspec(stack_repr).args) > 1:
+				ret_value = stack_repr(backtrace, op)
+			else:
+				ret_value = stack_repr(backtrace)
 			assert ret_value != None
 			return ret_value
 		backtrace = standard_stack_traverse(backtrace)
@@ -385,8 +393,8 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 			subtype2 = report[4],
 			hidden_details = Struct(micro_op = op)))
 
-def report_reordering(micro_operations, i, j, msg, stack_repr):
-	report_pair(REORDERING, micro_operations, i, j, msg, stack_repr)
+def report_reordering(micro_operations, i, j, msg, stack_repr, unknown):
+	report_pair(REORDERING, micro_operations, i, j, msg, stack_repr, unknown)
 def report_prefix(micro_operations, i, j, msg, stack_repr):
 	first_index = str(i)
 	second_index = str(j)
@@ -413,9 +421,11 @@ def report_prefix(micro_operations, i, j, msg, stack_repr):
 
 def report_special_reordering(micro_operations, i, j, msg, stack_repr):
 	report_pair(SPECIAL_REORDERING, micro_operations, i, j, msg, stack_repr)
-def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
+def report_pair(vul_type, micro_operations, i, j, msg, stack_repr, unknown = False):
 	first_index = str(i)
 	second_index = str(j)
+	if unknown:
+		second_index = second_index + '::unknown'
 	if type(i) == tuple: i = i[0]
 	if type(j) == tuple: j = j[0]
 	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
@@ -448,7 +458,7 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr):
 
 	vulnerabilities.append(Struct(type = vul_type,
 			stack_repr = (__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])),
-			micro_op = (micro_operations[i].op, micro_operations[j].op),
+			micro_op = (micro_operations[i].op, micro_operations[j].op if not unknown else "unknown"),
 			failure_category = msg,
 			subtype = report[2],
 			hidden_details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
@@ -577,7 +587,7 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				if filter != None:
 					if (i, j) not in filter.omitmicro:
 						continue
-				if (micro_operations[j].op not in ['stdout', 'stderr'] and j in prefix_problems) or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
+				if j in prefix_problems or micro_operations[j].op in conv_micro.sync_ops or micro_ops.dops_len('one', j) == 0:
 					continue
 				if not (Op(i), Op(j)) in replay_output.omitmicro:
 					blank_found = True
@@ -585,17 +595,14 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 				assert not blank_found
 				output = replay_output.omitmicro[(Op(i), Op(j))]
 
+				unknown = False
+				if j - 1 in prefix_problems:
+					unknown = True
 				if not is_correct(output):
 					reordering_violators[i] = j
-					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr)
+					report_reordering(micro_operations, i, j, __failure_category(failure_category, output), stack_repr, unknown)
 					break
 
-#	if filter != None:
-#		print '---------------'
-#		print sorted(list(filtered_reorderings_seen))
-#		print '---------------'
-#		print sorted(list(filter))
-#		assert len(filtered_reorderings_seen) == len(filter)
 	# Special re-orderings
 	for i in range(0, len(micro_operations)):
 		if i not in prefix_problems and i - 1 not in prefix_problems \

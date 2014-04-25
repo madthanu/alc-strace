@@ -4,10 +4,9 @@ CATEGORIZED FAILURES:
 BerkeleyDB-BTREE                                                                                                       1(1)              1(1)
 BerkeleyDB-Hash                                                                                                        1(1)              1(1)
 LevelDB1.10                1(5)                                                                                                          1(5)
-gdbm                                              1(1)               1(1)                1(1)                          1(1)              3(3)
+gdbm                                              4(4)               4(4)                1(1)                          1(1)              5(5)
 git                                                                                              1(1)                  1(1)              2(2)
 MercurialDynamic                                                                                 4(4)                                    4(4)
-HSqlDb                                                                                                                 1(1)              1(1)
 Sqlite-Rollback                                                                                                        1(1)              1(1)
                                                                       
 NON-CATEGORIZED FAILURES:
@@ -15,8 +14,7 @@ NON-CATEGORIZED FAILURES:
 BerkeleyDB-BTREE                                                                         1(1)
 BerkeleyDB-Hash                                                                          1(1)
 LevelDB1.10                                                                              1(5)
-gdbm                                                                                     3(3)
+gdbm                                                                                     5(5)
 git                                               1(1)               1(1)                2(2)
 MercurialDynamic           4(4)                                                          4(4)
-HSqlDb                                                                                   1(1)
 Sqlite-Rollback                                                                          1(1)

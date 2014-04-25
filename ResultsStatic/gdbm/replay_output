@@ -6,11 +6,11 @@ prefix-one E4(1, 3)	### $ db-error : Bad magic number|???
 prefix-one E5(1, 4)	### $ db-error : Bad magic number|???
 prefix-one E6(1, 5)	### $ db-error : File read error|???
 prefix-one E7(2, 0)	### $ Pass|???
-prefix-one E8(2, 1)	### $ Pass|???
-prefix-one E9(2, 2)	### $ Pass|???
+prefix-one E8(2, 1)	###gdbm fatal: read error|???
+prefix-one E9(2, 2)	###gdbm fatal: read error|???
 prefix-one E10(2, 3)	### $ Pass|???
-prefix-one E11(2, 4)	### $ Pass|???
-prefix-one E12(2, 5)	### $ Pass|???
+prefix-one E11(2, 4)	###gdbm fatal: read error|???
+prefix-one E12(2, 5)	###gdbm fatal: read error|???
 prefix-one E13(3, 0)	### $ Pass|???
 prefix-one E14(3, 1)	### $ Pass|???
 prefix-one E15(3, 2)	### $ Pass|???
@@ -198,7 +198,7 @@ omitmicro RM6 EM11	###dbcreated|key1| $ key1-miss|???
 omitmicro RM6 EM12	###dbcreated|key1| $ key1-miss|???
 omitmicro RM6 EM13	###dbcreated|key1| $ key1-miss|???
 omitmicro RM6 EM14	###dbcreated|key1| $ key1-miss|???
-omitmicro RM7 EM8	###dbcreated| $ Pass|???
+omitmicro RM7 EM8	###gdbm fatal: read error|???
 omitmicro RM7 EM9	###gdbm fatal: read error|???
 omitmicro RM7 EM10	###dbcreated|key1| $ key1-corrupt|???
 omitmicro RM7 EM11	###dbcreated|key1| $ key1-corrupt|???
@@ -218,8 +218,8 @@ omitmicro RM10 EM14	###dbcreated|key1| $ key1  Pass|???
 omitmicro RM11 EM12	###dbcreated|key1| $ key1  Pass|???
 omitmicro RM11 EM13	###dbcreated|key1| $ key1  Pass|???
 omitmicro RM11 EM14	###dbcreated|key1| $ key1  Pass|???
-omitmicro RM12 EM13	###dbcreated|key1| $ key1  Pass|???
-omitmicro RM12 EM14	###dbcreated|key1| $ key1  Pass|???
+omitmicro RM12 EM13	###gdbm fatal: read error|???
+omitmicro RM12 EM14	###gdbm fatal: read error|???
 omitmicro RM13 EM14	###dbcreated|key1| $ key1  Pass|???
 omitmicro RM17 EM18	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omitmicro RM17 EM19	###dbcreated|key1|key2| $ key2  key1  Pass|???
@@ -228,8 +228,8 @@ omitmicro RM17 EM21	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omitmicro RM18 EM19	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omitmicro RM18 EM20	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omitmicro RM18 EM21	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omitmicro RM19 EM20	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omitmicro RM19 EM21	###dbcreated|key1|key2| $ key2  key1  Pass|???
+omitmicro RM19 EM20	###gdbm fatal: read error|???
+omitmicro RM19 EM21	###gdbm fatal: read error|???
 omitmicro RM20 EM21	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omitmicro RM24 EM25	###dbcreated|key1|key2|key3| $ key3  key2  key1  Pass|???
 omitmicro RM24 EM26	###dbcreated|key1|key2|key3| $ key3  key2  key1  Pass|???
@@ -422,9 +422,9 @@ omit_one-one R3(1, 2) E6(2, 2)	### $ db-error : Bad magic number|???
 omit_one-one R3(1, 2) E7(3, 0)	### $ db-error : Bad magic number|???
 omit_one-one R3(1, 2) E8(3, 1)	### $ db-error : Bad magic number|???
 omit_one-one R3(1, 2) E9(3, 2)	### $ db-error : Bad magic number|???
-omit_one-one R6(2, 2) E7(3, 0)	### $ Pass|???
-omit_one-one R6(2, 2) E8(3, 1)	### $ Pass|???
-omit_one-one R6(2, 2) E9(3, 2)	### $ Pass|???
+omit_one-one R6(2, 2) E7(3, 0)	###gdbm fatal: read error|???
+omit_one-one R6(2, 2) E8(3, 1)	###gdbm fatal: read error|???
+omit_one-one R6(2, 2) E9(3, 2)	###gdbm fatal: read error|???
 omit_one-one R14(6, 2) E15(7, 0)	###dbcreated| $ Pass|???
 omit_one-one R14(6, 2) E16(7, 1)	###dbcreated| $ Pass|???
 omit_one-one R14(6, 2) E17(7, 2)	###dbcreated| $ Pass|???
@@ -440,7 +440,7 @@ omit_one-one R14(6, 2) E26(12, 1)	###dbcreated|key1| $ key1-miss|???
 omit_one-one R14(6, 2) E27(12, 2)	###dbcreated|key1| $ key1-miss|???
 omit_one-one R14(6, 2) E28(13, 0)	###dbcreated|key1| $ key1-miss|???
 omit_one-one R14(6, 2) E29(14, 0)	###dbcreated|key1| $ key1-miss|???
-omit_one-one R17(7, 2) E18(8, 0)	###dbcreated| $ Pass|???
+omit_one-one R17(7, 2) E18(8, 0)	###dbcreated| $ key1-corrupt|???
 omit_one-one R17(7, 2) E19(9, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-one R17(7, 2) E20(10, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-one R17(7, 2) E21(10, 1)	###dbcreated|key1| $ key1-corrupt|???
@@ -476,8 +476,8 @@ omit_one-one R24(11, 2) E26(12, 1)	###dbcreated|key1| $ key1  Pass|???
 omit_one-one R24(11, 2) E27(12, 2)	###dbcreated|key1| $ key1  Pass|???
 omit_one-one R24(11, 2) E28(13, 0)	###dbcreated|key1| $ key1  Pass|???
 omit_one-one R24(11, 2) E29(14, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-one R27(12, 2) E28(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-one R27(12, 2) E29(14, 0)	###dbcreated|key1| $ key1  Pass|???
+omit_one-one R27(12, 2) E28(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-one R27(12, 2) E29(14, 0)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-one R28(13, 0) E29(14, 0)	###dbcreated|key1| $ key1  Pass|???
 omit_one-one R33(17, 1) E34(18, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-one R33(17, 1) E35(18, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
@@ -492,8 +492,8 @@ omit_one-one R36(18, 2) E38(19, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|??
 omit_one-one R36(18, 2) E39(19, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-one R36(18, 2) E40(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-one R36(18, 2) E41(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-one R39(19, 2) E40(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-one R39(19, 2) E41(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
+omit_one-one R39(19, 2) E40(20, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-one R39(19, 2) E41(21, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
 omit_one-one R40(20, 0) E41(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-one R44(24, 0) E45(25, 0)	###dbcreated|key1|key2|key3| $ key3  key2  key1  Pass|???
 omit_one-one R44(24, 0) E46(25, 1)	###dbcreated|key1|key2|key3| $ key3  key2  key1  Pass|???
@@ -719,11 +719,11 @@ prefix-aligned E4(1, 3)	### $ db-error : Bad magic number|???
 prefix-aligned E5(1, 4)	### $ db-error : Bad magic number|???
 prefix-aligned E6(1, 5)	### $ db-error : File read error|???
 prefix-aligned E7(2, 0)	### $ Pass|???
-prefix-aligned E8(2, 1)	### $ Pass|???
-prefix-aligned E9(2, 2)	### $ Pass|???
+prefix-aligned E8(2, 1)	###gdbm fatal: read error|???
+prefix-aligned E9(2, 2)	###gdbm fatal: read error|???
 prefix-aligned E10(2, 3)	### $ Pass|???
-prefix-aligned E11(2, 4)	### $ Pass|???
-prefix-aligned E12(2, 5)	### $ Pass|???
+prefix-aligned E11(2, 4)	###gdbm fatal: read error|???
+prefix-aligned E12(2, 5)	###gdbm fatal: read error|???
 prefix-aligned E13(3, 0)	### $ Pass|???
 prefix-aligned E14(3, 1)	### $ Pass|???
 prefix-aligned E15(3, 2)	### $ Pass|???
@@ -949,9 +949,9 @@ omit_one-aligned R3(1, 2) E6(2, 2)	### $ db-error : Bad magic number|???
 omit_one-aligned R3(1, 2) E7(3, 0)	### $ db-error : Bad magic number|???
 omit_one-aligned R3(1, 2) E8(3, 1)	### $ db-error : Bad magic number|???
 omit_one-aligned R3(1, 2) E9(3, 2)	### $ db-error : Bad magic number|???
-omit_one-aligned R6(2, 2) E7(3, 0)	### $ Pass|???
-omit_one-aligned R6(2, 2) E8(3, 1)	### $ Pass|???
-omit_one-aligned R6(2, 2) E9(3, 2)	### $ Pass|???
+omit_one-aligned R6(2, 2) E7(3, 0)	###gdbm fatal: read error|???
+omit_one-aligned R6(2, 2) E8(3, 1)	###gdbm fatal: read error|???
+omit_one-aligned R6(2, 2) E9(3, 2)	###gdbm fatal: read error|???
 omit_one-aligned R14(6, 2) E15(7, 0)	###dbcreated| $ Pass|???
 omit_one-aligned R14(6, 2) E16(7, 1)	###dbcreated| $ Pass|???
 omit_one-aligned R14(6, 2) E17(7, 2)	###dbcreated| $ Pass|???
@@ -979,7 +979,7 @@ omit_one-aligned R14(6, 2) E38(12, 13)	###dbcreated|key1| $ key1-miss|???
 omit_one-aligned R14(6, 2) E39(12, 14)	###dbcreated|key1| $ key1-miss|???
 omit_one-aligned R14(6, 2) E40(13, 0)	###dbcreated|key1| $ key1-miss|???
 omit_one-aligned R14(6, 2) E41(14, 0)	###dbcreated|key1| $ key1-miss|???
-omit_one-aligned R17(7, 2) E18(8, 0)	###dbcreated| $ Pass|???
+omit_one-aligned R17(7, 2) E18(8, 0)	###dbcreated| $ key1-corrupt|???
 omit_one-aligned R17(7, 2) E19(9, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-aligned R17(7, 2) E20(10, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-aligned R17(7, 2) E21(10, 1)	###dbcreated|key1| $ key1-corrupt|???
@@ -1075,8 +1075,8 @@ omit_one-aligned R27(12, 2) E36(12, 11)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R27(12, 2) E37(12, 12)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R27(12, 2) E38(12, 13)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R27(12, 2) E39(12, 14)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R27(12, 2) E40(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R27(12, 2) E41(14, 0)	###dbcreated|key1| $ key1  Pass|???
+omit_one-aligned R27(12, 2) E40(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-aligned R27(12, 2) E41(14, 0)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-aligned R30(12, 5) E31(12, 6)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R30(12, 5) E32(12, 7)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R30(12, 5) E33(12, 8)	###dbcreated|key1| $ key1  Pass|???
@@ -1086,23 +1086,23 @@ omit_one-aligned R30(12, 5) E36(12, 11)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R30(12, 5) E37(12, 12)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R30(12, 5) E38(12, 13)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R30(12, 5) E39(12, 14)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R30(12, 5) E40(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R30(12, 5) E41(14, 0)	###dbcreated|key1| $ key1  Pass|???
+omit_one-aligned R30(12, 5) E40(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-aligned R30(12, 5) E41(14, 0)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-aligned R33(12, 8) E34(12, 9)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R33(12, 8) E35(12, 10)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R33(12, 8) E36(12, 11)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R33(12, 8) E37(12, 12)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R33(12, 8) E38(12, 13)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R33(12, 8) E39(12, 14)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R33(12, 8) E40(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R33(12, 8) E41(14, 0)	###dbcreated|key1| $ key1  Pass|???
+omit_one-aligned R33(12, 8) E40(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-aligned R33(12, 8) E41(14, 0)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-aligned R36(12, 11) E37(12, 12)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R36(12, 11) E38(12, 13)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R36(12, 11) E39(12, 14)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R36(12, 11) E40(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R36(12, 11) E41(14, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R39(12, 14) E40(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-aligned R39(12, 14) E41(14, 0)	###dbcreated|key1| $ key1  Pass|???
+omit_one-aligned R36(12, 11) E40(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-aligned R36(12, 11) E41(14, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-aligned R39(12, 14) E40(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-aligned R39(12, 14) E41(14, 0)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-aligned R40(13, 0) E41(14, 0)	###dbcreated|key1| $ key1  Pass|???
 omit_one-aligned R45(17, 1) E46(18, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-aligned R45(17, 1) E47(18, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
@@ -1159,8 +1159,8 @@ omit_one-aligned R57(18, 11) E59(19, 1)	###dbcreated|key1|key2| $ key2  key1  Pa
 omit_one-aligned R57(18, 11) E60(19, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-aligned R57(18, 11) E61(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-aligned R57(18, 11) E62(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-aligned R60(19, 2) E61(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-aligned R60(19, 2) E62(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
+omit_one-aligned R60(19, 2) E61(20, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-aligned R60(19, 2) E62(21, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
 omit_one-aligned R61(20, 0) E62(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-aligned R68(25, 2) E69(26, 0)	###dbcreated|key1|key2|key3| $ key3  key2  key1  Pass|???
 omit_one-aligned R68(25, 2) E70(26, 1)	###dbcreated|key1|key2|key3| $ key3  key2  key1  Pass|???
@@ -1797,24 +1797,24 @@ prefix-three E21(2, 2)	### $ db-error : File read error|???
 prefix-three E22(2, 3)	### $ db-error : File read error|???
 prefix-three E23(2, 4)	### $ db-error : File read error|???
 prefix-three E24(2, 5)	### $ db-error : File read error|???
-prefix-three E25(2, 6)	### $ Pass|???
-prefix-three E26(2, 7)	### $ Pass|???
-prefix-three E27(2, 8)	### $ Pass|???
-prefix-three E28(2, 9)	### $ Pass|???
-prefix-three E29(2, 10)	### $ Pass|???
-prefix-three E30(2, 11)	### $ Pass|???
-prefix-three E31(2, 12)	### $ Pass|???
-prefix-three E32(2, 13)	### $ Pass|???
-prefix-three E33(2, 14)	### $ Pass|???
-prefix-three E34(2, 15)	### $ Pass|???
-prefix-three E35(2, 16)	### $ Pass|???
-prefix-three E36(2, 17)	### $ Pass|???
-prefix-three E37(3, 0)	### $ Pass|???
-prefix-three E38(3, 1)	### $ Pass|???
-prefix-three E39(3, 2)	### $ Pass|???
-prefix-three E40(3, 3)	### $ Pass|???
-prefix-three E41(3, 4)	### $ Pass|???
-prefix-three E42(3, 5)	### $ Pass|???
+prefix-three E25(2, 6)	###gdbm fatal: read error|???
+prefix-three E26(2, 7)	###gdbm fatal: read error|???
+prefix-three E27(2, 8)	###gdbm fatal: read error|???
+prefix-three E28(2, 9)	###gdbm fatal: read error|???
+prefix-three E29(2, 10)	###gdbm fatal: read error|???
+prefix-three E30(2, 11)	###gdbm fatal: read error|???
+prefix-three E31(2, 12)	###gdbm fatal: read error|???
+prefix-three E32(2, 13)	###gdbm fatal: read error|???
+prefix-three E33(2, 14)	###gdbm fatal: read error|???
+prefix-three E34(2, 15)	###gdbm fatal: read error|???
+prefix-three E35(2, 16)	###gdbm fatal: read error|???
+prefix-three E36(2, 17)	###gdbm fatal: read error|???
+prefix-three E37(3, 0)	###gdbm fatal: read error|???
+prefix-three E38(3, 1)	###gdbm fatal: read error|???
+prefix-three E39(3, 2)	###gdbm fatal: read error|???
+prefix-three E40(3, 3)	###gdbm fatal: read error|???
+prefix-three E41(3, 4)	###gdbm fatal: read error|???
+prefix-three E42(3, 5)	###gdbm fatal: read error|???
 prefix-three E43(3, 6)	### $ Pass|???
 prefix-three E44(3, 7)	### $ Pass|???
 prefix-three E45(3, 8)	### $ Pass|???
@@ -2194,15 +2194,15 @@ omit_one-three R6(1, 5) E12(2, 2)	### $ db-error : File read error|???
 omit_one-three R6(1, 5) E13(2, 3)	### $ db-error : File read error|???
 omit_one-three R6(1, 5) E14(2, 4)	### $ db-error : File read error|???
 omit_one-three R6(1, 5) E15(2, 5)	### $ db-error : File read error|???
-omit_one-three R6(1, 5) E16(2, 6)	### $ Pass|???
-omit_one-three R6(1, 5) E17(2, 7)	### $ Pass|???
-omit_one-three R6(1, 5) E18(2, 8)	### $ Pass|???
-omit_one-three R6(1, 5) E19(3, 0)	### $ Pass|???
-omit_one-three R6(1, 5) E20(3, 1)	### $ Pass|???
-omit_one-three R6(1, 5) E21(3, 2)	### $ Pass|???
-omit_one-three R6(1, 5) E22(3, 3)	### $ Pass|???
-omit_one-three R6(1, 5) E23(3, 4)	### $ Pass|???
-omit_one-three R6(1, 5) E24(3, 5)	### $ Pass|???
+omit_one-three R6(1, 5) E16(2, 6)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E17(2, 7)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E18(2, 8)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E19(3, 0)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E20(3, 1)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E21(3, 2)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E22(3, 3)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E23(3, 4)	###gdbm fatal: read error|???
+omit_one-three R6(1, 5) E24(3, 5)	###gdbm fatal: read error|???
 omit_one-three R6(1, 5) E25(3, 6)	### $ Pass|???
 omit_one-three R6(1, 5) E26(3, 7)	### $ Pass|???
 omit_one-three R6(1, 5) E27(3, 8)	### $ Pass|???
@@ -2212,57 +2212,57 @@ omit_one-three R9(1, 8) E12(2, 2)	### $ db-error : File read error|???
 omit_one-three R9(1, 8) E13(2, 3)	### $ db-error : File read error|???
 omit_one-three R9(1, 8) E14(2, 4)	### $ db-error : File read error|???
 omit_one-three R9(1, 8) E15(2, 5)	### $ db-error : File read error|???
-omit_one-three R9(1, 8) E16(2, 6)	### $ Pass|???
-omit_one-three R9(1, 8) E17(2, 7)	### $ Pass|???
-omit_one-three R9(1, 8) E18(2, 8)	### $ Pass|???
-omit_one-three R9(1, 8) E19(3, 0)	### $ Pass|???
-omit_one-three R9(1, 8) E20(3, 1)	### $ Pass|???
-omit_one-three R9(1, 8) E21(3, 2)	### $ Pass|???
-omit_one-three R9(1, 8) E22(3, 3)	### $ Pass|???
-omit_one-three R9(1, 8) E23(3, 4)	### $ Pass|???
-omit_one-three R9(1, 8) E24(3, 5)	### $ Pass|???
+omit_one-three R9(1, 8) E16(2, 6)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E17(2, 7)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E18(2, 8)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E19(3, 0)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E20(3, 1)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E21(3, 2)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E22(3, 3)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E23(3, 4)	###gdbm fatal: read error|???
+omit_one-three R9(1, 8) E24(3, 5)	###gdbm fatal: read error|???
 omit_one-three R9(1, 8) E25(3, 6)	### $ Pass|???
 omit_one-three R9(1, 8) E26(3, 7)	### $ Pass|???
 omit_one-three R9(1, 8) E27(3, 8)	### $ Pass|???
 omit_one-three R12(2, 2) E13(2, 3)	### $ db-error : File read error|???
 omit_one-three R12(2, 2) E14(2, 4)	### $ db-error : File read error|???
 omit_one-three R12(2, 2) E15(2, 5)	### $ db-error : File read error|???
-omit_one-three R12(2, 2) E16(2, 6)	### $ Pass|???
-omit_one-three R12(2, 2) E17(2, 7)	### $ Pass|???
-omit_one-three R12(2, 2) E18(2, 8)	### $ Pass|???
-omit_one-three R12(2, 2) E19(3, 0)	### $ Pass|???
-omit_one-three R12(2, 2) E20(3, 1)	### $ Pass|???
-omit_one-three R12(2, 2) E21(3, 2)	### $ Pass|???
-omit_one-three R12(2, 2) E22(3, 3)	### $ Pass|???
-omit_one-three R12(2, 2) E23(3, 4)	### $ Pass|???
-omit_one-three R12(2, 2) E24(3, 5)	### $ Pass|???
-omit_one-three R12(2, 2) E25(3, 6)	### $ Pass|???
-omit_one-three R12(2, 2) E26(3, 7)	### $ Pass|???
-omit_one-three R12(2, 2) E27(3, 8)	### $ Pass|???
-omit_one-three R15(2, 5) E16(2, 6)	### $ Pass|???
-omit_one-three R15(2, 5) E17(2, 7)	### $ Pass|???
-omit_one-three R15(2, 5) E18(2, 8)	### $ Pass|???
-omit_one-three R15(2, 5) E19(3, 0)	### $ Pass|???
-omit_one-three R15(2, 5) E20(3, 1)	### $ Pass|???
-omit_one-three R15(2, 5) E21(3, 2)	### $ Pass|???
-omit_one-three R15(2, 5) E22(3, 3)	### $ Pass|???
-omit_one-three R15(2, 5) E23(3, 4)	### $ Pass|???
-omit_one-three R15(2, 5) E24(3, 5)	### $ Pass|???
-omit_one-three R15(2, 5) E25(3, 6)	### $ Pass|???
-omit_one-three R15(2, 5) E26(3, 7)	### $ Pass|???
-omit_one-three R15(2, 5) E27(3, 8)	### $ Pass|???
-omit_one-three R18(2, 8) E19(3, 0)	### $ Pass|???
-omit_one-three R18(2, 8) E20(3, 1)	### $ Pass|???
-omit_one-three R18(2, 8) E21(3, 2)	### $ Pass|???
-omit_one-three R18(2, 8) E22(3, 3)	### $ Pass|???
-omit_one-three R18(2, 8) E23(3, 4)	### $ Pass|???
-omit_one-three R18(2, 8) E24(3, 5)	### $ Pass|???
-omit_one-three R18(2, 8) E25(3, 6)	### $ Pass|???
-omit_one-three R18(2, 8) E26(3, 7)	### $ Pass|???
-omit_one-three R18(2, 8) E27(3, 8)	### $ Pass|???
-omit_one-three R21(3, 2) E22(3, 3)	### $ Pass|???
-omit_one-three R21(3, 2) E23(3, 4)	### $ Pass|???
-omit_one-three R21(3, 2) E24(3, 5)	### $ Pass|???
+omit_one-three R12(2, 2) E16(2, 6)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E17(2, 7)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E18(2, 8)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E19(3, 0)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E20(3, 1)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E21(3, 2)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E22(3, 3)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E23(3, 4)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E24(3, 5)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E25(3, 6)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E26(3, 7)	###gdbm fatal: read error|???
+omit_one-three R12(2, 2) E27(3, 8)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E16(2, 6)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E17(2, 7)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E18(2, 8)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E19(3, 0)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E20(3, 1)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E21(3, 2)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E22(3, 3)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E23(3, 4)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E24(3, 5)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E25(3, 6)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E26(3, 7)	###gdbm fatal: read error|???
+omit_one-three R15(2, 5) E27(3, 8)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E19(3, 0)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E20(3, 1)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E21(3, 2)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E22(3, 3)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E23(3, 4)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E24(3, 5)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E25(3, 6)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E26(3, 7)	###gdbm fatal: read error|???
+omit_one-three R18(2, 8) E27(3, 8)	###gdbm fatal: read error|???
+omit_one-three R21(3, 2) E22(3, 3)	###gdbm fatal: read error|???
+omit_one-three R21(3, 2) E23(3, 4)	###gdbm fatal: read error|???
+omit_one-three R21(3, 2) E24(3, 5)	###gdbm fatal: read error|???
 omit_one-three R21(3, 2) E25(3, 6)	### $ Pass|???
 omit_one-three R21(3, 2) E26(3, 7)	### $ Pass|???
 omit_one-three R21(3, 2) E27(3, 8)	### $ Pass|???
@@ -2413,9 +2413,9 @@ omit_one-three R41(7, 2) E44(7, 5)	###dbcreated| $ Pass|???
 omit_one-three R41(7, 2) E45(7, 6)	###dbcreated| $ Pass|???
 omit_one-three R41(7, 2) E46(7, 7)	###dbcreated| $ Pass|???
 omit_one-three R41(7, 2) E47(7, 8)	###dbcreated| $ Pass|???
-omit_one-three R41(7, 2) E48(8, 0)	###dbcreated| $ Pass|???
-omit_one-three R41(7, 2) E49(8, 1)	###dbcreated| $ Pass|???
-omit_one-three R41(7, 2) E50(8, 2)	###dbcreated| $ Pass|???
+omit_one-three R41(7, 2) E48(8, 0)	###dbcreated| $ key1-corrupt|???
+omit_one-three R41(7, 2) E49(8, 1)	###dbcreated| $ key1-corrupt|???
+omit_one-three R41(7, 2) E50(8, 2)	###dbcreated| $ key1-corrupt|???
 omit_one-three R41(7, 2) E51(9, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R41(7, 2) E52(10, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R41(7, 2) E53(10, 1)	###dbcreated|key1| $ key1-corrupt|???
@@ -2450,9 +2450,9 @@ omit_one-three R41(7, 2) E81(14, 2)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R44(7, 5) E45(7, 6)	###dbcreated| $ Pass|???
 omit_one-three R44(7, 5) E46(7, 7)	###dbcreated| $ Pass|???
 omit_one-three R44(7, 5) E47(7, 8)	###dbcreated| $ Pass|???
-omit_one-three R44(7, 5) E48(8, 0)	###dbcreated| $ Pass|???
-omit_one-three R44(7, 5) E49(8, 1)	###dbcreated| $ Pass|???
-omit_one-three R44(7, 5) E50(8, 2)	###dbcreated| $ Pass|???
+omit_one-three R44(7, 5) E48(8, 0)	###dbcreated| $ key1-corrupt|???
+omit_one-three R44(7, 5) E49(8, 1)	###dbcreated| $ key1-corrupt|???
+omit_one-three R44(7, 5) E50(8, 2)	###dbcreated| $ key1-corrupt|???
 omit_one-three R44(7, 5) E51(9, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R44(7, 5) E52(10, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R44(7, 5) E53(10, 1)	###dbcreated|key1| $ key1-corrupt|???
@@ -2484,9 +2484,9 @@ omit_one-three R44(7, 5) E78(13, 2)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R44(7, 5) E79(14, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R44(7, 5) E80(14, 1)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R44(7, 5) E81(14, 2)	###dbcreated|key1| $ key1-corrupt|???
-omit_one-three R47(7, 8) E48(8, 0)	###dbcreated| $ Pass|???
-omit_one-three R47(7, 8) E49(8, 1)	###dbcreated| $ Pass|???
-omit_one-three R47(7, 8) E50(8, 2)	###dbcreated| $ Pass|???
+omit_one-three R47(7, 8) E48(8, 0)	###dbcreated| $ key1-corrupt|???
+omit_one-three R47(7, 8) E49(8, 1)	###dbcreated| $ key1-corrupt|???
+omit_one-three R47(7, 8) E50(8, 2)	###dbcreated| $ key1-corrupt|???
 omit_one-three R47(7, 8) E51(9, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R47(7, 8) E52(10, 0)	###dbcreated|key1| $ key1-corrupt|???
 omit_one-three R47(7, 8) E53(10, 1)	###dbcreated|key1| $ key1-corrupt|???
@@ -2752,27 +2752,27 @@ omit_one-three R69(12, 2) E72(12, 5)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R69(12, 2) E73(12, 6)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R69(12, 2) E74(12, 7)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R69(12, 2) E75(12, 8)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R69(12, 2) E76(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R69(12, 2) E77(13, 1)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R69(12, 2) E78(13, 2)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R69(12, 2) E79(14, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R69(12, 2) E80(14, 1)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R69(12, 2) E81(14, 2)	###dbcreated|key1| $ key1  Pass|???
+omit_one-three R69(12, 2) E76(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R69(12, 2) E77(13, 1)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R69(12, 2) E78(13, 2)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R69(12, 2) E79(14, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R69(12, 2) E80(14, 1)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R69(12, 2) E81(14, 2)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-three R72(12, 5) E73(12, 6)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R72(12, 5) E74(12, 7)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R72(12, 5) E75(12, 8)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R72(12, 5) E76(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R72(12, 5) E77(13, 1)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R72(12, 5) E78(13, 2)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R72(12, 5) E79(14, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R72(12, 5) E80(14, 1)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R72(12, 5) E81(14, 2)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R75(12, 8) E76(13, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R75(12, 8) E77(13, 1)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R75(12, 8) E78(13, 2)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R75(12, 8) E79(14, 0)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R75(12, 8) E80(14, 1)	###dbcreated|key1| $ key1  Pass|???
-omit_one-three R75(12, 8) E81(14, 2)	###dbcreated|key1| $ key1  Pass|???
+omit_one-three R72(12, 5) E76(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R72(12, 5) E77(13, 1)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R72(12, 5) E78(13, 2)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R72(12, 5) E79(14, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R72(12, 5) E80(14, 1)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R72(12, 5) E81(14, 2)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R75(12, 8) E76(13, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R75(12, 8) E77(13, 1)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R75(12, 8) E78(13, 2)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R75(12, 8) E79(14, 0)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R75(12, 8) E80(14, 1)	###dbcreated|key1| $ key2-corrupt|???
+omit_one-three R75(12, 8) E81(14, 2)	###dbcreated|key1| $ key2-corrupt|???
 omit_one-three R76(13, 0) E77(13, 1)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R76(13, 0) E78(13, 2)	###dbcreated|key1| $ key1  Pass|???
 omit_one-three R76(13, 0) E79(14, 0)	###dbcreated|key1| $ key1  Pass|???
@@ -2928,25 +2928,25 @@ omit_one-three R101(19, 2) E106(19, 7)	###dbcreated|key1|key2| $ key2  key1  Pas
 omit_one-three R101(19, 2) E107(19, 8)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R101(19, 2) E108(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R101(19, 2) E109(20, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R101(19, 2) E110(20, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R101(19, 2) E111(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R101(19, 2) E112(21, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R101(19, 2) E113(21, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
+omit_one-three R101(19, 2) E110(20, 2)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R101(19, 2) E111(21, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R101(19, 2) E112(21, 1)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R101(19, 2) E113(21, 2)	###dbcreated|key1|key2| $ key3-corrupt|???
 omit_one-three R104(19, 5) E105(19, 6)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R104(19, 5) E106(19, 7)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R104(19, 5) E107(19, 8)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R104(19, 5) E108(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R104(19, 5) E109(20, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R104(19, 5) E110(20, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R104(19, 5) E111(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R104(19, 5) E112(21, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R104(19, 5) E113(21, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
+omit_one-three R104(19, 5) E110(20, 2)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R104(19, 5) E111(21, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R104(19, 5) E112(21, 1)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R104(19, 5) E113(21, 2)	###dbcreated|key1|key2| $ key3-corrupt|???
 omit_one-three R107(19, 8) E108(20, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R107(19, 8) E109(20, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R107(19, 8) E110(20, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R107(19, 8) E111(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R107(19, 8) E112(21, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
-omit_one-three R107(19, 8) E113(21, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
+omit_one-three R107(19, 8) E110(20, 2)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R107(19, 8) E111(21, 0)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R107(19, 8) E112(21, 1)	###dbcreated|key1|key2| $ key3-corrupt|???
+omit_one-three R107(19, 8) E113(21, 2)	###dbcreated|key1|key2| $ key3-corrupt|???
 omit_one-three R108(20, 0) E109(20, 1)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R108(20, 0) E110(20, 2)	###dbcreated|key1|key2| $ key2  key1  Pass|???
 omit_one-three R108(20, 0) E111(21, 0)	###dbcreated|key1|key2| $ key2  key1  Pass|???

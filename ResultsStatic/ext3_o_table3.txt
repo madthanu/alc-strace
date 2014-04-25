@@ -6,10 +6,10 @@ BerkeleyDB-Hash   377           2              45                         9     
 LevelDB1.10       1224          105            68                         11              12                4466
 LevelDB1.15       510           0              85                         11              12                8322
 LMDB              13            0              5                          2               1                 50
-gdbm              176           7              42                         7               6                 1333
+gdbm              176           16             42                         7               6                 1333
 git               135           10             47                         4               6                 2841
 MercurialDynamic  160           36             60                         0               0                 9703
-HSqlDb            174           5              46                         6               4                 4213
+hsqldb            180           0              49                         8               4                 4382
 Sqlite-WAL        193           0              42                         5               3                 2032
 Sqlite-Rollback   49            1              16                         4               2                 334
 VMWare            373           0              47                         13              2                 1487

@@ -23,7 +23,7 @@ folders = ['BerkeleyDB-BTREE',
 	'gdbm', 
 	'git', 
 	'MercurialDynamic',
-	'HSqlDb',
+	'hsqldb',
 	'Sqlite-WAL',
 	'Sqlite-Rollback',
 	'VMWare'
@@ -74,7 +74,9 @@ def get_vulnerabilities(fs):
 					error_reporter.initialize_options(filter = filter, strace_description_checksum = checksums)
 				else:
 					error_reporter.initialize_options()
+				sys.path.append('../' + folder)
 				exec(open('../' + folder + '/' + file)) in temp
+				sys.path.pop()
 				error_reporter_output = error_reporter.get_results()
 				vulnerabilities[folder] += copy.deepcopy(error_reporter_output[0])
 				stats[folder].append(copy.deepcopy(error_reporter_output[1]))

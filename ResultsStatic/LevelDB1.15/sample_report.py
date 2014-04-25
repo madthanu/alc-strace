@@ -16,9 +16,9 @@ def meaning(x):
 	elif 'Assertion `it->status().ok()\' failed.' in x:
 		return 'Exception'
 	elif 'Assertion `replayed_entries == ' in x:
-		return 'Wrong'
+		return 'DurabilityWrong'
 	elif 'Assertion `replayed_entries >= ' in x:
-		return 'Wrong'
+		return 'DurabilityWrong'
 	elif 'what():  basic_string::_S_create' in x:
 		return 'Wrong'
 	elif x in ['C', '']:
@@ -35,7 +35,7 @@ def is_correct(msg):
 		return False
 	if meaning(msg[3]) == 'Exception':
 		return False
-	if meaning(msg[2]) == 'Wrong':
+	if 'Wrong' in meaning(msg[2]):
 		return False
 	return True
 
@@ -52,6 +52,9 @@ def failure_category(msg):
 		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
 	if meaning(msg[2]) == 'Wrong':
 		toret.add(FailureCategory.MISC)
+	for x in msg:
+		if 'Durability' in meaning(x):
+			toret.add(FailureCategory.DURABILITY)
 	assert len(toret) > 0
 	return list(toret)
 

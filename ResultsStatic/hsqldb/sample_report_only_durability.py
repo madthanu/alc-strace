@@ -4,6 +4,7 @@ import os
 sys.path.append(os.getenv("ALC_STRACE_HOME") + '/error_reporter')
 import error_reporter
 from error_reporter import FailureCategory
+import static_stacktraces
 
 def failure_category(msg):
 	msg = msg.strip()
@@ -18,14 +19,10 @@ def failure_category(msg):
 
 def is_correct(msg):
 	msg = msg.strip()
-
-        if failure_category(msg) == [FailureCategory.CORRECT]:
-		return True
 	if failure_category(msg) == [FailureCategory.DURABILITY]:
-		return True
-	assert FailureCategory.CORRECT not in failure_category(msg)
+		return False
 	assert FailureCategory.DURABILITY not in failure_category(msg)
-	return False
+	return True
 
 #	print msg
 	if msg == 'Durability signal absent. Ignoring durability checks' or msg == 'Durability signal found. No problem':
@@ -34,9 +31,9 @@ def is_correct(msg):
 		return False
 
 
-def mystack_repr(backtrace):
-	for stack_frame in backtrace:
-		# For java programs we have a done a manual static bug analysis. So return the first stack frame.
-		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+def mystack_repr(backtrace, op):
+	op_id = int(op.hidden_id)
+	assert op_id in static_stacktraces.stacktrace_dict
+	return static_stacktraces.stacktrace_dict[op_id]
 
 error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category, stack_repr = mystack_repr)

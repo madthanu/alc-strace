@@ -1,6 +1,5 @@
 import sys
-import os
-sys.path.append(os.getenv("ALC_STRACE_HOME") + '/error_reporter')
+sys.path.append('/home/samer/work/AC/repo/alc-strace/error_reporter')
 import error_reporter
 from error_reporter import FailureCategory
 

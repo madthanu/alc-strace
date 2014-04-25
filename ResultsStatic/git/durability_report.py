@@ -54,20 +54,17 @@ def failure_category(msg):
 			custom_output.remove('FSCK-only errors')
 		if 'Reflog error only' in custom_output:
 			custom_output.remove('Reflog error only')
-	assert len(output) > 0
+		if 'Silent data loss' in custom_output:
+			custom_output.remove('Silent data loss')
+			output.remove(FailureCategory.SILENT_DATA_LOSS)
 	return list(output) + list(custom_output)
 
 def is_correct(msg):
-	msg = msg.split(';')
-	msg = [x.strip() for x in msg]
-	if 'T' in msg: return False
-	assert msg[5] in ['S', 'SA', 'SAC']
-	if msg[5] == 'SA' and msg[1] == 'C, U':
+	categories = failure_category(msg)
+	if FailureCategory.SILENT_DATA_LOSS in categories:
+		assert 'Silent data loss' in categories
+		# assert len(categories) == 2
 		return False
-	if msg[5] == 'SAC' and msg[1] != 'C':
-		return False
-	if msg[0] == 'C' and msg[1] in ['C', 'C, U', 'C, T'] and msg[2] in ['C', 'CD'] and msg[3] == 'C' and msg[4] == 'C dir':
-		return True
-	return False
+	return True
 
-error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category)
+error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, lambda x: set(['Silent data loss', FailureCategory.SILENT_DATA_LOSS]))

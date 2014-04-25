@@ -1,0 +1,7 @@
+OVERALL_STATS:
+                  Total states  Failed states  Total non-output syscalls   Sync syscalls   Output syscalls  Unfiltered states
+BerkeleyDB-BTREE  4909          1983           47                         9               3                 1838
+BerkeleyDB-Hash   4006          894            45                         9               2                 1459
+LMDB              47            0              5                          2               1                 50
+gdbm              4476          644            42                         7               6                 1333
+git               755           45             47                         4               6                 2841
