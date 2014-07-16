@@ -1,0 +1,22 @@
+                                                                      
+CATEGORIZED FAILURES:
+                           CORRUPTED_READ_VALUES  FULL_READ_FAILURE  FULL_WRITE_FAILURE  MISC    PARTIAL_READ_FAILURE  SILENT_DATA_LOSS  ztotal
+BerkeleyDB-BTREE                                                                                                       2(2)              2(2)
+BerkeleyDB-Hash                                                                                                        2(8)              2(8)
+LevelDB1.10                1(5)                                                                                                          1(5)
+LevelDB1.15                1(2)                                                                                                          1(2)
+gdbm                                              4(4)               4(4)                1(1)                          2(2)              6(6)
+git                                                                                              1(1)                  1(2)              2(3)
+MercurialDynamic                                                                                 4(4)                                    4(4)
+Sqlite-Rollback                                                                                                        1(1)              1(1)
+                                                                      
+NON-CATEGORIZED FAILURES:
+                           Dirstate corruption    Reflog error only  Silent data loss    ztotal
+BerkeleyDB-BTREE                                                                         2(2)
+BerkeleyDB-Hash                                                                          2(8)
+LevelDB1.10                                                                              1(5)
+LevelDB1.15                                                                              1(2)
+gdbm                                                                                     6(6)
+git                                               1(1)               1(2)                2(3)
+MercurialDynamic           4(4)                                                          4(4)
+Sqlite-Rollback                                                                          1(1)

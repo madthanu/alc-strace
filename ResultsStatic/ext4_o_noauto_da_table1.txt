@@ -1,56 +1,46 @@
                                                                            
+DURABILITY VULNERABILITIES:
+                                                          rename  stdout  unlink  write   ztotal
+BerkeleyDB-BTREE                                                  1(1)            1(2)    1(1)
+BerkeleyDB-Hash                                                   1(1)            1(1)    1(1)
+gdbm                                                              1(1)            1(1)    1(1)
+git                                                       1(2)    1(2)                    1(2)
+Sqlite-Rollback                                                   1(1)    1(1)            1(1)
+                                                                           
 ATOMICITY VULNERABILITIES:
                                                           write   ztotal
 LevelDB1.10                                               1(5)    1(5)
                                                                            
 REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:
-                                                          append  rename  stdout  unknown  write    ztotal
-BerkeleyDB-BTREE                                          1(1)                                      1(1)
-BerkeleyDB-Hash                                           1(7)                                      1(7)
-LevelDB1.10                                                                                1(1)     1(1)
-LevelDB1.15                                               3(16)                                     3(16)
-gdbm                                                                      2(2)             3(3)     5(5)
-git                                                               1(1)    1(1)    1(1)              2(3)
-MercurialDynamic                                          1(4)    1(8)                              2(12)
-Sqlite-Rollback                                                           1(1)                      1(1)
+                                                          append  rename  write   ztotal
+gdbm                                                                      3(3)    3(3)
+git                                                               1(1)            1(1)
+MercurialDynamic                                          1(4)    1(4)            2(8)
                                                                            
 INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:
-                                                          append  creat   rename  stdout   trunc    unlink  write  ztotal
-BerkeleyDB-BTREE                                                                  1(1)                      1(2)   1(1)
-BerkeleyDB-Hash                                                                   1(1)                      1(1)   1(1)
-gdbm                                                      1(3)    1(1)                                             1(1)
-git                                                       1(1)            1(1)                                     1(1)
-MercurialDynamic                                          3(3)    3(3)    3(7)             2(2)     2(2)           4(4)
+                                                          append  creat   rename  trunc   unlink  ztotal
+gdbm                                                      1(3)    1(1)                            1(1)
+git                                                       1(1)            1(1)                    1(1)
+MercurialDynamic                                          3(3)    3(3)    3(7)    2(2)    2(2)    4(4)
                                                                            
 INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:
-                                                          append  creat   stdout  ztotal
-BerkeleyDB-BTREE                                                          1(1)    1(1)
-BerkeleyDB-Hash                                                           1(1)    1(1)
-gdbm                                                      1(1)                    1(1)
-git                                                       1(1)                    1(1)
-MercurialDynamic                                          3(3)    1(1)            4(4)
+                                                          append  creat   ztotal
+gdbm                                                      1(1)            1(1)
+git                                                       1(1)            1(1)
+MercurialDynamic                                          3(3)    1(1)    4(4)
                                                                            
 SPECIAL_REORDERING VULNERABILITIES:
                                                           ztotal
                                                                            
 SPECIAL_AND_NORMAL_REORDERING VULNERABILITIES:
-                                                          append  rename  stdout  unknown  write    ztotal
-BerkeleyDB-BTREE                                          1(1)                                      1(1)
-BerkeleyDB-Hash                                           1(7)                                      1(7)
-LevelDB1.10                                                                                1(1)     1(1)
-LevelDB1.15                                               3(16)                                     3(16)
-gdbm                                                                      2(2)             3(3)     5(5)
-git                                                               1(1)    1(1)    1(1)              2(3)
-MercurialDynamic                                          1(4)    1(8)                              2(12)
-Sqlite-Rollback                                                           1(1)                      1(1)
+                                                          ztotal
                                                                            
 TOTAL VULNERABILITIES:
-                                                          append  creat   rename  stdout   unknown  unlink  write  ztotal
-BerkeleyDB-BTREE                                          1(1)                    1(1)                      2(2)   2(2)
-BerkeleyDB-Hash                                           1(12)                   1(1)                      2(3)   2(8)
-LevelDB1.10                                                                                                 2(7)   2(6)
-LevelDB1.15                                               3(32)                                                    3(16)
-gdbm                                                      5(6)                    2(2)                      4(4)   6(6)
-git                                                       2(3)            3(3)    1(1)     1(1)                    3(4)
-MercurialDynamic                                          5(19)   3(3)    2(9)                      1(1)           6(16)
-Sqlite-Rollback                                                                   1(1)              1(1)           1(1)
+                                                          append  creat   rename  stdout  unlink  write   ztotal
+BerkeleyDB-BTREE                                                                  1(1)            1(1)    1(1)
+BerkeleyDB-Hash                                                                   1(1)            1(1)    1(1)
+LevelDB1.10                                                                                       1(5)    1(5)
+gdbm                                                      4(5)                    1(1)            4(4)    5(5)
+git                                                       2(2)            3(4)    1(2)                    3(4)
+MercurialDynamic                                          5(15)   3(3)    2(5)            1(1)            6(12)
+Sqlite-Rollback                                                                   1(1)    1(1)            1(1)

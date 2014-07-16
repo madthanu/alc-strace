@@ -5,7 +5,7 @@ BerkeleyDB-BTREE                                                                
 BerkeleyDB-Hash                                                                                                        1(1)              1(1)
 LevelDB1.10                1(5)                                                                                                          1(5)
 gdbm                                              4(4)               4(4)                1(1)                          1(1)              5(5)
-git                                                                                              1(1)                  1(1)              2(2)
+git                                                                                              1(1)                  1(2)              2(3)
 MercurialDynamic                                                                                 4(4)                                    4(4)
 Sqlite-Rollback                                                                                                        1(1)              1(1)
                                                                       
@@ -15,6 +15,6 @@ BerkeleyDB-BTREE                                                                
 BerkeleyDB-Hash                                                                          1(1)
 LevelDB1.10                                                                              1(5)
 gdbm                                                                                     5(5)
-git                                               1(1)               1(1)                2(2)
+git                                               1(1)               1(2)                2(3)
 MercurialDynamic           4(4)                                                          4(4)
 Sqlite-Rollback                                                                          1(1)

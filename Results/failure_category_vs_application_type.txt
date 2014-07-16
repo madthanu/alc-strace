@@ -1,0 +1,9 @@
+Application;CORRECT;CORRUPTED_READ_VALUES;FULL_READ_FAILURE;FULL_WRITE_FAILURE;PARTIAL_READ_FAILURE;PARTIAL_WRITE_FAILURE;MISC
+bdb.auto;0;1;21;21;0;0;0
+git.auto;0;1;4;10;3;0;11
+hsqldb.auto;0;2;7;7;0;0;0
+LevelDB-1.10.0;0;20;0;0;0;0;0
+LevelDB-1.15.0;0;42;0;0;9;0;6
+leveldb.auto;0;42;0;0;9;0;5
+lmdb.auto;0;0;0;1;0;0;1
+merc.auto;0;0;1;2;25;15;0

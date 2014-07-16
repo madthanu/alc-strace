@@ -4,7 +4,7 @@ do
 	cd "$x"
 	for file in $(ls *report*.py)
 	do
-		python $file | awk "{print \"$x:\" \$0}"
+		python $file --filter=abstractfs.cache | awk "{print \"$x:\" \$0}"
 	done
 	cd ..
 done

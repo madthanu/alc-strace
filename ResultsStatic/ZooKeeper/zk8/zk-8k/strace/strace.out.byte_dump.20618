@@ -1,0 +1,64 @@
+2014-04-30 18:16:41,611 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33730
+2014-04-30 18:16:41,872 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33730
+2014-04-30 18:16:43,933 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30000, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:44,054 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33730 which had sessionid 0x145b4ecdfc30000
+2014-04-30 18:16:44,782 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33731
+2014-04-30 18:16:44,842 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33731
+2014-04-30 18:16:46,034 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30001, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:46,053 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33731 which had sessionid 0x145b4ecdfc30001
+2014-04-30 18:16:46,833 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33732
+2014-04-30 18:16:46,901 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33732
+2014-04-30 18:16:48,084 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30002, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:48,087 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33732 which had sessionid 0x145b4ecdfc30002
+2014-04-30 18:16:48,855 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33733
+2014-04-30 18:16:48,931 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33733
+2014-04-30 18:16:50,083 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30003, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:50,093 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33733 which had sessionid 0x145b4ecdfc30003
+2014-04-30 18:16:50,860 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33734
+2014-04-30 18:16:50,951 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33734
+2014-04-30 18:16:52,119 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30004, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:52,124 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33734 which had sessionid 0x145b4ecdfc30004
+2014-04-30 18:16:52,921 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33735
+2014-04-30 18:16:52,978 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33735
+2014-04-30 18:16:53,681 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30005, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:53,684 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33735 which had sessionid 0x145b4ecdfc30005
+2014-04-30 18:16:54,507 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33736
+2014-04-30 18:16:54,567 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33736
+2014-04-30 18:16:55,277 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30006, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:55,284 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33736 which had sessionid 0x145b4ecdfc30006
+2014-04-30 18:16:56,044 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@197] - Accepted socket connection from /127.0.0.1:33737
+2014-04-30 18:16:56,104 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:ZooKeeperServer@868] - Client attempting to establish new session at /127.0.0.1:33737
+2014-04-30 18:16:56,863 [myid:] - WARN  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@357] - caught end of stream exception
+EndOfStreamException: Unable to read additional data from client sessionid 0x145b4ecdfc30007, likely client has closed socket
+	at org.apache.zookeeper.server.NIOServerCnxn.doIO(NIOServerCnxn.java:228)
+	at org.apache.zookeeper.server.NIOServerCnxnFactory.run(NIOServerCnxnFactory.java:208)
+	at java.lang.Thread.run(Unknown Source)
+2014-04-30 18:16:56,867 [myid:] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@1007] - Closed socket connection for client /127.0.0.1:33737 which had sessionid 0x145b4ecdfc30007

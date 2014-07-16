@@ -1,0 +1,17 @@
+18:16:29.212560 set_robust_list(0xb4355be0, 12) = 0
+18:16:29.212734 sched_getaffinity(20596, 32, 0xb6b3ee48) = 4
+18:16:29.212788 sched_getaffinity(20596, 32, 0xb6b3ee48) = 4
+18:16:29.212875 gettid()                = 20596
+18:16:29.212942 rt_sigprocmask(SIG_BLOCK, NULL, [QUIT], 8) = 0
+18:16:29.212999 rt_sigprocmask(SIG_UNBLOCK, [ILL BUS FPE SEGV USR2 TERM], NULL, 8) = 0
+18:16:29.213051 rt_sigprocmask(SIG_BLOCK, [QUIT], NULL, 8) = 0
+18:16:29.213112 futex(0xb6b07b44, FUTEX_WAKE_OP_PRIVATE, 1, 1, 0xb6b07b40, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1}) = 1
+18:16:29.213209 futex(0xb6b07b28, FUTEX_WAKE_PRIVATE, 1) = 1
+18:16:29.214311 sched_getaffinity(20596, 32, 0xb6b4aa50) = 4
+18:16:29.214420 sched_getaffinity(20596, 32, 0xb6b4aa50) = 4
+18:16:29.214550 sched_getaffinity(20596, 32, 0xb6b4aa50) = 4
+18:16:29.214653 sched_getaffinity(20596, 32, 0xb6b4aa50) = 4
+18:16:29.214717 mmap2(0xb4305000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0xb4305000
+18:16:29.214784 mprotect(0xb4305000, 12288, PROT_NONE) = 0
+18:16:29.214840 futex(0xb72cdce8, FUTEX_WAIT_PRIVATE, 0, NULL <unfinished ...>
+18:16:56.935545 +++ killed by SIGKILL +++

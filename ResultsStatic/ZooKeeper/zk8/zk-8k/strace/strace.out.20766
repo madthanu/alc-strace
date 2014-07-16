@@ -1,0 +1,36 @@
+18:16:50.100630 execve("/bin/echo", [...], [/* 44 vars */]) = 0
+18:16:50.101847 brk(0)                  = 0x9802000
+18:16:50.102032 mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb779b000
+18:16:50.102262 access("/etc/ld.so.preload", R_OK) = -1 ENOENT (No such file or directory)
+18:16:50.102461 open("/etc/ld.so.cache", O_RDONLY) = 5
+18:16:50.102583 fstat64(5, {st_mode=S_IFREG|0644, st_size=96222, ...}) = 0
+18:16:50.102766 mmap2(NULL, 96222, PROT_READ, MAP_PRIVATE, 5, 0) = 0xb7783000
+18:16:50.102862 close(5)                = 0
+18:16:50.102986 open("/lib/libc.so.6", O_RDONLY) = 5
+18:16:50.103569 read(5, ""..., 512)     = 512
+18:16:50.103684 fstat64(5, {st_mode=S_IFREG|0755, st_size=1858296, ...}) = 0
+18:16:50.103789 mmap2(0x48827000, 1620552, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 5, 0) = 0x48827000
+18:16:50.104590 mprotect(0x489ac000, 4096, PROT_NONE) = 0
+18:16:50.104878 mmap2(0x489ad000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 5, 0x185000) = 0x489ad000
+18:16:50.105006 mmap2(0x489b0000, 10824, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x489b0000
+18:16:50.105108 close(5)                = 0
+18:16:50.105223 mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb7782000
+18:16:50.105421 set_thread_area({entry_number:-1 -> 6, base_addr:0xb77826c0, limit:1048575, seg_32bit:1, contents:0, read_exec_only:0, limit_in_pages:1, seg_not_present:0, useable:1}) = 0
+18:16:50.105601 mprotect(0x489ad000, 8192, PROT_READ) = 0
+18:16:50.105695 mprotect(0x48823000, 4096, PROT_READ) = 0
+18:16:50.105889 munmap(0xb7783000, 96222) = 0
+18:16:50.106409 brk(0)                  = 0x9802000
+18:16:50.106498 brk(0x9823000)          = 0x9823000
+18:16:50.106577 brk(0)                  = 0x9823000
+18:16:50.106736 open("/usr/lib/locale/locale-archive", O_RDONLY|O_LARGEFILE) = 5
+18:16:50.106879 fstat64(5, {st_mode=S_IFREG|0644, st_size=104997424, ...}) = 0
+18:16:50.106981 mmap2(NULL, 2097152, PROT_READ, MAP_PRIVATE, 5, 0) = 0xb7582000
+18:16:50.107324 close(5)                = 0
+18:16:50.107622 fstat64(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 0), ...}) = 0
+18:16:50.107810 mmap2(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xb779a000
+18:16:50.107918 write(1, ""..., 15)     = 15
+18:16:50.108336 close(1)                = 0
+18:16:50.108421 munmap(0xb779a000, 4096) = 0
+18:16:50.108515 close(2)                = 0
+18:16:50.108652 exit_group(0)           = ?
+18:16:50.108811 +++ exited with 0 +++
