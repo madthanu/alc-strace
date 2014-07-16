@@ -7,6 +7,7 @@ import myutils
 import cProfile
 import argparse
 import traceback
+import collections
 from mystruct import Struct
 debug = False
 def abstract_dependencies(replayer, ops):
@@ -70,58 +71,54 @@ def abstract_dependencies(replayer, ops):
 				else:
 					assert ops[j].op in ['stdout', 'stderr']
 
-def twojournalfs_dependencies(replayer, ops):
-	abstract_dependencies(replayer, ops)
+def safe_new_file_flush(replayer, ops):
 	for i in range(0, len(ops)):
-		if ops[i].op not in ['sync', 'stdout', 'stderr'] and \
-				len(ops[i].hidden_twojournalfs_stuff.reverse_fsync_dependencies) == 0:
-			depends_from = replayer.dops_single((replayer.dops_double(i)[0], 0)) - 1 # Last disk op of the previos micro op
-			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(depends_from, -1, -1))
-
-def twojournalfs_dj_dependencies(replayer, ops):
-	abstract_dependencies(replayer, ops)
-	prev_fsyncj_op = None
-	for i in range(0, len(ops)):
-		if ops[i].op in ['sync', 'stdout', 'stderr']:
-			continue
-		if len(ops[i].hidden_twojournalfs_stuff.reverse_fsync_dependencies) == 0:
-			depends_from = replayer.dops_single((replayer.dops_double(i)[0], 0)) - 1 # Last disk op of the previos micro op
-			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(depends_from, -1, -1))
-		else:
-			if prev_fsyncj_op != None:
-				ops[i].hidden_dependencies.add(prev_fsyncj_op)
-			prev_fsyncj_op = i
-
-def btrfs_dependencies(replayer, ops):
-	abstract_dependencies(replayer, ops)
-	for i in range(0, len(ops)):
-		if ops[i].op == 'write':
+		if ops[i].op == 'sync':
+			related_inodes = set([ops[i].inode])
 			for j in range(i - 1, -1, -1):
-				if ops[j].op == 'create_dir_entry' and ops[j].inode == ops[i].inode:
+				if (ops[j].hidden_micro_op.op == 'creat' and ops[j].op not in ['trunc', 'truncate']) or ops[j].hidden_micro_op.op == 'mkdir':
+					assert ops[j].op == 'create_dir_entry'
+					if ops[j].inode not in related_inodes:
+						continue
 					ops[i].hidden_dependencies.add(j)
+					ops[j].hidden_twojournalfs_stuff.reverse_fsync_dependencies.add(i)
+					related_inodes.add(ops[j].parent)
+
+def rename_heuristic(replayer, ops):
+	for i in range(0, len(ops)):
 		if ops[i].hidden_micro_op.op == 'rename':
 			for j in range(i - 1, -1, -1):
 				if ops[j].op == 'write' and ops[j].inode == ops[i].inode:
 					ops[i].hidden_dependencies.add(j)
-		if ops[i].op == 'create_dir_entry':
-			for j in range(i - 1, -1, -1):
-				if ops[j].op == 'create_dir_entry' and ops[j].inode == ops[i].parent:
-					ops[i].hidden_dependencies.add(j)
 
 
-def ext3o_dependencies(replayer, ops):
-	# Metadata operations and appends are ordered. Writes are ordered before subsequent metadata operations.
+def depend_appends_on_previous_writes(ops, i):
+	if ops[i].hidden_micro_op.op in ['append', 'trunc', 'truncate']:
+		for j in range(i - 1, -1, -1):
+			if ops[j].op in ['write', 'trunc', 'truncate'] and ops[i].inode == ops[j].inode:
+				ops[i].hidden_dependencies.add(j)
+
+def __twojournalfs_dependencies(replayer, ops, newfileflush = True, priority_journal_fileordered = True):
 	abstract_dependencies(replayer, ops)
+	if newfileflush: safe_new_file_flush(replayer, ops)
 	for i in range(0, len(ops)):
-		if ops[i].op not in ['stdout', 'stderr']:
+		if len(ops[i].hidden_twojournalfs_stuff.reverse_fsync_dependencies) != 0 or ops[i].op == 'sync':
+			continue
+		if ops[i].hidden_micro_op.op == 'write':
 			# If overwrites
-			if ops[i].hidden_micro_op.op == 'write':
-				assert ops[i].op == 'write'
-				continue
+			assert ops[i].op == 'write'
+			continue
+		if ops[i].op not in ['stdout', 'stderr']:
 			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
+	if priority_journal_fileordered:
+		for i in range(0, len(ops)):
+			if len(ops[i].hidden_twojournalfs_stuff.reverse_fsync_dependencies) == 0:
+				continue
+			depend_appends_on_previous_writes(ops, i)
 
 def ext4o_noautodaalloc_dependencies(replayer, ops):
 	abstract_dependencies(replayer, ops)
+	safe_new_file_flush(replayer, ops)
 	prev_metadata_operation = None
 	for i in range(0, len(ops)):
 		if ops[i].op not in ['stdout', 'stderr', 'sync']:
@@ -131,26 +128,46 @@ def ext4o_noautodaalloc_dependencies(replayer, ops):
 			if prev_metadata_operation != None:
 				ops[i].hidden_dependencies.add(prev_metadata_operation)
 			prev_metadata_operation = i
-	prev_write_to_file = {}
+
 	for i in range(0, len(ops)):
-		if ops[i].op == 'write':
-			prev_write_to_file[ops[i].inode] = i
-		if ops[i].hidden_micro_op.op == 'append' and ops[i].inode in prev_write_to_file:
-			ops[i].hidden_dependencies.add(prev_write_to_file[ops[i].inode])
+		depend_appends_on_previous_writes(ops, i)
+
+def twojournalfs_dependencies(replayer, ops):
+	__twojournalfs_dependencies(replayer, ops)
+
+def twojournalfs_nonewfileflush_dependencies(replayer, ops):
+	__twojournalfs_dependencies(replayer, ops, newfileflush = False)
+
+def ext3o_dependencies(replayer, ops):
+	# Metadata operations and appends are ordered. Writes are ordered before subsequent metadata operations.
+	abstract_dependencies(replayer, ops)
+	safe_new_file_flush(replayer, ops)
+	for i in range(0, len(ops)):
+		if ops[i].hidden_micro_op.op == 'write':
+			# If overwrites
+			assert ops[i].op == 'write'
+			continue
+		if ops[i].op not in ['stdout', 'stderr']:
+			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
+
+def btrfs_dependencies(replayer, ops):
+	abstract_dependencies(replayer, ops)
+	safe_new_file_flush(replayer, ops)
+	rename_heuristic(replayer, ops)
+
 
 def ext4o_dependencies(replayer, ops):
 	ext4o_noautodaalloc_dependencies(replayer, ops)
-	prev_write_to_file = {}
-	for i in range(0, len(ops)):
-		if ops[i].op == 'write':
-			prev_write_to_file[ops[i].inode] = i		
-		if ops[i].hidden_micro_op.op == 'rename' and ops[i].inode in prev_write_to_file:
-			ops[i].hidden_dependencies.add(prev_write_to_file[ops[i].inode])
-		
+	rename_heuristic(replayer, ops)
+
+def renamefs(replayer, ops):
+	abstract_dependencies(replayer, ops)
+	rename_heuristic(replayer, ops)
 
 def ext3w_dependencies(replayer, ops):
 	# Metadata operations are ordered. Others aren't.
 	abstract_dependencies(replayer, ops)
+	safe_new_file_flush(replayer, ops)
 	prev_metadata_operation = None
 	for i in range(0, len(ops)):
 		if ops[i].op not in ['stdout', 'stderr', 'sync']:
@@ -168,6 +185,7 @@ def ext3w_dependencies(replayer, ops):
 			if prev_metadata_operation != None:
 				ops[i].hidden_dependencies.add(prev_metadata_operation)
 			prev_metadata_operation = i
+	
 
 def writeback_atomicity_validate(mode, micro_op, selected):
 	selected = sorted(list(set(selected)))
@@ -237,17 +255,16 @@ def ordered_atomicity_validate(mode, micro_op, selected):
 	else:
 		assert False
 
-filesystems = {}
-filesystems['twojournalfs'] = (twojournalfs_dependencies, lambda x, y, z: True)
-filesystems['twojournalfs_atomic'] = (twojournalfs_dependencies, ordered_atomicity_validate)
-filesystems['twojournalfs_dj_atomic'] = (twojournalfs_dj_dependencies, ordered_atomicity_validate)
-filesystems['twojournalfs_dj'] = (twojournalfs_dependencies, lambda x, y, z: True)
+filesystems = collections.OrderedDict()
+filesystems['twojournalfs'] = (twojournalfs_dependencies, ordered_atomicity_validate)
 filesystems['ext3_o'] = (ext3o_dependencies, ordered_atomicity_validate)
+filesystems['twojournalfs_nonewfileflush'] = (twojournalfs_nonewfileflush_dependencies, ordered_atomicity_validate)
 filesystems['ext3_w'] = (ext3w_dependencies, writeback_atomicity_validate)
 filesystems['ext4_o'] = (ext4o_dependencies, ordered_atomicity_validate)
-filesystems['ext4_o_noauto_da'] = (ext4o_noautodaalloc_dependencies, ordered_atomicity_validate)
-filesystems['abstractfs'] = (abstract_dependencies, lambda x, y, z: True)
 filesystems['btrfs'] = (btrfs_dependencies, ordered_atomicity_validate)
+filesystems['abstractfs'] = (abstract_dependencies, lambda x, y, z: True)
+filesystems['ext4_o_noauto_da'] = (ext4o_noautodaalloc_dependencies, ordered_atomicity_validate)
+filesystems['renamefs'] = (renamefs, lambda x, y, z: True)
 
 def prefix_run(msg, atomicity_validation, replayer, consider_only = None):
 	output = list()

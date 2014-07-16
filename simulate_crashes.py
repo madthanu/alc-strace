@@ -124,17 +124,29 @@ class Replayer:
 		for x in self.micro_ops:
 			if len(x.hidden_disk_ops) == 0:
 				continue
-			dops_dependencies = x.hidden_disk_ops[0].hidden_dependencies
+			dops_dependencies = dict()
 			for y in x.hidden_disk_ops:
-				assert y.hidden_dependencies == dops_dependencies
+				for dependency in y.hidden_dependencies:
+					if dependency in dops_dependencies:
+						dops_dependencies[dependency] += 1
+					else:
+						dops_dependencies[dependency] = 1
+			#	assert y.hidden_dependencies == dops_dependencies
 			dependencies = set()
 			for y in dops_dependencies:
 				dependencies.add(self.dops_double(y)[0])
+			dependency_list = ''
 			for y in dependencies:
+				mychar1 = ''
+				mychar2 = ''
 				for z in range(0, len(self.micro_ops[y].hidden_disk_ops)):
-					assert self.dops_single((y, z)) in dops_dependencies
+					if self.dops_single((y, z)) not in dops_dependencies:
+						mychar1 = 'Pa'
+					elif dops_dependencies[self.dops_single((y, z))] < len(x.hidden_disk_ops):
+						mychar2 = 'Pb'
+				dependency_list += mychar1 + mychar2 + str(y) + ' '
 			output += str(x.hidden_id) + '\t' + str(x) + '\n'
-			output += '\t' + str(list(dependencies)) + '\n'
+			output += '\t' + dependency_list + '\n'
 		return output
 	def __init__(self, path_inode_map, original_micro_ops):
 		self.micro_ops = copy.deepcopy(original_micro_ops)

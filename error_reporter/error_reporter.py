@@ -574,7 +574,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						assert micro_operations[i].op not in conv_micro.expansive_ops
 			if len(incorrect_under) > 0:
 				atomicity_violators.add(i)
-				report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i, stack_repr)
+				if 'hidden_parsed_line' in micro_operations[i].__dict__ and micro_operations[i].hidden_parsed_line.syscall == 'mwrite':
+					report_prefix(micro_operations, i, i, __failure_category(failure_category, wrong_output), stack_repr)
+				else:
+					report_atomicity(incorrect_under, micro_operations[i], __failure_category(failure_category, wrong_output), micro_ops, i, stack_repr)
 
 	# Full re-orderings
 	reordering_violators = {}
@@ -652,12 +655,12 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 						break
 				if special_reordering_found:
 					break
-
-if '__file__' in __main__.__dict__.keys() and 'report.py' in __main__.__file__ or 'report2.py' in __main__.__file__:
+if '__file__' in __main__.__dict__.keys() and 'report' in __main__.__file__ or 'report2' in __main__.__file__:
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--filter', dest = 'filter', type = str, default = None)
 	cmdline = parser.parse_args()
 	if cmdline.filter != None:
+		print 'Using filter: ' + cmdline.filter
 		cmdline.filter = pickle.load(open(cmdline.filter))
 		if type(cmdline.filter) == dict and 'content' in cmdline.filter.keys():
 			cmdline.filter = cmdline.filter['content']
