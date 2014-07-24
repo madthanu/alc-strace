@@ -1,0 +1,1487 @@
+20:24:53.948720 execve("/usr/bin/python", [...], [/* 39 vars */]) = 0
+20:24:53.950786 brk(0)                  = 0x1fa1000
+20:24:53.951482 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.952271 mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcc000
+20:24:53.952478 access("/etc/ld.so.preload", R_OK) = -1 ENOENT (No such file or directory)
+20:24:53.953226 open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.954435 fstat(7, {st_mode=S_IFREG|0644, st_size=122069, ...}) = 0
+20:24:53.954580 mmap(NULL, 122069, PROT_READ, MAP_PRIVATE, 7, 0) = 0x7fbf64fae000
+20:24:53.954649 close(7)                = 0
+20:24:53.954707 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.955787 open("/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.956943 read(7, ""..., 832)     = 832
+20:24:53.958099 fstat(7, {st_mode=S_IFREG|0755, st_size=135366, ...}) = 0
+20:24:53.958234 mmap(NULL, 2212904, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf64b8f000
+20:24:53.958333 mprotect(0x7fbf64ba7000, 2093056, PROT_NONE) = 0
+20:24:53.958417 mmap(0x7fbf64da6000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x17000) = 0x7fbf64da6000
+20:24:53.958493 mmap(0x7fbf64da8000, 13352, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fbf64da8000
+20:24:53.958557 close(7)                = 0
+20:24:53.958615 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.959714 open("/lib/x86_64-linux-gnu/libdl.so.2", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.960847 read(7, ""..., 832)     = 832
+20:24:53.961842 fstat(7, {st_mode=S_IFREG|0644, st_size=14768, ...}) = 0
+20:24:53.961938 mmap(NULL, 2109704, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf6498b000
+20:24:53.962036 mprotect(0x7fbf6498d000, 2097152, PROT_NONE) = 0
+20:24:53.962101 mmap(0x7fbf64b8d000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x2000) = 0x7fbf64b8d000
+20:24:53.962171 close(7)                = 0
+20:24:53.962226 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.963331 open("/lib/x86_64-linux-gnu/libutil.so.1", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.964391 read(7, ""..., 832)     = 832
+20:24:53.965384 fstat(7, {st_mode=S_IFREG|0644, st_size=10632, ...}) = 0
+20:24:53.965477 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fad000
+20:24:53.965546 mmap(NULL, 2105600, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf64788000
+20:24:53.965599 mprotect(0x7fbf6478a000, 2093056, PROT_NONE) = 0
+20:24:53.965654 mmap(0x7fbf64989000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x1000) = 0x7fbf64989000
+20:24:53.965721 close(7)                = 0
+20:24:53.965775 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.966926 open("/lib/x86_64-linux-gnu/libssl.so.1.0.0", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.967882 read(7, ""..., 832)     = 832
+20:24:53.968939 fstat(7, {st_mode=S_IFREG|0644, st_size=382896, ...}) = 0
+20:24:53.969023 mmap(NULL, 2478224, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf6452a000
+20:24:53.969091 mprotect(0x7fbf6457e000, 2097152, PROT_NONE) = 0
+20:24:53.969147 mmap(0x7fbf6477e000, 36864, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x54000) = 0x7fbf6477e000
+20:24:53.969211 mmap(0x7fbf64787000, 144, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fbf64787000
+20:24:53.969270 close(7)                = 0
+20:24:53.969323 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.970470 open("/lib/x86_64-linux-gnu/libcrypto.so.1.0.0", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.971428 read(7, ""..., 832)     = 832
+20:24:53.972453 fstat(7, {st_mode=S_IFREG|0644, st_size=1930616, ...}) = 0
+20:24:53.972529 mmap(NULL, 4041144, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf6414f000
+20:24:53.972591 mprotect(0x7fbf64300000, 2097152, PROT_NONE) = 0
+20:24:53.972653 mmap(0x7fbf64500000, 155648, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x1b1000) = 0x7fbf64500000
+20:24:53.972742 mmap(0x7fbf64526000, 14776, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fbf64526000
+20:24:53.972808 close(7)                = 0
+20:24:53.972865 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.974050 open("/lib/x86_64-linux-gnu/libz.so.1", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.975048 read(7, ""..., 832)     = 832
+20:24:53.976078 fstat(7, {st_mode=S_IFREG|0644, st_size=92720, ...}) = 0
+20:24:53.976173 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fac000
+20:24:53.976244 mmap(NULL, 2187824, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf63f38000
+20:24:53.976308 mprotect(0x7fbf63f4e000, 2093056, PROT_NONE) = 0
+20:24:53.976370 mmap(0x7fbf6414d000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x15000) = 0x7fbf6414d000
+20:24:53.976439 close(7)                = 0
+20:24:53.976498 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.977721 open("/lib/x86_64-linux-gnu/libm.so.6", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.978693 read(7, ""..., 832)     = 832
+20:24:53.979644 fstat(7, {st_mode=S_IFREG|0644, st_size=1030512, ...}) = 0
+20:24:53.979702 mmap(NULL, 3125544, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf63c3c000
+20:24:53.979762 mprotect(0x7fbf63d37000, 2093056, PROT_NONE) = 0
+20:24:53.979819 mmap(0x7fbf63f36000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0xfa000) = 0x7fbf63f36000
+20:24:53.979898 close(7)                = 0
+20:24:53.979982 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.981242 open("/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.982250 read(7, ""..., 832)     = 832
+20:24:53.983203 fstat(7, {st_mode=S_IFREG|0755, st_size=1815224, ...}) = 0
+20:24:53.983270 mmap(NULL, 3929304, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf6387c000
+20:24:53.983333 mprotect(0x7fbf63a31000, 2097152, PROT_NONE) = 0
+20:24:53.983393 mmap(0x7fbf63c31000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x1b5000) = 0x7fbf63c31000
+20:24:53.983459 mmap(0x7fbf63c37000, 17624, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7fbf63c37000
+20:24:53.983532 close(7)                = 0
+20:24:53.983593 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:53.984889 open("/lib/x86_64-linux-gnu/libgcc_s.so.1", O_RDONLY|O_CLOEXEC) = 7
+20:24:53.985926 read(7, ""..., 832)     = 832
+20:24:53.986963 fstat(7, {st_mode=S_IFREG|0644, st_size=88376, ...}) = 0
+20:24:53.987139 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fab000
+20:24:53.987267 mmap(NULL, 2184192, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 7, 0) = 0x7fbf63666000
+20:24:53.987335 mprotect(0x7fbf6367b000, 2093056, PROT_NONE) = 0
+20:24:53.987401 mmap(0x7fbf6387a000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 7, 0x14000) = 0x7fbf6387a000
+20:24:53.987478 close(7)                = 0
+20:24:53.987586 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64faa000
+20:24:53.987662 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fa9000
+20:24:53.987736 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fa8000
+20:24:53.987804 arch_prctl(ARCH_SET_FS, 0x7fbf64fa9700) = 0
+20:24:53.988803 mprotect(0x7fbf63c31000, 16384, PROT_READ) = 0
+20:24:53.988887 mprotect(0x7fbf6387a000, 4096, PROT_READ) = 0
+20:24:53.988972 mprotect(0x7fbf63f36000, 4096, PROT_READ) = 0
+20:24:53.989038 mprotect(0x7fbf6414d000, 4096, PROT_READ) = 0
+20:24:53.989102 mprotect(0x7fbf64b8d000, 4096, PROT_READ) = 0
+20:24:53.989544 mprotect(0x7fbf64500000, 110592, PROT_READ) = 0
+20:24:53.989670 mprotect(0x7fbf6477e000, 12288, PROT_READ) = 0
+20:24:53.989729 mprotect(0x7fbf64989000, 4096, PROT_READ) = 0
+20:24:53.989794 mprotect(0x7fbf64da6000, 4096, PROT_READ) = 0
+20:24:53.989878 mprotect(0x870000, 4096, PROT_READ) = 0
+20:24:53.989941 mprotect(0x7fbf64fce000, 4096, PROT_READ) = 0
+20:24:53.989997 munmap(0x7fbf64fae000, 122069) = 0
+20:24:53.990094 set_tid_address(0x7fbf64fa99d0) = 2469
+20:24:53.991091 set_robust_list(0x7fbf64fa99e0, 24) = 0
+20:24:53.991684 futex(0x7fffb6174e8c, FUTEX_WAIT_BITSET_PRIVATE|FUTEX_CLOCK_REALTIME, 1, NULL, 7fbf64fa9700) = -1 EAGAIN (Resource temporarily unavailable)
+20:24:53.992679 rt_sigaction(SIGRTMIN, {0x7fbf64b95750, [], SA_RESTORER|SA_SIGINFO, 0x7fbf64b9ecb0}, NULL, 8) = 0
+20:24:53.993466 rt_sigaction(SIGRT_1, {0x7fbf64b957e0, [], SA_RESTORER|SA_RESTART|SA_SIGINFO, 0x7fbf64b9ecb0}, NULL, 8) = 0
+20:24:53.994185 rt_sigprocmask(SIG_UNBLOCK, [RTMIN RT_1], NULL, 8) = 0
+20:24:53.994282 getrlimit(RLIMIT_STACK, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
+20:24:53.995287 ioctl(0, SNDCTL_TMR_TIMEBASE or SNDRV_TIMER_IOCTL_NEXT_DEVICE or TCGETS, {B38400 opost isig icanon echo ...}) = 0
+20:24:53.996653 brk(0)                  = 0x1fa1000
+20:24:53.998356 brk(0x1fc2000)          = 0x1fc2000
+20:24:54.000207 mmap(NULL, 266240, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64f67000
+20:24:54.000459 open("/proc/meminfo", O_RDONLY|O_CLOEXEC) = 7
+20:24:54.003050 fstat(7, {st_mode=S_IFREG|0444, st_size=0, ...}) = 0
+20:24:54.003137 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.003204 read(7, ""..., 1024)    = 1024
+20:24:54.006022 close(7)                = 0
+20:24:54.006138 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.007926 brk(0x1fee000)          = 0x1fee000
+20:24:54.010508 fstat(0, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 5), ...}) = 0
+20:24:54.010704 fstat(0, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 5), ...}) = 0
+20:24:54.010792 fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 5), ...}) = 0
+20:24:54.010850 fstat(2, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 5), ...}) = 0
+20:24:54.010970 stat("/usr/lib/lightdm/lightdm/python", 0x7fffb6172af0) = -1 ENOENT (No such file or directory)
+20:24:54.011038 stat("/usr/local/sbin/python", 0x7fffb6172af0) = -1 ENOENT (No such file or directory)
+20:24:54.011095 stat("/usr/local/bin/python", 0x7fffb6172af0) = -1 ENOENT (No such file or directory)
+20:24:54.011160 stat("/usr/sbin/python", 0x7fffb6172af0) = -1 ENOENT (No such file or directory)
+20:24:54.011217 stat("/usr/bin/python", {st_mode=S_IFREG|0755, st_size=2989496, ...}) = 0
+20:24:54.011290 readlink("/usr/bin/python", ""..., 4096) = 9
+20:24:54.012792 readlink("/usr/bin/python2.7", 0x7fffb6173b90, 4096) = -1 EINVAL (Invalid argument)
+20:24:54.014236 stat("/usr/bin/Modules/Setup", 0x7fffb6172af0) = -1 ENOENT (No such file or directory)
+20:24:54.014308 stat("/usr/bin/lib/python2.7/os.py", 0x7fffb6172a40) = -1 ENOENT (No such file or directory)
+20:24:54.014368 stat("/usr/bin/lib/python2.7/os.pyc", 0x7fffb61729a0) = -1 ENOENT (No such file or directory)
+20:24:54.014425 stat("/usr/lib/python2.7/os.py", {st_mode=S_IFREG|0644, st_size=25769, ...}) = 0
+20:24:54.014492 stat("/usr/bin/Modules/Setup", 0x7fffb6172af0) = -1 ENOENT (No such file or directory)
+20:24:54.014555 stat("/usr/bin/lib/python2.7/lib-dynload", 0x7fffb6172a40) = -1 ENOENT (No such file or directory)
+20:24:54.014612 stat("/usr/lib/python2.7/lib-dynload", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:54.015432 mmap(NULL, 266240, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64f26000
+20:24:54.015589 rt_sigaction(SIGPIPE, {SIG_IGN, [], SA_RESTORER, 0x7fbf64b9ecb0}, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.017259 rt_sigaction(SIGXFSZ, {SIG_IGN, [], SA_RESTORER, 0x7fbf64b9ecb0}, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.018609 rt_sigaction(SIGHUP, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.020019 rt_sigaction(SIGINT, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.021421 rt_sigaction(SIGQUIT, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.022818 rt_sigaction(SIGILL, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.024298 rt_sigaction(SIGTRAP, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.025719 rt_sigaction(SIGABRT, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.027129 rt_sigaction(SIGBUS, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.028587 rt_sigaction(SIGFPE, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.029987 rt_sigaction(SIGKILL, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.031371 rt_sigaction(SIGUSR1, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.032816 rt_sigaction(SIGSEGV, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.034195 rt_sigaction(SIGUSR2, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.035564 rt_sigaction(SIGPIPE, NULL, {SIG_IGN, [], SA_RESTORER, 0x7fbf64b9ecb0}, 8) = 0
+20:24:54.037002 rt_sigaction(SIGALRM, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.038350 rt_sigaction(SIGTERM, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.039701 rt_sigaction(SIGSTKFLT, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.041175 rt_sigaction(SIGCHLD, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.042551 rt_sigaction(SIGCONT, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.043973 rt_sigaction(SIGSTOP, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.045376 rt_sigaction(SIGTSTP, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.046780 rt_sigaction(SIGTTIN, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.048247 rt_sigaction(SIGTTOU, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.049681 rt_sigaction(SIGURG, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.051082 rt_sigaction(SIGXCPU, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.052500 rt_sigaction(SIGXFSZ, NULL, {SIG_IGN, [], SA_RESTORER, 0x7fbf64b9ecb0}, 8) = 0
+20:24:54.053901 rt_sigaction(SIGVTALRM, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.055304 rt_sigaction(SIGPROF, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.056734 rt_sigaction(SIGWINCH, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.058140 rt_sigaction(SIGIO, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.059538 rt_sigaction(SIGPWR, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.060950 rt_sigaction(SIGSYS, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.062353 rt_sigaction(SIGRT_2, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.063762 rt_sigaction(SIGRT_3, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.065185 rt_sigaction(SIGRT_4, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.066592 rt_sigaction(SIGRT_5, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.067989 rt_sigaction(SIGRT_6, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.069392 rt_sigaction(SIGRT_7, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.070818 rt_sigaction(SIGRT_8, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.072290 rt_sigaction(SIGRT_9, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.073691 rt_sigaction(SIGRT_10, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.075094 rt_sigaction(SIGRT_11, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.076511 rt_sigaction(SIGRT_12, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.077915 rt_sigaction(SIGRT_13, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.079314 rt_sigaction(SIGRT_14, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.080746 rt_sigaction(SIGRT_15, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.082147 rt_sigaction(SIGRT_16, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.083556 rt_sigaction(SIGRT_17, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.084975 rt_sigaction(SIGRT_18, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.086394 rt_sigaction(SIGRT_19, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.087795 rt_sigaction(SIGRT_20, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.089217 rt_sigaction(SIGRT_21, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.090617 rt_sigaction(SIGRT_22, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.092162 rt_sigaction(SIGRT_23, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.093615 rt_sigaction(SIGRT_24, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.095022 rt_sigaction(SIGRT_25, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.096449 rt_sigaction(SIGRT_26, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.097855 rt_sigaction(SIGRT_27, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.099305 rt_sigaction(SIGRT_28, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.100819 rt_sigaction(SIGRT_29, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.102370 rt_sigaction(SIGRT_30, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.103874 rt_sigaction(SIGRT_31, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.105414 rt_sigaction(SIGRT_32, NULL, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.106963 rt_sigaction(SIGINT, {0x558fd0, [], SA_RESTORER, 0x7fbf64b9ecb0}, {SIG_DFL, [], 0}, 8) = 0
+20:24:54.108809 stat("/usr/lib/python2.7/", {st_mode=S_IFDIR|0755, st_size=24576, ...}) = 0
+20:24:54.108974 stat("/usr/lib/python2.7/", {st_mode=S_IFDIR|0755, st_size=24576, ...}) = 0
+20:24:54.109086 stat("/usr/lib/python2.7/site", 0x7fffb61707a0) = -1 ENOENT (No such file or directory)
+20:24:54.109192 open("/usr/lib/python2.7/site.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.111577 open("/usr/lib/python2.7/sitemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.113927 open("/usr/lib/python2.7/site.py", O_RDONLY) = 7
+20:24:54.116235 fstat(7, {st_mode=S_IFREG|0644, st_size=20387, ...}) = 0
+20:24:54.116329 open("/usr/lib/python2.7/site.pyc", O_RDONLY) = 8
+20:24:54.118698 fstat(8, {st_mode=S_IFREG|0644, st_size=19742, ...}) = 0
+20:24:54.118773 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.118849 read(8, ""..., 4096)    = 4096
+20:24:54.121701 fstat(8, {st_mode=S_IFREG|0644, st_size=19742, ...}) = 0
+20:24:54.121818 read(8, ""..., 12288)   = 12288
+20:24:54.124231 read(8, ""..., 4096)    = 3358
+20:24:54.127043 read(8, "", 4096)       = 0
+20:24:54.129886 close(8)                = 0
+20:24:54.130005 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.130160 stat("/usr/lib/python2.7/os", 0x7fffb616d190) = -1 ENOENT (No such file or directory)
+20:24:54.130239 open("/usr/lib/python2.7/os.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.134036 open("/usr/lib/python2.7/osmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.137440 open("/usr/lib/python2.7/os.py", O_RDONLY) = 8
+20:24:54.140984 fstat(8, {st_mode=S_IFREG|0644, st_size=25769, ...}) = 0
+20:24:54.141258 open("/usr/lib/python2.7/os.pyc", O_RDONLY) = 9
+20:24:54.144900 fstat(9, {st_mode=S_IFREG|0644, st_size=25451, ...}) = 0
+20:24:54.145073 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.145240 read(9, ""..., 4096)    = 4096
+20:24:54.149317 fstat(9, {st_mode=S_IFREG|0644, st_size=25451, ...}) = 0
+20:24:54.149403 read(9, ""..., 20480)   = 20480
+20:24:54.152595 read(9, ""..., 4096)    = 875
+20:24:54.156351 read(9, "", 4096)       = 0
+20:24:54.159174 close(9)                = 0
+20:24:54.159346 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.159542 brk(0x2010000)          = 0x2010000
+20:24:54.165233 stat("/usr/lib/python2.7/posixpath", 0x7fffb6169b80) = -1 ENOENT (No such file or directory)
+20:24:54.165303 open("/usr/lib/python2.7/posixpath.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.168115 open("/usr/lib/python2.7/posixpathmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.172871 open("/usr/lib/python2.7/posixpath.py", O_RDONLY) = 9
+20:24:54.177571 fstat(9, {st_mode=S_IFREG|0644, st_size=13182, ...}) = 0
+20:24:54.177771 open("/usr/lib/python2.7/posixpath.pyc", O_RDONLY) = 10
+20:24:54.181114 fstat(10, {st_mode=S_IFREG|0644, st_size=11148, ...}) = 0
+20:24:54.181300 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.181415 read(10, ""..., 4096)   = 4096
+20:24:54.186631 fstat(10, {st_mode=S_IFREG|0644, st_size=11148, ...}) = 0
+20:24:54.186717 read(10, ""..., 4096)   = 4096
+20:24:54.191470 read(10, ""..., 4096)   = 2956
+20:24:54.196282 read(10, "", 4096)      = 0
+20:24:54.200843 close(10)               = 0
+20:24:54.200976 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.201241 stat("/usr/lib/python2.7/stat", 0x7fffb6166570) = -1 ENOENT (No such file or directory)
+20:24:54.201386 open("/usr/lib/python2.7/stat.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.207554 open("/usr/lib/python2.7/statmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.212839 open("/usr/lib/python2.7/stat.py", O_RDONLY) = 10
+20:24:54.218596 fstat(10, {st_mode=S_IFREG|0644, st_size=1842, ...}) = 0
+20:24:54.218647 open("/usr/lib/python2.7/stat.pyc", O_RDONLY) = 11
+20:24:54.223633 fstat(11, {st_mode=S_IFREG|0644, st_size=2731, ...}) = 0
+20:24:54.223733 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.223806 read(11, ""..., 4096)   = 2731
+20:24:54.227650 fstat(11, {st_mode=S_IFREG|0644, st_size=2731, ...}) = 0
+20:24:54.227701 read(11, "", 4096)      = 0
+20:24:54.231273 close(11)               = 0
+20:24:54.231387 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.231721 close(10)               = 0
+20:24:54.232059 stat("/usr/lib/python2.7/genericpath", 0x7fffb6166570) = -1 ENOENT (No such file or directory)
+20:24:54.232352 open("/usr/lib/python2.7/genericpath.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.238585 open("/usr/lib/python2.7/genericpathmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.244324 open("/usr/lib/python2.7/genericpath.py", O_RDONLY) = 10
+20:24:54.250135 fstat(10, {st_mode=S_IFREG|0644, st_size=3015, ...}) = 0
+20:24:54.250225 open("/usr/lib/python2.7/genericpath.pyc", O_RDONLY) = 11
+20:24:54.255967 fstat(11, {st_mode=S_IFREG|0644, st_size=3243, ...}) = 0
+20:24:54.256048 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.256146 read(11, ""..., 4096)   = 3243
+20:24:54.262566 fstat(11, {st_mode=S_IFREG|0644, st_size=3243, ...}) = 0
+20:24:54.262851 read(11, "", 4096)      = 0
+20:24:54.269101 mmap(NULL, 200704, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64ef5000
+20:24:54.269582 close(11)               = 0
+20:24:54.269786 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.270081 close(10)               = 0
+20:24:54.270306 stat("/usr/lib/python2.7/warnings", 0x7fffb6166570) = -1 ENOENT (No such file or directory)
+20:24:54.270430 open("/usr/lib/python2.7/warnings.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.276747 open("/usr/lib/python2.7/warningsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.282568 open("/usr/lib/python2.7/warnings.py", O_RDONLY) = 10
+20:24:54.288435 fstat(10, {st_mode=S_IFREG|0644, st_size=14044, ...}) = 0
+20:24:54.288604 open("/usr/lib/python2.7/warnings.pyc", O_RDONLY) = 11
+20:24:54.294396 fstat(11, {st_mode=S_IFREG|0644, st_size=13104, ...}) = 0
+20:24:54.294565 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.294639 read(11, ""..., 4096)   = 4096
+20:24:54.298999 fstat(11, {st_mode=S_IFREG|0644, st_size=13104, ...}) = 0
+20:24:54.299189 read(11, ""..., 8192)   = 8192
+20:24:54.305147 read(11, ""..., 4096)   = 816
+20:24:54.309518 read(11, "", 4096)      = 0
+20:24:54.315808 close(11)               = 0
+20:24:54.316030 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.316324 stat("/usr/lib/python2.7/linecache", 0x7fffb6162f60) = -1 ENOENT (No such file or directory)
+20:24:54.316613 open("/usr/lib/python2.7/linecache.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.324023 open("/usr/lib/python2.7/linecachemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.331048 open("/usr/lib/python2.7/linecache.py", O_RDONLY) = 11
+20:24:54.338038 fstat(11, {st_mode=S_IFREG|0644, st_size=4118, ...}) = 0
+20:24:54.338251 open("/usr/lib/python2.7/linecache.pyc", O_RDONLY) = 12
+20:24:54.344745 fstat(12, {st_mode=S_IFREG|0644, st_size=3240, ...}) = 0
+20:24:54.344859 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.344929 read(12, ""..., 4096)   = 3240
+20:24:54.349477 fstat(12, {st_mode=S_IFREG|0644, st_size=3240, ...}) = 0
+20:24:54.349670 read(12, "", 4096)      = 0
+20:24:54.354004 close(12)               = 0
+20:24:54.354176 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.354280 close(11)               = 0
+20:24:54.354350 stat("/usr/lib/python2.7/types", 0x7fffb6162f60) = -1 ENOENT (No such file or directory)
+20:24:54.354425 open("/usr/lib/python2.7/types.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.358832 open("/usr/lib/python2.7/typesmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.365822 open("/usr/lib/python2.7/types.py", O_RDONLY) = 11
+20:24:54.370825 fstat(11, {st_mode=S_IFREG|0644, st_size=2040, ...}) = 0
+20:24:54.370874 open("/usr/lib/python2.7/types.pyc", O_RDONLY) = 12
+20:24:54.375112 fstat(12, {st_mode=S_IFREG|0644, st_size=2494, ...}) = 0
+20:24:54.375347 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.375681 read(12, ""..., 4096)   = 2494
+20:24:54.381996 fstat(12, {st_mode=S_IFREG|0644, st_size=2494, ...}) = 0
+20:24:54.382153 read(12, "", 4096)      = 0
+20:24:54.386577 close(12)               = 0
+20:24:54.386712 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.387103 close(11)               = 0
+20:24:54.387580 close(10)               = 0
+20:24:54.387773 close(9)                = 0
+20:24:54.388175 stat("/usr/lib/python2.7/UserDict", 0x7fffb6169b80) = -1 ENOENT (No such file or directory)
+20:24:54.388307 open("/usr/lib/python2.7/UserDict.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.393361 open("/usr/lib/python2.7/UserDictmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.397990 open("/usr/lib/python2.7/UserDict.py", O_RDONLY) = 9
+20:24:54.402629 fstat(9, {st_mode=S_IFREG|0644, st_size=5811, ...}) = 0
+20:24:54.402699 open("/usr/lib/python2.7/UserDict.pyc", O_RDONLY) = 10
+20:24:54.405999 fstat(10, {st_mode=S_IFREG|0644, st_size=8730, ...}) = 0
+20:24:54.406041 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.406081 read(10, ""..., 4096)   = 4096
+20:24:54.409236 fstat(10, {st_mode=S_IFREG|0644, st_size=8730, ...}) = 0
+20:24:54.409412 read(10, ""..., 4096)   = 4096
+20:24:54.412287 read(10, ""..., 4096)   = 538
+20:24:54.415178 read(10, "", 4096)      = 0
+20:24:54.418521 close(10)               = 0
+20:24:54.418715 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.419052 stat("/usr/lib/python2.7/_abcoll", 0x7fffb6166570) = -1 ENOENT (No such file or directory)
+20:24:54.419359 open("/usr/lib/python2.7/_abcoll.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.425618 open("/usr/lib/python2.7/_abcollmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.429867 open("/usr/lib/python2.7/_abcoll.py", O_RDONLY) = 10
+20:24:54.435631 fstat(10, {st_mode=S_IFREG|0644, st_size=14672, ...}) = 0
+20:24:54.435704 open("/usr/lib/python2.7/_abcoll.pyc", O_RDONLY) = 11
+20:24:54.440921 fstat(11, {st_mode=S_IFREG|0644, st_size=21725, ...}) = 0
+20:24:54.441107 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.441373 read(11, ""..., 4096)   = 4096
+20:24:54.447790 fstat(11, {st_mode=S_IFREG|0644, st_size=21725, ...}) = 0
+20:24:54.447989 read(11, ""..., 16384)  = 16384
+20:24:54.453232 read(11, ""..., 4096)   = 1245
+20:24:54.456925 read(11, "", 4096)      = 0
+20:24:54.460691 mmap(NULL, 266240, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64eb4000
+20:24:54.461046 close(11)               = 0
+20:24:54.461156 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.461265 stat("/usr/lib/python2.7/abc", 0x7fffb6162f60) = -1 ENOENT (No such file or directory)
+20:24:54.461376 open("/usr/lib/python2.7/abc.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.468827 open("/usr/lib/python2.7/abcmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.473576 open("/usr/lib/python2.7/abc.py", O_RDONLY) = 11
+20:24:54.480599 fstat(11, {st_mode=S_IFREG|0644, st_size=7145, ...}) = 0
+20:24:54.480777 open("/usr/lib/python2.7/abc.pyc", O_RDONLY) = 12
+20:24:54.487768 fstat(12, {st_mode=S_IFREG|0644, st_size=6121, ...}) = 0
+20:24:54.487870 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.488005 read(12, ""..., 4096)   = 4096
+20:24:54.495481 fstat(12, {st_mode=S_IFREG|0644, st_size=6121, ...}) = 0
+20:24:54.495567 read(12, ""..., 4096)   = 2025
+20:24:54.502716 read(12, "", 4096)      = 0
+20:24:54.509854 close(12)               = 0
+20:24:54.510015 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.510259 stat("/usr/lib/python2.7/_weakrefset", 0x7fffb615f950) = -1 ENOENT (No such file or directory)
+20:24:54.510409 open("/usr/lib/python2.7/_weakrefset.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.518906 open("/usr/lib/python2.7/_weakrefsetmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.525826 open("/usr/lib/python2.7/_weakrefset.py", O_RDONLY) = 12
+20:24:54.530735 fstat(12, {st_mode=S_IFREG|0644, st_size=6389, ...}) = 0
+20:24:54.530912 open("/usr/lib/python2.7/_weakrefset.pyc", O_RDONLY) = 13
+20:24:54.537881 fstat(13, {st_mode=S_IFREG|0644, st_size=10190, ...}) = 0
+20:24:54.537993 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.538039 read(13, ""..., 4096)   = 4096
+20:24:54.543204 fstat(13, {st_mode=S_IFREG|0644, st_size=10190, ...}) = 0
+20:24:54.543374 read(13, ""..., 4096)   = 4096
+20:24:54.548318 read(13, ""..., 4096)   = 1998
+20:24:54.553268 read(13, "", 4096)      = 0
+20:24:54.558338 close(13)               = 0
+20:24:54.558470 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.558870 close(12)               = 0
+20:24:54.559134 close(11)               = 0
+20:24:54.560518 brk(0x2031000)          = 0x2031000
+20:24:54.566854 close(10)               = 0
+20:24:54.567171 close(9)                = 0
+20:24:54.567518 stat("/usr/lib/python2.7/copy_reg", 0x7fffb6169b80) = -1 ENOENT (No such file or directory)
+20:24:54.567638 open("/usr/lib/python2.7/copy_reg.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.572594 open("/usr/lib/python2.7/copy_regmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.575738 open("/usr/lib/python2.7/copy_reg.py", O_RDONLY) = 9
+20:24:54.580457 fstat(9, {st_mode=S_IFREG|0644, st_size=6800, ...}) = 0
+20:24:54.580744 open("/usr/lib/python2.7/copy_reg.pyc", O_RDONLY) = 10
+20:24:54.585573 fstat(10, {st_mode=S_IFREG|0644, st_size=5091, ...}) = 0
+20:24:54.585769 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.585941 read(10, ""..., 4096)   = 4096
+20:24:54.591267 fstat(10, {st_mode=S_IFREG|0644, st_size=5091, ...}) = 0
+20:24:54.591421 read(10, ""..., 4096)   = 995
+20:24:54.596187 read(10, "", 4096)      = 0
+20:24:54.599214 close(10)               = 0
+20:24:54.599330 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.599764 close(9)                = 0
+20:24:54.600062 close(8)                = 0
+20:24:54.600350 stat("/usr/lib/python2.7/traceback", 0x7fffb616d190) = -1 ENOENT (No such file or directory)
+20:24:54.600591 open("/usr/lib/python2.7/traceback.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.604576 open("/usr/lib/python2.7/tracebackmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.608049 open("/usr/lib/python2.7/traceback.py", O_RDONLY) = 8
+20:24:54.610159 fstat(8, {st_mode=S_IFREG|0644, st_size=11255, ...}) = 0
+20:24:54.610276 open("/usr/lib/python2.7/traceback.pyc", O_RDONLY) = 9
+20:24:54.612436 fstat(9, {st_mode=S_IFREG|0644, st_size=11583, ...}) = 0
+20:24:54.612567 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.612688 read(9, ""..., 4096)    = 4096
+20:24:54.615076 fstat(9, {st_mode=S_IFREG|0644, st_size=11583, ...}) = 0
+20:24:54.615136 read(9, ""..., 4096)    = 4096
+20:24:54.617334 read(9, ""..., 4096)    = 3391
+20:24:54.619550 read(9, "", 4096)       = 0
+20:24:54.621879 close(9)                = 0
+20:24:54.621983 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.622259 close(8)                = 0
+20:24:54.622996 geteuid()               = 1000
+20:24:54.625698 getuid()                = 1000
+20:24:54.627485 getegid()               = 1000
+20:24:54.630426 getgid()                = 1000
+20:24:54.633403 stat("/usr/lib/python2.7", {st_mode=S_IFDIR|0755, st_size=24576, ...}) = 0
+20:24:54.633591 stat("/usr/lib/python2.7", {st_mode=S_IFDIR|0755, st_size=24576, ...}) = 0
+20:24:54.633765 stat("/usr/lib/python2.7/sysconfig", 0x7fffb616cc50) = -1 ENOENT (No such file or directory)
+20:24:54.633849 open("/usr/lib/python2.7/sysconfig.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.637898 open("/usr/lib/python2.7/sysconfigmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.641983 open("/usr/lib/python2.7/sysconfig.py", O_RDONLY) = 8
+20:24:54.646072 fstat(8, {st_mode=S_IFREG|0644, st_size=28113, ...}) = 0
+20:24:54.646210 open("/usr/lib/python2.7/sysconfig.pyc", O_RDONLY) = 9
+20:24:54.650274 fstat(9, {st_mode=S_IFREG|0644, st_size=18805, ...}) = 0
+20:24:54.650434 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.650530 read(9, ""..., 4096)    = 4096
+20:24:54.655092 fstat(9, {st_mode=S_IFREG|0644, st_size=18805, ...}) = 0
+20:24:54.655281 read(9, ""..., 12288)   = 12288
+20:24:54.658092 read(9, ""..., 4096)    = 2421
+20:24:54.660661 read(9, "", 4096)       = 0
+20:24:54.663454 close(9)                = 0
+20:24:54.663557 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.663830 lstat("/usr", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:54.669145 lstat("/usr/bin", {st_mode=S_IFDIR|0755, st_size=69632, ...}) = 0
+20:24:54.672141 lstat("/usr/bin/python", {st_mode=S_IFLNK|0777, st_size=9, ...}) = 0
+20:24:54.675100 lstat("/usr/bin/python", {st_mode=S_IFLNK|0777, st_size=9, ...}) = 0
+20:24:54.678146 readlink("/usr/bin/python", ""..., 4096) = 9
+20:24:54.681545 lstat("/usr/bin/python2.7", {st_mode=S_IFREG|0755, st_size=2989496, ...}) = 0
+20:24:54.685743 lstat("/usr", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:54.690085 lstat("/usr/bin", {st_mode=S_IFDIR|0755, st_size=69632, ...}) = 0
+20:24:54.693618 lstat("/usr/bin/python2.7", {st_mode=S_IFREG|0755, st_size=2989496, ...}) = 0
+20:24:54.696598 stat("/usr/bin/Modules/Setup.dist", 0x7fffb616d6f0) = -1 ENOENT (No such file or directory)
+20:24:54.696730 stat("/usr/bin/Modules/Setup.local", 0x7fffb616d6f0) = -1 ENOENT (No such file or directory)
+20:24:54.696849 close(8)                = 0
+20:24:54.696933 stat("/usr/lib/python2.7/re", 0x7fffb616c8f0) = -1 ENOENT (No such file or directory)
+20:24:54.697082 open("/usr/lib/python2.7/re.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.701231 open("/usr/lib/python2.7/remodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.705113 open("/usr/lib/python2.7/re.py", O_RDONLY) = 8
+20:24:54.709759 fstat(8, {st_mode=S_IFREG|0644, st_size=12959, ...}) = 0
+20:24:54.710037 open("/usr/lib/python2.7/re.pyc", O_RDONLY) = 9
+20:24:54.714548 fstat(9, {st_mode=S_IFREG|0644, st_size=13052, ...}) = 0
+20:24:54.714702 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.714868 read(9, ""..., 4096)    = 4096
+20:24:54.719984 fstat(9, {st_mode=S_IFREG|0644, st_size=13052, ...}) = 0
+20:24:54.720071 read(9, ""..., 8192)    = 8192
+20:24:54.724497 read(9, ""..., 4096)    = 764
+20:24:54.728641 read(9, "", 4096)       = 0
+20:24:54.731549 close(9)                = 0
+20:24:54.731652 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.731909 stat("/usr/lib/python2.7/sre_compile", 0x7fffb61692e0) = -1 ENOENT (No such file or directory)
+20:24:54.732203 open("/usr/lib/python2.7/sre_compile.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.735804 open("/usr/lib/python2.7/sre_compilemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.740839 open("/usr/lib/python2.7/sre_compile.py", O_RDONLY) = 9
+20:24:54.746533 fstat(9, {st_mode=S_IFREG|0644, st_size=16427, ...}) = 0
+20:24:54.746852 open("/usr/lib/python2.7/sre_compile.pyc", O_RDONLY) = 10
+20:24:54.752417 fstat(10, {st_mode=S_IFREG|0644, st_size=11029, ...}) = 0
+20:24:54.752668 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.752824 read(10, ""..., 4096)   = 4096
+20:24:54.756601 fstat(10, {st_mode=S_IFREG|0644, st_size=11029, ...}) = 0
+20:24:54.756669 read(10, ""..., 4096)   = 4096
+20:24:54.760154 read(10, ""..., 4096)   = 2837
+20:24:54.763627 read(10, "", 4096)      = 0
+20:24:54.767178 close(10)               = 0
+20:24:54.767258 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.767624 stat("/usr/lib/python2.7/sre_parse", 0x7fffb6165cd0) = -1 ENOENT (No such file or directory)
+20:24:54.767923 open("/usr/lib/python2.7/sre_parse.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.774486 open("/usr/lib/python2.7/sre_parsemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.781114 open("/usr/lib/python2.7/sre_parse.py", O_RDONLY) = 10
+20:24:54.787272 fstat(10, {st_mode=S_IFREG|0644, st_size=26798, ...}) = 0
+20:24:54.787338 open("/usr/lib/python2.7/sre_parse.pyc", O_RDONLY) = 11
+20:24:54.793435 fstat(11, {st_mode=S_IFREG|0644, st_size=19028, ...}) = 0
+20:24:54.793489 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.793541 read(11, ""..., 4096)   = 4096
+20:24:54.800281 fstat(11, {st_mode=S_IFREG|0644, st_size=19028, ...}) = 0
+20:24:54.800348 read(11, ""..., 12288)  = 12288
+20:24:54.806618 read(11, ""..., 4096)   = 2644
+20:24:54.813031 read(11, "", 4096)      = 0
+20:24:54.819745 close(11)               = 0
+20:24:54.819799 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.819883 stat("/usr/lib/python2.7/sre_constants", 0x7fffb61626c0) = -1 ENOENT (No such file or directory)
+20:24:54.819954 open("/usr/lib/python2.7/sre_constants.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.827255 open("/usr/lib/python2.7/sre_constantsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:54.832090 open("/usr/lib/python2.7/sre_constants.py", O_RDONLY) = 11
+20:24:54.837039 fstat(11, {st_mode=S_IFREG|0644, st_size=7137, ...}) = 0
+20:24:54.837165 open("/usr/lib/python2.7/sre_constants.pyc", O_RDONLY) = 12
+20:24:54.841995 fstat(12, {st_mode=S_IFREG|0644, st_size=6078, ...}) = 0
+20:24:54.842062 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.842116 read(12, ""..., 4096)   = 4096
+20:24:54.847301 fstat(12, {st_mode=S_IFREG|0644, st_size=6078, ...}) = 0
+20:24:54.847355 read(12, ""..., 4096)   = 1982
+20:24:54.852294 read(12, "", 4096)      = 0
+20:24:54.857312 close(12)               = 0
+20:24:54.857383 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.857565 brk(0x2052000)          = 0x2052000
+20:24:54.863115 close(11)               = 0
+20:24:54.863281 mmap(NULL, 266240, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64e73000
+20:24:54.863412 close(10)               = 0
+20:24:54.863504 close(9)                = 0
+20:24:54.863645 close(8)                = 0
+20:24:54.865032 open("/usr/lib/python2.7/config/Makefile", O_RDONLY) = 8
+20:24:54.867919 fstat(8, {st_mode=S_IFREG|0644, st_size=53972, ...}) = 0
+20:24:54.867993 fstat(8, {st_mode=S_IFREG|0644, st_size=53972, ...}) = 0
+20:24:54.868032 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.868071 read(8, ""..., 8192)    = 8192
+20:24:54.870742 read(8, ""..., 4096)    = 4096
+20:24:54.873264 read(8, ""..., 4096)    = 4096
+20:24:54.875933 read(8, ""..., 4096)    = 4096
+20:24:54.878411 read(8, ""..., 4096)    = 4096
+20:24:54.881047 read(8, ""..., 4096)    = 4096
+20:24:54.883508 read(8, ""..., 4096)    = 4096
+20:24:54.886088 read(8, ""..., 4096)    = 4096
+20:24:54.888616 read(8, ""..., 4096)    = 4096
+20:24:54.891208 read(8, ""..., 4096)    = 4096
+20:24:54.899246 read(8, ""..., 4096)    = 4096
+20:24:54.903539 read(8, ""..., 4096)    = 4096
+20:24:54.907275 read(8, ""..., 4096)    = 724
+20:24:54.912830 read(8, "", 4096)       = 0
+20:24:54.916701 close(8)                = 0
+20:24:54.916743 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.922787 open("/usr/include/python2.7/pyconfig.h", O_RDONLY) = 8
+20:24:54.928049 fstat(8, {st_mode=S_IFREG|0644, st_size=35970, ...}) = 0
+20:24:54.929224 fstat(8, {st_mode=S_IFREG|0644, st_size=35970, ...}) = 0
+20:24:54.929275 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.929321 read(8, ""..., 4096)    = 4096
+20:24:54.933898 read(8, ""..., 4096)    = 4096
+20:24:54.938297 read(8, ""..., 4096)    = 4096
+20:24:54.942465 read(8, ""..., 4096)    = 4096
+20:24:54.945480 brk(0x2076000)          = 0x2076000
+20:24:54.948382 read(8, ""..., 4096)    = 4096
+20:24:54.951685 read(8, ""..., 4096)    = 4096
+20:24:54.954558 read(8, ""..., 4096)    = 4096
+20:24:54.958362 read(8, ""..., 4096)    = 4096
+20:24:54.962922 read(8, ""..., 4096)    = 3202
+20:24:54.967417 read(8, "", 4096)       = 0
+20:24:54.971575 close(8)                = 0
+20:24:54.971699 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:54.972451 stat("/home/ramnatthan/.local/lib/python2.7/site-packages", 0x7fffb61710f0) = -1 ENOENT (No such file or directory)
+20:24:54.972722 stat("/home/ramnatthan/.local/local/lib/python2.7/dist-packages", 0x7fffb61710f0) = -1 ENOENT (No such file or directory)
+20:24:54.972951 stat("/home/ramnatthan/.local/lib/python2.7/dist-packages", 0x7fffb61710f0) = -1 ENOENT (No such file or directory)
+20:24:54.973083 stat("/usr/local/lib/python2.7/dist-packages", {st_mode=S_IFDIR|S_ISGID|0775, st_size=4096, ...}) = 0
+20:24:54.973230 openat(AT_FDCWD, "/usr/local/lib/python2.7/dist-packages", O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 8
+20:24:54.975408 getdents(8, /* 40 entries */, 32768) = 1488
+20:24:54.978770 getdents(8, /* 0 entries */, 32768) = 0
+20:24:54.982138 close(8)                = 0
+20:24:54.982415 stat("/usr/lib/python2.7/dist-packages", {st_mode=S_IFDIR|0755, st_size=12288, ...}) = 0
+20:24:54.982670 openat(AT_FDCWD, "/usr/lib/python2.7/dist-packages", O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 8
+20:24:54.986003 getdents(8, /* 258 entries */, 32768) = 9888
+20:24:54.989617 getdents(8, /* 0 entries */, 32768) = 0
+20:24:54.992856 close(8)                = 0
+20:24:54.993224 open("/usr/lib/python2.7/dist-packages/PIL.pth", O_RDONLY) = 8
+20:24:54.997297 fstat(8, {st_mode=S_IFREG|0644, st_size=4, ...}) = 0
+20:24:54.997430 fstat(8, {st_mode=S_IFREG|0644, st_size=4, ...}) = 0
+20:24:54.997521 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:54.997619 read(8, ""..., 8192)    = 4
+20:24:55.002066 read(8, "", 4096)       = 0
+20:24:55.006109 stat("/usr/lib/python2.7/dist-packages/PIL", {st_mode=S_IFDIR|0755, st_size=12288, ...}) = 0
+20:24:55.006284 read(8, "", 8192)       = 0
+20:24:55.010182 close(8)                = 0
+20:24:55.010345 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.010588 open("/usr/lib/python2.7/dist-packages/gtk-2.0-pysupport-compat.pth", O_RDONLY) = 8
+20:24:55.014949 fstat(8, {st_mode=S_IFREG|0644, st_size=38, ...}) = 0
+20:24:55.015132 fstat(8, {st_mode=S_IFREG|0644, st_size=38, ...}) = 0
+20:24:55.015218 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.015292 read(8, ""..., 8192)    = 38
+20:24:55.019521 read(8, "", 4096)       = 0
+20:24:55.023633 stat("/usr/lib/pymodules/python2.7/gtk-2.0", 0x7fffb6170cd0) = -1 ENOENT (No such file or directory)
+20:24:55.023991 read(8, "", 8192)       = 0
+20:24:55.028004 close(8)                = 0
+20:24:55.028143 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.028290 open("/usr/lib/python2.7/dist-packages/lazr.restfulclient-0.12.0-nspkg.pth", O_RDONLY) = 8
+20:24:55.032515 fstat(8, {st_mode=S_IFREG|0644, st_size=301, ...}) = 0
+20:24:55.032782 fstat(8, {st_mode=S_IFREG|0644, st_size=301, ...}) = 0
+20:24:55.033052 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.033287 read(8, ""..., 8192)    = 301
+20:24:55.037584 read(8, "", 4096)       = 0
+20:24:55.042433 stat("/usr/lib/python2.7/dist-packages/lazr/__init__.py", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+20:24:55.042660 read(8, "", 8192)       = 0
+20:24:55.046710 close(8)                = 0
+20:24:55.046852 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.047035 open("/usr/lib/python2.7/dist-packages/lazr.uri-1.0.3-nspkg.pth", O_RDONLY) = 8
+20:24:55.051409 fstat(8, {st_mode=S_IFREG|0644, st_size=301, ...}) = 0
+20:24:55.051599 fstat(8, {st_mode=S_IFREG|0644, st_size=301, ...}) = 0
+20:24:55.051762 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.051832 read(8, ""..., 8192)    = 301
+20:24:55.056216 read(8, "", 4096)       = 0
+20:24:55.060484 stat("/usr/lib/python2.7/dist-packages/lazr/__init__.py", {st_mode=S_IFREG|0644, st_size=0, ...}) = 0
+20:24:55.060591 read(8, "", 8192)       = 0
+20:24:55.064464 close(8)                = 0
+20:24:55.064600 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.064722 open("/usr/lib/python2.7/dist-packages/pygst.pth", O_RDONLY) = 8
+20:24:55.069024 fstat(8, {st_mode=S_IFREG|0644, st_size=9, ...}) = 0
+20:24:55.069150 fstat(8, {st_mode=S_IFREG|0644, st_size=9, ...}) = 0
+20:24:55.069215 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.069291 read(8, ""..., 8192)    = 9
+20:24:55.073494 read(8, "", 4096)       = 0
+20:24:55.076839 stat("/usr/lib/python2.7/dist-packages/gst-0.10", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.076936 read(8, "", 8192)       = 0
+20:24:55.079266 close(8)                = 0
+20:24:55.079446 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.079691 open("/usr/lib/python2.7/dist-packages/pygtk.pth", O_RDONLY) = 8
+20:24:55.084033 fstat(8, {st_mode=S_IFREG|0644, st_size=8, ...}) = 0
+20:24:55.084215 fstat(8, {st_mode=S_IFREG|0644, st_size=8, ...}) = 0
+20:24:55.084303 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.084369 read(8, ""..., 8192)    = 8
+20:24:55.088368 read(8, "", 4096)       = 0
+20:24:55.090745 stat("/usr/lib/python2.7/dist-packages/gtk-2.0", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.090803 read(8, "", 8192)       = 0
+20:24:55.094049 close(8)                = 0
+20:24:55.094299 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.094562 open("/usr/lib/python2.7/dist-packages/python-support.pth", O_RDONLY) = 8
+20:24:55.097177 fstat(8, {st_mode=S_IFREG|0644, st_size=29, ...}) = 0
+20:24:55.097288 fstat(8, {st_mode=S_IFREG|0644, st_size=29, ...}) = 0
+20:24:55.097335 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.097397 read(8, ""..., 8192)    = 29
+20:24:55.102183 read(8, "", 4096)       = 0
+20:24:55.106114 stat("/usr/lib/pymodules/python2.7", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.106211 read(8, "", 8192)       = 0
+20:24:55.110066 close(8)                = 0
+20:24:55.110199 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.110362 open("/usr/lib/python2.7/dist-packages/setuptools.pth", O_RDONLY) = 8
+20:24:55.114754 fstat(8, {st_mode=S_IFREG|0644, st_size=27, ...}) = 0
+20:24:55.114985 fstat(8, {st_mode=S_IFREG|0644, st_size=27, ...}) = 0
+20:24:55.115259 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.115538 read(8, ""..., 8192)    = 27
+20:24:55.119953 read(8, "", 4096)       = 0
+20:24:55.123875 stat("/usr/lib/python2.7/dist-packages/setuptools-0.6c11.egg-info", 0x7fffb6170cd0) = -1 ENOENT (No such file or directory)
+20:24:55.124106 read(8, "", 8192)       = 0
+20:24:55.126497 close(8)                = 0
+20:24:55.126672 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.126832 open("/usr/lib/python2.7/dist-packages/ubuntu-sso-client.pth", O_RDONLY) = 8
+20:24:55.131169 fstat(8, {st_mode=S_IFREG|0644, st_size=18, ...}) = 0
+20:24:55.131362 fstat(8, {st_mode=S_IFREG|0644, st_size=18, ...}) = 0
+20:24:55.131425 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.131491 read(8, ""..., 8192)    = 18
+20:24:55.135669 read(8, "", 4096)       = 0
+20:24:55.138143 stat("/usr/lib/python2.7/dist-packages/ubuntu-sso-client", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.138251 read(8, "", 8192)       = 0
+20:24:55.140583 close(8)                = 0
+20:24:55.140765 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.140967 open("/usr/lib/python2.7/dist-packages/ubuntuone-client.pth", O_RDONLY) = 8
+20:24:55.145328 fstat(8, {st_mode=S_IFREG|0644, st_size=17, ...}) = 0
+20:24:55.145453 fstat(8, {st_mode=S_IFREG|0644, st_size=17, ...}) = 0
+20:24:55.145551 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.145618 read(8, ""..., 8192)    = 17
+20:24:55.149059 read(8, "", 4096)       = 0
+20:24:55.151372 stat("/usr/lib/python2.7/dist-packages/ubuntuone-client", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.151428 read(8, "", 8192)       = 0
+20:24:55.153782 close(8)                = 0
+20:24:55.153883 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.154125 open("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel.pth", O_RDONLY) = 8
+20:24:55.158519 fstat(8, {st_mode=S_IFREG|0644, st_size=24, ...}) = 0
+20:24:55.158706 fstat(8, {st_mode=S_IFREG|0644, st_size=24, ...}) = 0
+20:24:55.158792 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.158871 read(8, ""..., 8192)    = 24
+20:24:55.163188 read(8, "", 4096)       = 0
+20:24:55.167212 stat("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.167429 read(8, "", 8192)       = 0
+20:24:55.171603 close(8)                = 0
+20:24:55.171797 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.172053 open("/usr/lib/python2.7/dist-packages/ubuntuone-couch.pth", O_RDONLY) = 8
+20:24:55.176364 fstat(8, {st_mode=S_IFREG|0644, st_size=16, ...}) = 0
+20:24:55.176488 fstat(8, {st_mode=S_IFREG|0644, st_size=16, ...}) = 0
+20:24:55.176581 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.176649 read(8, ""..., 8192)    = 16
+20:24:55.180802 read(8, "", 4096)       = 0
+20:24:55.184819 stat("/usr/lib/python2.7/dist-packages/ubuntuone-couch", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.184920 read(8, "", 8192)       = 0
+20:24:55.188919 close(8)                = 0
+20:24:55.189048 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.189143 open("/usr/lib/python2.7/dist-packages/ubuntuone-installer.pth", O_RDONLY) = 8
+20:24:55.193431 fstat(8, {st_mode=S_IFREG|0644, st_size=20, ...}) = 0
+20:24:55.193500 fstat(8, {st_mode=S_IFREG|0644, st_size=20, ...}) = 0
+20:24:55.193551 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.193598 read(8, ""..., 8192)    = 20
+20:24:55.196369 read(8, "", 4096)       = 0
+20:24:55.200534 stat("/usr/lib/python2.7/dist-packages/ubuntuone-installer", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.200633 read(8, "", 8192)       = 0
+20:24:55.204568 close(8)                = 0
+20:24:55.204732 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.204961 open("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol.pth", O_RDONLY) = 8
+20:24:55.209333 fstat(8, {st_mode=S_IFREG|0644, st_size=27, ...}) = 0
+20:24:55.209520 fstat(8, {st_mode=S_IFREG|0644, st_size=27, ...}) = 0
+20:24:55.209608 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.209673 read(8, ""..., 8192)    = 27
+20:24:55.213839 read(8, "", 4096)       = 0
+20:24:55.217865 stat("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.218059 read(8, "", 8192)       = 0
+20:24:55.221269 close(8)                = 0
+20:24:55.221456 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.221704 open("/usr/lib/python2.7/dist-packages/zope.interface-3.6.1-nspkg.pth", O_RDONLY) = 8
+20:24:55.226035 fstat(8, {st_mode=S_IFREG|0644, st_size=301, ...}) = 0
+20:24:55.226224 fstat(8, {st_mode=S_IFREG|0644, st_size=301, ...}) = 0
+20:24:55.226312 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.226378 read(8, ""..., 8192)    = 301
+20:24:55.230561 read(8, "", 4096)       = 0
+20:24:55.234074 stat("/usr/lib/python2.7/dist-packages/zope/__init__.py", {st_mode=S_IFREG|0644, st_size=200, ...}) = 0
+20:24:55.234406 read(8, "", 8192)       = 0
+20:24:55.238447 close(8)                = 0
+20:24:55.238593 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.238903 stat("/usr/lib/python2.7/sitecustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.239020 open("/usr/lib/python2.7/sitecustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.243224 open("/usr/lib/python2.7/sitecustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.247153 open("/usr/lib/python2.7/sitecustomize.py", O_RDONLY) = 8
+20:24:55.250931 fstat(8, {st_mode=S_IFREG|0644, st_size=155, ...}) = 0
+20:24:55.251066 open("/usr/lib/python2.7/sitecustomize.pyc", O_RDONLY) = 9
+20:24:55.254816 fstat(9, {st_mode=S_IFREG|0644, st_size=232, ...}) = 0
+20:24:55.254978 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.255053 read(9, ""..., 4096)    = 232
+20:24:55.258107 fstat(9, {st_mode=S_IFREG|0644, st_size=232, ...}) = 0
+20:24:55.258176 read(9, "", 4096)       = 0
+20:24:55.260559 close(9)                = 0
+20:24:55.260725 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.260937 stat("/usr/lib/python2.7/apport_python_hook", 0x7fffb61698e0) = -1 ENOENT (No such file or directory)
+20:24:55.261062 open("/usr/lib/python2.7/apport_python_hook.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.264230 open("/usr/lib/python2.7/apport_python_hookmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.267170 open("/usr/lib/python2.7/apport_python_hook.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.270258 open("/usr/lib/python2.7/apport_python_hook.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.275350 stat("/usr/lib/python2.7/plat-linux2", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.275520 stat("/usr/lib/python2.7/plat-linux2", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.275598 stat("/usr/lib/python2.7/plat-linux2/apport_python_hook", 0x7fffb61698e0) = -1 ENOENT (No such file or directory)
+20:24:55.275668 open("/usr/lib/python2.7/plat-linux2/apport_python_hook.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.280645 open("/usr/lib/python2.7/plat-linux2/apport_python_hookmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.285618 open("/usr/lib/python2.7/plat-linux2/apport_python_hook.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.290531 open("/usr/lib/python2.7/plat-linux2/apport_python_hook.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.295564 stat("/usr/lib/python2.7/lib-tk", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.295665 stat("/usr/lib/python2.7/lib-tk", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.295738 stat("/usr/lib/python2.7/lib-tk/apport_python_hook", 0x7fffb61698e0) = -1 ENOENT (No such file or directory)
+20:24:55.295808 open("/usr/lib/python2.7/lib-tk/apport_python_hook.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.300721 open("/usr/lib/python2.7/lib-tk/apport_python_hookmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.305651 open("/usr/lib/python2.7/lib-tk/apport_python_hook.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.310585 open("/usr/lib/python2.7/lib-tk/apport_python_hook.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.315654 stat("/usr/lib/python2.7/lib-old", 0x7fffb61665a0) = -1 ENOENT (No such file or directory)
+20:24:55.315728 stat("/usr/lib/python2.7", {st_mode=S_IFDIR|0755, st_size=24576, ...}) = 0
+20:24:55.315814 stat("/usr/lib/python2.7/lib-old", 0x7fffb6169610) = -1 ENOENT (No such file or directory)
+20:24:55.315929 stat("/usr/lib/python2.7/lib-dynload", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.316050 stat("/usr/lib/python2.7/lib-dynload", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.316091 stat("/usr/lib/python2.7/lib-dynload/apport_python_hook", 0x7fffb61698e0) = -1 ENOENT (No such file or directory)
+20:24:55.316127 open("/usr/lib/python2.7/lib-dynload/apport_python_hook.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.319065 open("/usr/lib/python2.7/lib-dynload/apport_python_hookmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.323985 open("/usr/lib/python2.7/lib-dynload/apport_python_hook.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.328500 open("/usr/lib/python2.7/lib-dynload/apport_python_hook.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.331459 stat("/usr/local/lib/python2.7/dist-packages", {st_mode=S_IFDIR|S_ISGID|0775, st_size=4096, ...}) = 0
+20:24:55.331535 stat("/usr/local/lib/python2.7/dist-packages", {st_mode=S_IFDIR|S_ISGID|0775, st_size=4096, ...}) = 0
+20:24:55.331575 stat("/usr/local/lib/python2.7/dist-packages/apport_python_hook", 0x7fffb61698e0) = -1 ENOENT (No such file or directory)
+20:24:55.331617 open("/usr/local/lib/python2.7/dist-packages/apport_python_hook.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.336447 open("/usr/local/lib/python2.7/dist-packages/apport_python_hookmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.340789 open("/usr/local/lib/python2.7/dist-packages/apport_python_hook.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.345776 open("/usr/local/lib/python2.7/dist-packages/apport_python_hook.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.349320 stat("/usr/lib/python2.7/dist-packages", {st_mode=S_IFDIR|0755, st_size=12288, ...}) = 0
+20:24:55.349408 stat("/usr/lib/python2.7/dist-packages", {st_mode=S_IFDIR|0755, st_size=12288, ...}) = 0
+20:24:55.349476 stat("/usr/lib/python2.7/dist-packages/apport_python_hook", 0x7fffb61698e0) = -1 ENOENT (No such file or directory)
+20:24:55.349535 open("/usr/lib/python2.7/dist-packages/apport_python_hook.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.354452 open("/usr/lib/python2.7/dist-packages/apport_python_hookmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.359346 open("/usr/lib/python2.7/dist-packages/apport_python_hook.py", O_RDONLY) = 9
+20:24:55.364162 fstat(9, {st_mode=S_IFREG|0644, st_size=5337, ...}) = 0
+20:24:55.364209 open("/usr/lib/python2.7/dist-packages/apport_python_hook.pyc", O_RDONLY) = 10
+20:24:55.367125 fstat(10, {st_mode=S_IFREG|0644, st_size=3271, ...}) = 0
+20:24:55.367179 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.367221 read(10, ""..., 4096)   = 3271
+20:24:55.372697 fstat(10, {st_mode=S_IFREG|0644, st_size=3271, ...}) = 0
+20:24:55.372763 read(10, "", 4096)      = 0
+20:24:55.377109 close(10)               = 0
+20:24:55.377207 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.377429 close(9)                = 0
+20:24:55.377635 close(8)                = 0
+20:24:55.377731 stat("/usr/lib/python2.7/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.377801 open("/usr/lib/python2.7/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.380550 open("/usr/lib/python2.7/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.382844 open("/usr/lib/python2.7/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.386800 open("/usr/lib/python2.7/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.390538 stat("/usr/lib/python2.7/plat-linux2/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.390687 open("/usr/lib/python2.7/plat-linux2/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.394635 open("/usr/lib/python2.7/plat-linux2/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.398548 open("/usr/lib/python2.7/plat-linux2/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.402386 open("/usr/lib/python2.7/plat-linux2/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.406202 stat("/usr/lib/python2.7/lib-tk/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.406351 open("/usr/lib/python2.7/lib-tk/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.410232 open("/usr/lib/python2.7/lib-tk/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.413321 open("/usr/lib/python2.7/lib-tk/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.417329 open("/usr/lib/python2.7/lib-tk/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.419697 stat("/usr/lib/python2.7/lib-dynload/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.419748 open("/usr/lib/python2.7/lib-dynload/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.423483 open("/usr/lib/python2.7/lib-dynload/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.427131 open("/usr/lib/python2.7/lib-dynload/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.431060 open("/usr/lib/python2.7/lib-dynload/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.434859 stat("/usr/local/lib/python2.7/dist-packages/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.434997 open("/usr/local/lib/python2.7/dist-packages/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.438808 open("/usr/local/lib/python2.7/dist-packages/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.442625 open("/usr/local/lib/python2.7/dist-packages/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.446472 open("/usr/local/lib/python2.7/dist-packages/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.449456 stat("/usr/lib/python2.7/dist-packages/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.449754 open("/usr/lib/python2.7/dist-packages/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.453728 open("/usr/lib/python2.7/dist-packages/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.456111 open("/usr/lib/python2.7/dist-packages/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.458387 open("/usr/lib/python2.7/dist-packages/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.461007 stat("/usr/lib/python2.7/dist-packages/PIL", {st_mode=S_IFDIR|0755, st_size=12288, ...}) = 0
+20:24:55.461185 stat("/usr/lib/python2.7/dist-packages/PIL", {st_mode=S_IFDIR|0755, st_size=12288, ...}) = 0
+20:24:55.461340 stat("/usr/lib/python2.7/dist-packages/PIL/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.461459 open("/usr/lib/python2.7/dist-packages/PIL/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.465444 open("/usr/lib/python2.7/dist-packages/PIL/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.468839 open("/usr/lib/python2.7/dist-packages/PIL/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.472169 open("/usr/lib/python2.7/dist-packages/PIL/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.476013 stat("/usr/lib/python2.7/dist-packages/gst-0.10", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.476068 stat("/usr/lib/python2.7/dist-packages/gst-0.10", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.476109 stat("/usr/lib/python2.7/dist-packages/gst-0.10/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.476150 open("/usr/lib/python2.7/dist-packages/gst-0.10/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.479816 open("/usr/lib/python2.7/dist-packages/gst-0.10/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.483480 open("/usr/lib/python2.7/dist-packages/gst-0.10/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.487344 open("/usr/lib/python2.7/dist-packages/gst-0.10/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.489643 stat("/usr/lib/python2.7/dist-packages/gtk-2.0", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.489777 stat("/usr/lib/python2.7/dist-packages/gtk-2.0", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.489901 stat("/usr/lib/python2.7/dist-packages/gtk-2.0/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.489947 open("/usr/lib/python2.7/dist-packages/gtk-2.0/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.492300 open("/usr/lib/python2.7/dist-packages/gtk-2.0/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.494674 open("/usr/lib/python2.7/dist-packages/gtk-2.0/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.497666 open("/usr/lib/python2.7/dist-packages/gtk-2.0/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.501551 stat("/usr/lib/pymodules/python2.7", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.501841 stat("/usr/lib/pymodules/python2.7", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.502143 stat("/usr/lib/pymodules/python2.7/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.502339 open("/usr/lib/pymodules/python2.7/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.505238 open("/usr/lib/pymodules/python2.7/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.509277 open("/usr/lib/pymodules/python2.7/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.513204 open("/usr/lib/pymodules/python2.7/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.517034 stat("/usr/lib/python2.7/dist-packages/ubuntu-sso-client", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.517136 stat("/usr/lib/python2.7/dist-packages/ubuntu-sso-client", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.517205 stat("/usr/lib/python2.7/dist-packages/ubuntu-sso-client/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.517283 open("/usr/lib/python2.7/dist-packages/ubuntu-sso-client/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.521116 open("/usr/lib/python2.7/dist-packages/ubuntu-sso-client/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.524933 open("/usr/lib/python2.7/dist-packages/ubuntu-sso-client/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.528721 open("/usr/lib/python2.7/dist-packages/ubuntu-sso-client/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.532562 stat("/usr/lib/python2.7/dist-packages/ubuntuone-client", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.532736 stat("/usr/lib/python2.7/dist-packages/ubuntuone-client", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.532889 stat("/usr/lib/python2.7/dist-packages/ubuntuone-client/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.533002 open("/usr/lib/python2.7/dist-packages/ubuntuone-client/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.536846 open("/usr/lib/python2.7/dist-packages/ubuntuone-client/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.540758 open("/usr/lib/python2.7/dist-packages/ubuntuone-client/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.544632 open("/usr/lib/python2.7/dist-packages/ubuntuone-client/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.548471 stat("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.548764 stat("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.549060 stat("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.549305 open("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.553258 open("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.557213 open("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.561084 open("/usr/lib/python2.7/dist-packages/ubuntuone-control-panel/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.565094 stat("/usr/lib/python2.7/dist-packages/ubuntuone-couch", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.565388 stat("/usr/lib/python2.7/dist-packages/ubuntuone-couch", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.565616 stat("/usr/lib/python2.7/dist-packages/ubuntuone-couch/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.565764 open("/usr/lib/python2.7/dist-packages/ubuntuone-couch/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.569685 open("/usr/lib/python2.7/dist-packages/ubuntuone-couch/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.573603 open("/usr/lib/python2.7/dist-packages/ubuntuone-couch/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.577439 open("/usr/lib/python2.7/dist-packages/ubuntuone-couch/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.581252 stat("/usr/lib/python2.7/dist-packages/ubuntuone-installer", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.581424 stat("/usr/lib/python2.7/dist-packages/ubuntuone-installer", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.581608 stat("/usr/lib/python2.7/dist-packages/ubuntuone-installer/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.581689 open("/usr/lib/python2.7/dist-packages/ubuntuone-installer/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.585548 open("/usr/lib/python2.7/dist-packages/ubuntuone-installer/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.589374 open("/usr/lib/python2.7/dist-packages/ubuntuone-installer/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.593276 open("/usr/lib/python2.7/dist-packages/ubuntuone-installer/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.597059 stat("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.597182 stat("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.597259 stat("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol/usercustomize", 0x7fffb616cef0) = -1 ENOENT (No such file or directory)
+20:24:55.597328 open("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol/usercustomize.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.601095 open("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol/usercustomizemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.604914 open("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol/usercustomize.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.608635 open("/usr/lib/python2.7/dist-packages/ubuntuone-storage-protocol/usercustomize.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.612547 close(7)                = 0
+20:24:55.612722 open("/usr/lib/locale/locale-archive", O_RDONLY|O_CLOEXEC) = 7
+20:24:55.614337 fstat(7, {st_mode=S_IFREG|0644, st_size=7220736, ...}) = 0
+20:24:55.614422 mmap(NULL, 7220736, PROT_READ, MAP_PRIVATE, 7, 0) = 0x7fbf62f83000
+20:24:55.614525 close(7)                = 0
+20:24:55.614634 stat("/usr/lib/python2.7/encodings", {st_mode=S_IFDIR|0755, st_size=16384, ...}) = 0
+20:24:55.614700 stat("/usr/lib/python2.7/encodings/__init__.py", {st_mode=S_IFREG|0644, st_size=5698, ...}) = 0
+20:24:55.614774 stat("/usr/lib/python2.7/encodings/__init__", 0x7fffb616f860) = -1 ENOENT (No such file or directory)
+20:24:55.614846 open("/usr/lib/python2.7/encodings/__init__.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.617643 open("/usr/lib/python2.7/encodings/__init__module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.620065 open("/usr/lib/python2.7/encodings/__init__.py", O_RDONLY) = 7
+20:24:55.622424 fstat(7, {st_mode=S_IFREG|0644, st_size=5698, ...}) = 0
+20:24:55.622504 open("/usr/lib/python2.7/encodings/__init__.pyc", O_RDONLY) = 8
+20:24:55.624909 fstat(8, {st_mode=S_IFREG|0644, st_size=4370, ...}) = 0
+20:24:55.624992 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.625062 read(8, ""..., 4096)    = 4096
+20:24:55.628057 fstat(8, {st_mode=S_IFREG|0644, st_size=4370, ...}) = 0
+20:24:55.628166 read(8, ""..., 4096)    = 274
+20:24:55.630889 read(8, "", 4096)       = 0
+20:24:55.633607 close(8)                = 0
+20:24:55.633720 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.633840 stat("/usr/lib/python2.7/encodings", {st_mode=S_IFDIR|0755, st_size=16384, ...}) = 0
+20:24:55.633932 stat("/usr/lib/python2.7/encodings", {st_mode=S_IFDIR|0755, st_size=16384, ...}) = 0
+20:24:55.633996 stat("/usr/lib/python2.7/encodings/codecs", 0x7fffb616c250) = -1 ENOENT (No such file or directory)
+20:24:55.634063 open("/usr/lib/python2.7/encodings/codecs.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.637923 open("/usr/lib/python2.7/encodings/codecsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.641562 open("/usr/lib/python2.7/encodings/codecs.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.645155 open("/usr/lib/python2.7/encodings/codecs.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.648780 stat("/usr/lib/python2.7/codecs", 0x7fffb616c250) = -1 ENOENT (No such file or directory)
+20:24:55.648877 open("/usr/lib/python2.7/codecs.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.652576 open("/usr/lib/python2.7/codecsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.656285 open("/usr/lib/python2.7/codecs.py", O_RDONLY) = 8
+20:24:55.659796 fstat(8, {st_mode=S_IFREG|0644, st_size=35266, ...}) = 0
+20:24:55.659869 open("/usr/lib/python2.7/codecs.pyc", O_RDONLY) = 9
+20:24:55.663432 fstat(9, {st_mode=S_IFREG|0644, st_size=36414, ...}) = 0
+20:24:55.663518 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.663595 read(9, ""..., 4096)    = 4096
+20:24:55.667752 fstat(9, {st_mode=S_IFREG|0644, st_size=36414, ...}) = 0
+20:24:55.667959 read(9, ""..., 28672)   = 28672
+20:24:55.671600 read(9, ""..., 4096)    = 3646
+20:24:55.675387 read(9, "", 4096)       = 0
+20:24:55.679563 close(9)                = 0
+20:24:55.679724 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.680326 close(8)                = 0
+20:24:55.680479 stat("/usr/lib/python2.7/encodings/encodings", 0x7fffb616c250) = -1 ENOENT (No such file or directory)
+20:24:55.680674 open("/usr/lib/python2.7/encodings/encodings.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.684635 open("/usr/lib/python2.7/encodings/encodingsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.688252 open("/usr/lib/python2.7/encodings/encodings.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.691856 open("/usr/lib/python2.7/encodings/encodings.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.695383 stat("/usr/lib/python2.7/encodings/aliases", 0x7fffb616c250) = -1 ENOENT (No such file or directory)
+20:24:55.695475 open("/usr/lib/python2.7/encodings/aliases.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.699072 open("/usr/lib/python2.7/encodings/aliasesmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.702661 open("/usr/lib/python2.7/encodings/aliases.py", O_RDONLY) = 8
+20:24:55.706308 fstat(8, {st_mode=S_IFREG|0644, st_size=14848, ...}) = 0
+20:24:55.706596 open("/usr/lib/python2.7/encodings/aliases.pyc", O_RDONLY) = 9
+20:24:55.710344 fstat(9, {st_mode=S_IFREG|0644, st_size=8768, ...}) = 0
+20:24:55.710599 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.710886 read(9, ""..., 4096)    = 4096
+20:24:55.715144 fstat(9, {st_mode=S_IFREG|0644, st_size=8768, ...}) = 0
+20:24:55.715363 read(9, ""..., 4096)    = 4096
+20:24:55.719107 read(9, ""..., 4096)    = 576
+20:24:55.722947 read(9, "", 4096)       = 0
+20:24:55.725898 close(9)                = 0
+20:24:55.725981 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.726152 brk(0x2097000)          = 0x2097000
+20:24:55.730871 close(8)                = 0
+20:24:55.731115 stat("/usr/lib/python2.7/encodings/__builtin__", 0x7fffb616c250) = -1 ENOENT (No such file or directory)
+20:24:55.731219 open("/usr/lib/python2.7/encodings/__builtin__.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.735049 open("/usr/lib/python2.7/encodings/__builtin__module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.738233 open("/usr/lib/python2.7/encodings/__builtin__.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.741842 open("/usr/lib/python2.7/encodings/__builtin__.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.745586 close(7)                = 0
+20:24:55.745769 stat("/usr/lib/python2.7/encodings/utf_8", 0x7fffb61705f0) = -1 ENOENT (No such file or directory)
+20:24:55.745937 open("/usr/lib/python2.7/encodings/utf_8.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.748839 open("/usr/lib/python2.7/encodings/utf_8module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.751658 open("/usr/lib/python2.7/encodings/utf_8.py", O_RDONLY) = 7
+20:24:55.754513 fstat(7, {st_mode=S_IFREG|0644, st_size=1005, ...}) = 0
+20:24:55.754674 open("/usr/lib/python2.7/encodings/utf_8.pyc", O_RDONLY) = 8
+20:24:55.757442 fstat(8, {st_mode=S_IFREG|0644, st_size=1950, ...}) = 0
+20:24:55.757611 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.757685 read(8, ""..., 4096)    = 1950
+20:24:55.761065 fstat(8, {st_mode=S_IFREG|0644, st_size=1950, ...}) = 0
+20:24:55.761350 read(8, "", 4096)       = 0
+20:24:55.764521 close(8)                = 0
+20:24:55.764726 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.765054 close(7)                = 0
+20:24:55.765254 ioctl(0, SNDCTL_TMR_TIMEBASE or SNDRV_TIMER_IOCTL_NEXT_DEVICE or TCGETS, {B38400 opost isig icanon echo ...}) = 0
+20:24:55.767297 ioctl(1, SNDCTL_TMR_TIMEBASE or SNDRV_TIMER_IOCTL_NEXT_DEVICE or TCGETS, {B38400 opost isig icanon echo ...}) = 0
+20:24:55.769117 ioctl(2, SNDCTL_TMR_TIMEBASE or SNDRV_TIMER_IOCTL_NEXT_DEVICE or TCGETS, {B38400 opost isig icanon echo ...}) = 0
+20:24:55.770882 readlink("./bsddbworkload.py", 0x7fffb6172ce0, 4096) = -1 EINVAL (Invalid argument)
+20:24:55.772326 getcwd("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads", 4096) = 50
+20:24:55.773738 lstat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bsddbworkload.py", {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.775160 stat("./bsddbworkload.py", {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.775341 open("./bsddbworkload.py", O_RDONLY) = 7
+20:24:55.777397 fstat(7, {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.777522 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.777591 fstat(7, {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.777649 lseek(7, 4096, SEEK_SET) = 4096
+20:24:55.777699 read(7, ""..., 664)     = 664
+20:24:55.780005 read(7, ""..., 4096)    = 22
+20:24:55.782054 close(7)                = 0
+20:24:55.782163 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.782369 stat("./bsddbworkload.py", {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.782558 open("./bsddbworkload.py", O_RDONLY) = 7
+20:24:55.784440 fstat(7, {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.784628 ioctl(7, SNDCTL_TMR_TIMEBASE or SNDRV_TIMER_IOCTL_NEXT_DEVICE or TCGETS, 0x7fffb6174cb8) = -1 ENOTTY (Inappropriate ioctl for device)
+20:24:55.785874 fstat(7, {st_mode=S_IFREG|0664, st_size=4782, ...}) = 0
+20:24:55.785989 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.786106 lseek(7, 0, SEEK_CUR)   = 0
+20:24:55.786160 read(7, ""..., 4096)    = 4096
+20:24:55.788123 lseek(7, 4096, SEEK_SET) = 4096
+20:24:55.788582 mmap(NULL, 266240, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64e32000
+20:24:55.789171 read(7, ""..., 4096)    = 686
+20:24:55.792052 read(7, "", 4096)       = 0
+20:24:55.794496 read(7, "", 4096)       = 0
+20:24:55.796990 read(7, "", 4096)       = 0
+20:24:55.799752 close(7)                = 0
+20:24:55.799875 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.800676 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads", {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+20:24:55.800972 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads", {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+20:24:55.801259 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bsddb3", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:55.801404 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.804457 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.807016 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.808988 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.810531 stat("/usr/lib/python2.7/bsddb3", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:55.810571 open("/usr/lib/python2.7/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.812134 open("/usr/lib/python2.7/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.814811 open("/usr/lib/python2.7/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.816515 open("/usr/lib/python2.7/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.818187 stat("/usr/lib/python2.7/plat-linux2/bsddb3", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:55.818341 open("/usr/lib/python2.7/plat-linux2/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.819981 open("/usr/lib/python2.7/plat-linux2/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.822040 open("/usr/lib/python2.7/plat-linux2/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.824771 open("/usr/lib/python2.7/plat-linux2/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.827451 stat("/usr/lib/python2.7/lib-tk/bsddb3", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:55.827584 open("/usr/lib/python2.7/lib-tk/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.830312 open("/usr/lib/python2.7/lib-tk/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.833060 open("/usr/lib/python2.7/lib-tk/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.835178 open("/usr/lib/python2.7/lib-tk/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.838058 stat("/usr/lib/python2.7/lib-dynload/bsddb3", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:55.838233 open("/usr/lib/python2.7/lib-dynload/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.840946 open("/usr/lib/python2.7/lib-dynload/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.843550 open("/usr/lib/python2.7/lib-dynload/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.846284 open("/usr/lib/python2.7/lib-dynload/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.849006 stat("/usr/local/lib/python2.7/dist-packages/bsddb3", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:55.849177 open("/usr/local/lib/python2.7/dist-packages/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.851756 open("/usr/local/lib/python2.7/dist-packages/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.854389 open("/usr/local/lib/python2.7/dist-packages/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.856672 open("/usr/local/lib/python2.7/dist-packages/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.859333 stat("/usr/lib/python2.7/dist-packages/bsddb3", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.859435 stat("/usr/lib/python2.7/dist-packages/bsddb3/__init__.py", {st_mode=S_IFREG|0644, st_size=15873, ...}) = 0
+20:24:55.859525 stat("/usr/lib/python2.7/dist-packages/bsddb3/__init__", 0x7fffb616f5b0) = -1 ENOENT (No such file or directory)
+20:24:55.859588 open("/usr/lib/python2.7/dist-packages/bsddb3/__init__.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.862537 open("/usr/lib/python2.7/dist-packages/bsddb3/__init__module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.865378 open("/usr/lib/python2.7/dist-packages/bsddb3/__init__.py", O_RDONLY) = 7
+20:24:55.868214 fstat(7, {st_mode=S_IFREG|0644, st_size=15873, ...}) = 0
+20:24:55.868298 open("/usr/lib/python2.7/dist-packages/bsddb3/__init__.pyc", O_RDONLY) = 8
+20:24:55.870951 fstat(8, {st_mode=S_IFREG|0644, st_size=12838, ...}) = 0
+20:24:55.871010 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.871072 read(8, ""..., 4096)    = 4096
+20:24:55.874393 fstat(8, {st_mode=S_IFREG|0644, st_size=12838, ...}) = 0
+20:24:55.874674 read(8, ""..., 8192)    = 8192
+20:24:55.877704 read(8, ""..., 4096)    = 550
+20:24:55.880842 read(8, "", 4096)       = 0
+20:24:55.884093 close(8)                = 0
+20:24:55.884263 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:55.884434 stat("/usr/lib/python2.7/dist-packages/bsddb3", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.884558 stat("/usr/lib/python2.7/dist-packages/bsddb3", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+20:24:55.884625 stat("/usr/lib/python2.7/dist-packages/bsddb3/sys", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:55.884685 open("/usr/lib/python2.7/dist-packages/bsddb3/sys.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.888894 open("/usr/lib/python2.7/dist-packages/bsddb3/sysmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.892874 open("/usr/lib/python2.7/dist-packages/bsddb3/sys.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.896812 open("/usr/lib/python2.7/dist-packages/bsddb3/sys.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.900842 stat("/usr/lib/python2.7/dist-packages/bsddb3/_pybsddb", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:55.901117 open("/usr/lib/python2.7/dist-packages/bsddb3/_pybsddb.so", O_RDONLY) = 8
+20:24:55.905216 fstat(8, {st_mode=S_IFREG|0644, st_size=164008, ...}) = 0
+20:24:55.905475 futex(0x7fbf64b8e0b0, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+20:24:55.909712 open("/usr/lib/python2.7/dist-packages/bsddb3/_pybsddb.so", O_RDONLY|O_CLOEXEC) = 9
+20:24:55.914908 read(9, ""..., 832)     = 832
+20:24:55.920048 fstat(9, {st_mode=S_IFREG|0644, st_size=164008, ...}) = 0
+20:24:55.920219 mmap(NULL, 2260680, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 9, 0) = 0x7fbf62d5b000
+20:24:55.920402 mprotect(0x7fbf62d7f000, 2093056, PROT_NONE) = 0
+20:24:55.920472 mmap(0x7fbf62f7e000, 20480, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 9, 0x23000) = 0x7fbf62f7e000
+20:24:55.920553 close(9)                = 0
+20:24:55.920622 open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 9
+20:24:55.926499 fstat(9, {st_mode=S_IFREG|0644, st_size=122069, ...}) = 0
+20:24:55.926589 mmap(NULL, 122069, PROT_READ, MAP_PRIVATE, 9, 0) = 0x7fbf64fae000
+20:24:55.926659 close(9)                = 0
+20:24:55.926736 access("/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+20:24:55.932648 open("/usr/lib/x86_64-linux-gnu/libdb-5.1.so", O_RDONLY|O_CLOEXEC) = 9
+20:24:55.938091 read(9, ""..., 832)     = 832
+20:24:55.943707 fstat(9, {st_mode=S_IFREG|0644, st_size=1518928, ...}) = 0
+20:24:55.943791 mmap(NULL, 3614080, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 9, 0) = 0x7fbf629e8000
+20:24:55.943918 mprotect(0x7fbf62b54000, 2097152, PROT_NONE) = 0
+20:24:55.944015 mmap(0x7fbf62d54000, 28672, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 9, 0x16c000) = 0x7fbf62d54000
+20:24:55.944114 close(9)                = 0
+20:24:55.944460 mprotect(0x7fbf62d54000, 24576, PROT_READ) = 0
+20:24:55.944604 mprotect(0x7fbf62f7e000, 4096, PROT_READ) = 0
+20:24:55.944671 munmap(0x7fbf64fae000, 122069) = 0
+20:24:55.945539 brk(0x20b9000)          = 0x20b9000
+20:24:55.950916 brk(0x20b1000)          = 0x20b1000
+20:24:55.956180 brk(0x20af000)          = 0x20af000
+20:24:55.961611 close(8)                = 0
+20:24:55.961793 stat("/usr/lib/python2.7/dist-packages/bsddb3/bsddb3", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:55.962010 open("/usr/lib/python2.7/dist-packages/bsddb3/bsddb3.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.966028 open("/usr/lib/python2.7/dist-packages/bsddb3/bsddb3module.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.969999 open("/usr/lib/python2.7/dist-packages/bsddb3/bsddb3.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.973979 open("/usr/lib/python2.7/dist-packages/bsddb3/bsddb3.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.977937 stat("/usr/lib/python2.7/dist-packages/bsddb3/dbutils", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:55.977982 open("/usr/lib/python2.7/dist-packages/bsddb3/dbutils.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.980335 open("/usr/lib/python2.7/dist-packages/bsddb3/dbutilsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:55.984343 open("/usr/lib/python2.7/dist-packages/bsddb3/dbutils.py", O_RDONLY) = 8
+20:24:55.988433 fstat(8, {st_mode=S_IFREG|0644, st_size=2964, ...}) = 0
+20:24:55.988698 open("/usr/lib/python2.7/dist-packages/bsddb3/dbutils.pyc", O_RDONLY) = 9
+20:24:55.992695 fstat(9, {st_mode=S_IFREG|0644, st_size=1653, ...}) = 0
+20:24:55.992863 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:55.993038 read(9, ""..., 4096)    = 1653
+20:24:55.997527 fstat(9, {st_mode=S_IFREG|0644, st_size=1653, ...}) = 0
+20:24:55.997602 read(9, "", 4096)       = 0
+20:24:56.001691 close(9)                = 0
+20:24:56.001806 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.002042 stat("/usr/lib/python2.7/dist-packages/bsddb3/time", 0x7fffb6168990) = -1 ENOENT (No such file or directory)
+20:24:56.002181 open("/usr/lib/python2.7/dist-packages/bsddb3/time.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.007760 open("/usr/lib/python2.7/dist-packages/bsddb3/timemodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.013094 open("/usr/lib/python2.7/dist-packages/bsddb3/time.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.018223 open("/usr/lib/python2.7/dist-packages/bsddb3/time.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.023299 open("/etc/localtime", O_RDONLY|O_CLOEXEC) = 9
+20:24:56.029156 fstat(9, {st_mode=S_IFREG|0644, st_size=3543, ...}) = 0
+20:24:56.029323 fstat(9, {st_mode=S_IFREG|0644, st_size=3543, ...}) = 0
+20:24:56.029480 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.029558 read(9, ""..., 4096)    = 3543
+20:24:56.035763 lseek(9, -2264, SEEK_CUR) = 1279
+20:24:56.035800 read(9, ""..., 4096)    = 2264
+20:24:56.039370 close(9)                = 0
+20:24:56.039487 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.039701 stat("/etc/localtime", {st_mode=S_IFREG|0644, st_size=3543, ...}) = 0
+20:24:56.040129 stat("/usr/lib/python2.7/dist-packages/bsddb3/db", 0x7fffb6168990) = -1 ENOENT (No such file or directory)
+20:24:56.040413 open("/usr/lib/python2.7/dist-packages/bsddb3/db.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.046034 open("/usr/lib/python2.7/dist-packages/bsddb3/dbmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.049931 open("/usr/lib/python2.7/dist-packages/bsddb3/db.py", O_RDONLY) = 9
+20:24:56.055043 fstat(9, {st_mode=S_IFREG|0644, st_size=2730, ...}) = 0
+20:24:56.055231 open("/usr/lib/python2.7/dist-packages/bsddb3/db.pyc", O_RDONLY) = 10
+20:24:56.059933 fstat(10, {st_mode=S_IFREG|0644, st_size=605, ...}) = 0
+20:24:56.060154 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.060292 read(10, ""..., 4096)   = 605
+20:24:56.065928 fstat(10, {st_mode=S_IFREG|0644, st_size=605, ...}) = 0
+20:24:56.066103 read(10, "", 4096)      = 0
+20:24:56.071374 close(10)               = 0
+20:24:56.071500 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.071917 close(9)                = 0
+20:24:56.072126 close(8)                = 0
+20:24:56.072276 stat("/usr/lib/python2.7/dist-packages/bsddb3/os", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.072416 open("/usr/lib/python2.7/dist-packages/bsddb3/os.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.076790 open("/usr/lib/python2.7/dist-packages/bsddb3/osmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.080710 open("/usr/lib/python2.7/dist-packages/bsddb3/os.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.084687 open("/usr/lib/python2.7/dist-packages/bsddb3/os.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.088655 stat("/usr/lib/python2.7/dist-packages/bsddb3/weakref", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.088827 open("/usr/lib/python2.7/dist-packages/bsddb3/weakref.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.092741 open("/usr/lib/python2.7/dist-packages/bsddb3/weakrefmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.096445 open("/usr/lib/python2.7/dist-packages/bsddb3/weakref.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.098834 open("/usr/lib/python2.7/dist-packages/bsddb3/weakref.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.101314 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/weakref", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.101504 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/weakref.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.103912 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/weakrefmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.106283 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/weakref.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.108734 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/weakref.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.111156 stat("/usr/lib/python2.7/weakref", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.111235 open("/usr/lib/python2.7/weakref.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.113646 open("/usr/lib/python2.7/weakrefmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.116055 open("/usr/lib/python2.7/weakref.py", O_RDONLY) = 8
+20:24:56.120002 fstat(8, {st_mode=S_IFREG|0644, st_size=10693, ...}) = 0
+20:24:56.120082 open("/usr/lib/python2.7/weakref.pyc", O_RDONLY) = 9
+20:24:56.123943 fstat(9, {st_mode=S_IFREG|0644, st_size=13946, ...}) = 0
+20:24:56.124038 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.124111 read(9, ""..., 4096)    = 4096
+20:24:56.128565 fstat(9, {st_mode=S_IFREG|0644, st_size=13946, ...}) = 0
+20:24:56.128644 read(9, ""..., 8192)    = 8192
+20:24:56.132422 read(9, ""..., 4096)    = 1658
+20:24:56.134872 read(9, "", 4096)       = 0
+20:24:56.137441 close(9)                = 0
+20:24:56.137556 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.137932 close(8)                = 0
+20:24:56.138029 stat("/usr/lib/python2.7/dist-packages/bsddb3/collections", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.138144 open("/usr/lib/python2.7/dist-packages/bsddb3/collections.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.142557 open("/usr/lib/python2.7/dist-packages/bsddb3/collectionsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.146580 open("/usr/lib/python2.7/dist-packages/bsddb3/collections.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.150596 open("/usr/lib/python2.7/dist-packages/bsddb3/collections.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.154754 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/collections", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.154871 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/collections.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.158778 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/collectionsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.162721 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/collections.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.166686 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/collections.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.170739 stat("/usr/lib/python2.7/collections", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.170983 open("/usr/lib/python2.7/collections.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.175037 open("/usr/lib/python2.7/collectionsmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.179001 open("/usr/lib/python2.7/collections.py", O_RDONLY) = 8
+20:24:56.181840 fstat(8, {st_mode=S_IFREG|0644, st_size=25403, ...}) = 0
+20:24:56.182003 open("/usr/lib/python2.7/collections.pyc", O_RDONLY) = 9
+20:24:56.184364 fstat(9, {st_mode=S_IFREG|0644, st_size=24387, ...}) = 0
+20:24:56.184536 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.184597 read(9, ""..., 4096)    = 4096
+20:24:56.187258 fstat(9, {st_mode=S_IFREG|0644, st_size=24387, ...}) = 0
+20:24:56.187375 read(9, ""..., 16384)   = 16384
+20:24:56.191473 read(9, ""..., 4096)    = 3907
+20:24:56.194919 read(9, "", 4096)       = 0
+20:24:56.198723 close(9)                = 0
+20:24:56.198924 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.199502 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/keyword", 0x7fffb6168990) = -1 ENOENT (No such file or directory)
+20:24:56.199718 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/keyword.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.205469 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/keywordmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.210228 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/keyword.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.215314 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/keyword.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.218745 stat("/usr/lib/python2.7/keyword", 0x7fffb6168990) = -1 ENOENT (No such file or directory)
+20:24:56.218828 open("/usr/lib/python2.7/keyword.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.223881 open("/usr/lib/python2.7/keywordmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.228885 open("/usr/lib/python2.7/keyword.py", O_RDONLY) = 9
+20:24:56.233879 fstat(9, {st_mode=S_IFREG|0755, st_size=1993, ...}) = 0
+20:24:56.233933 open("/usr/lib/python2.7/keyword.pyc", O_RDONLY) = 10
+20:24:56.237683 fstat(10, {st_mode=S_IFREG|0644, st_size=2099, ...}) = 0
+20:24:56.237755 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.237832 read(10, ""..., 4096)   = 2099
+20:24:56.242157 fstat(10, {st_mode=S_IFREG|0644, st_size=2099, ...}) = 0
+20:24:56.242449 read(10, "", 4096)      = 0
+20:24:56.247905 close(10)               = 0
+20:24:56.248127 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.248480 close(9)                = 0
+20:24:56.248749 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/heapq", 0x7fffb6168990) = -1 ENOENT (No such file or directory)
+20:24:56.249028 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/heapq.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.252660 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/heapqmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.257771 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/heapq.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.262924 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/heapq.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.266375 stat("/usr/lib/python2.7/heapq", 0x7fffb6168990) = -1 ENOENT (No such file or directory)
+20:24:56.266484 open("/usr/lib/python2.7/heapq.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.269633 open("/usr/lib/python2.7/heapqmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.272711 open("/usr/lib/python2.7/heapq.py", O_RDONLY) = 9
+20:24:56.277966 fstat(9, {st_mode=S_IFREG|0644, st_size=17395, ...}) = 0
+20:24:56.278246 open("/usr/lib/python2.7/heapq.pyc", O_RDONLY) = 10
+20:24:56.283455 fstat(10, {st_mode=S_IFREG|0644, st_size=13406, ...}) = 0
+20:24:56.283634 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.283766 read(10, ""..., 4096)   = 4096
+20:24:56.288929 fstat(10, {st_mode=S_IFREG|0644, st_size=13406, ...}) = 0
+20:24:56.288998 brk(0x20d2000)          = 0x20d2000
+20:24:56.292281 read(10, ""..., 8192)   = 8192
+20:24:56.295396 read(10, ""..., 4096)   = 1118
+20:24:56.298640 read(10, "", 4096)      = 0
+20:24:56.302269 close(10)               = 0
+20:24:56.302453 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.302908 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bisect", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.303088 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bisect.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.309746 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bisectmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.316047 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bisect.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.322167 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/bisect.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.328482 stat("/usr/lib/python2.7/bisect", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.328557 open("/usr/lib/python2.7/bisect.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.334737 open("/usr/lib/python2.7/bisectmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.340971 open("/usr/lib/python2.7/bisect.py", O_RDONLY) = 10
+20:24:56.347207 fstat(10, {st_mode=S_IFREG|0644, st_size=2595, ...}) = 0
+20:24:56.347263 open("/usr/lib/python2.7/bisect.pyc", O_RDONLY) = 11
+20:24:56.353396 fstat(11, {st_mode=S_IFREG|0644, st_size=3061, ...}) = 0
+20:24:56.353560 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.353670 read(11, ""..., 4096)   = 3061
+20:24:56.360285 fstat(11, {st_mode=S_IFREG|0644, st_size=3061, ...}) = 0
+20:24:56.360382 read(11, "", 4096)      = 0
+20:24:56.366934 close(11)               = 0
+20:24:56.367014 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.367146 close(10)               = 0
+20:24:56.367246 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/_heapq", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.367298 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/_heapq.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.373243 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/_heapqmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.377066 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/_heapq.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.382532 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/_heapq.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.386910 stat("/usr/lib/python2.7/_heapq", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.386992 open("/usr/lib/python2.7/_heapq.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.390806 open("/usr/lib/python2.7/_heapqmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.396372 open("/usr/lib/python2.7/_heapq.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.400227 open("/usr/lib/python2.7/_heapq.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.405553 stat("/usr/lib/python2.7/plat-linux2/_heapq", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.405707 open("/usr/lib/python2.7/plat-linux2/_heapq.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.410134 open("/usr/lib/python2.7/plat-linux2/_heapqmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.413876 open("/usr/lib/python2.7/plat-linux2/_heapq.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.417591 open("/usr/lib/python2.7/plat-linux2/_heapq.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.422436 stat("/usr/lib/python2.7/lib-tk/_heapq", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.422649 open("/usr/lib/python2.7/lib-tk/_heapq.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.426913 open("/usr/lib/python2.7/lib-tk/_heapqmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.433233 open("/usr/lib/python2.7/lib-tk/_heapq.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.439446 open("/usr/lib/python2.7/lib-tk/_heapq.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.444985 stat("/usr/lib/python2.7/lib-dynload/_heapq", 0x7fffb6165380) = -1 ENOENT (No such file or directory)
+20:24:56.445120 open("/usr/lib/python2.7/lib-dynload/_heapq.so", O_RDONLY) = 10
+20:24:56.451348 fstat(10, {st_mode=S_IFREG|0644, st_size=21680, ...}) = 0
+20:24:56.451473 open("/usr/lib/python2.7/lib-dynload/_heapq.so", O_RDONLY|O_CLOEXEC) = 11
+20:24:56.459300 read(11, ""..., 832)    = 832
+20:24:56.467036 fstat(11, {st_mode=S_IFREG|0644, st_size=21680, ...}) = 0
+20:24:56.467234 mmap(NULL, 2116952, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 11, 0) = 0x7fbf627e3000
+20:24:56.467435 mprotect(0x7fbf627e6000, 2093056, PROT_NONE) = 0
+20:24:56.467503 mmap(0x7fbf629e5000, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 11, 0x2000) = 0x7fbf629e5000
+20:24:56.467567 close(11)               = 0
+20:24:56.467674 mprotect(0x7fbf629e5000, 4096, PROT_READ) = 0
+20:24:56.467740 close(10)               = 0
+20:24:56.467876 close(9)                = 0
+20:24:56.468320 close(8)                = 0
+20:24:56.468736 stat("/usr/lib/python2.7/dist-packages/bsddb3/thread", 0x7fffb616bfa0) = -1 ENOENT (No such file or directory)
+20:24:56.468822 open("/usr/lib/python2.7/dist-packages/bsddb3/thread.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.473146 open("/usr/lib/python2.7/dist-packages/bsddb3/threadmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.475507 open("/usr/lib/python2.7/dist-packages/bsddb3/thread.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.479437 open("/usr/lib/python2.7/dist-packages/bsddb3/thread.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.483222 close(7)                = 0
+20:24:56.483463 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/shutil", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:56.483615 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/shutil.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.486348 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/shutilmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.489086 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/shutil.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.491806 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/shutil.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.494543 stat("/usr/lib/python2.7/shutil", 0x7fffb6170620) = -1 ENOENT (No such file or directory)
+20:24:56.494735 open("/usr/lib/python2.7/shutil.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.497486 open("/usr/lib/python2.7/shutilmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.499836 open("/usr/lib/python2.7/shutil.py", O_RDONLY) = 7
+20:24:56.502489 fstat(7, {st_mode=S_IFREG|0644, st_size=18366, ...}) = 0
+20:24:56.502617 open("/usr/lib/python2.7/shutil.pyc", O_RDONLY) = 8
+20:24:56.505408 fstat(8, {st_mode=S_IFREG|0644, st_size=18223, ...}) = 0
+20:24:56.505532 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.505612 read(8, ""..., 4096)    = 4096
+20:24:56.508918 fstat(8, {st_mode=S_IFREG|0644, st_size=18223, ...}) = 0
+20:24:56.509033 read(8, ""..., 12288)   = 12288
+20:24:56.511794 read(8, ""..., 4096)    = 1839
+20:24:56.514730 read(8, "", 4096)       = 0
+20:24:56.518068 close(8)                = 0
+20:24:56.518264 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.518474 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/fnmatch", 0x7fffb616d010) = -1 ENOENT (No such file or directory)
+20:24:56.518628 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/fnmatch.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.522923 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/fnmatchmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.526863 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/fnmatch.py", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.530718 open("/home/ramnatthan/code/adsl-work/ALC/bdb/workloads/fnmatch.pyc", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.534630 stat("/usr/lib/python2.7/fnmatch", 0x7fffb616d010) = -1 ENOENT (No such file or directory)
+20:24:56.534840 open("/usr/lib/python2.7/fnmatch.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.538781 open("/usr/lib/python2.7/fnmatchmodule.so", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.541612 open("/usr/lib/python2.7/fnmatch.py", O_RDONLY) = 8
+20:24:56.545467 fstat(8, {st_mode=S_IFREG|0644, st_size=3239, ...}) = 0
+20:24:56.545558 open("/usr/lib/python2.7/fnmatch.pyc", O_RDONLY) = 9
+20:24:56.549384 fstat(9, {st_mode=S_IFREG|0644, st_size=3522, ...}) = 0
+20:24:56.549480 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:56.549532 read(9, ""..., 4096)    = 3522
+20:24:56.554136 fstat(9, {st_mode=S_IFREG|0644, st_size=3522, ...}) = 0
+20:24:56.554351 read(9, "", 4096)       = 0
+20:24:56.558599 close(9)                = 0
+20:24:56.558789 munmap(0x7fbf64fcb000, 4096) = 0
+20:24:56.558920 close(8)                = 0
+20:24:56.559390 close(7)                = 0
+20:24:56.559581 open("/sys/devices/system/cpu/online", O_RDONLY|O_CLOEXEC) = 7
+20:24:56.563096 read(7, ""..., 8192)    = 4
+20:24:56.566170 close(7)                = 0
+20:24:56.566316 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/DB_CONFIG", O_RDONLY) = -1 ENOENT (No such file or directory)
+20:24:56.569431 stat("/var/tmp", {st_mode=S_IFDIR|S_ISVTX|0777, st_size=4096, ...}) = 0
+20:24:56.569749 mmap(NULL, 196608, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64e02000
+20:24:56.570107 openat(AT_FDCWD, "/home/ramnatthan/code/adsl-work/ALC/bdb/databases", O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 7
+20:24:56.573801 brk(0x20f8000)          = 0x20f8000
+20:24:56.577528 getdents(7, /* 4 entries */, 32768) = 120
+20:24:56.580740 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/.", {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+20:24:56.580919 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/mydb.db", {st_mode=S_IFREG|0660, st_size=12288, ...}) = 0
+20:24:56.581097 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000001", {st_mode=S_IFREG|0660, st_size=40960, ...}) = 0
+20:24:56.581182 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/..", {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+20:24:56.581238 getdents(7, /* 0 entries */, 32768) = 0
+20:24:56.584335 close(7)                = 0
+20:24:56.584456 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000001", O_RDONLY) = 7
+20:24:56.587841 fcntl(7, F_GETFD)       = 0
+20:24:56.591226 fcntl(7, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.594613 read(7, ""..., 28)      = 28
+20:24:56.597828 close(7)                = 0
+20:24:56.597912 brk(0x20f0000)          = 0x20f0000
+20:24:56.601374 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000001", O_RDONLY) = 7
+20:24:56.604795 fcntl(7, F_GETFD)       = 0
+20:24:56.608230 fcntl(7, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.611624 fstat(7, {st_mode=S_IFREG|0660, st_size=40960, ...}) = 0
+20:24:56.611691 pread(7, ""..., 12, 0)  = 12
+20:24:56.614974 pread(7, ""..., 32000, 0) = 32000
+20:24:56.618447 pread(7, ""..., 12, 9286) = 12
+20:24:56.621740 close(7)                = 0
+20:24:56.621966 brk(0x2111000)          = 0x2111000
+20:24:56.624944 brk(0x2132000)          = 0x2132000
+20:24:56.627138 mmap(NULL, 163840, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64dda000
+20:24:56.627463 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000001", O_RDONLY) = 7
+20:24:56.629901 fcntl(7, F_GETFD)       = 0
+20:24:56.632051 fcntl(7, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.635675 fstat(7, {st_mode=S_IFREG|0660, st_size=40960, ...}) = 0
+20:24:56.635847 pread(7, ""..., 12, 9152) = 12
+20:24:56.638789 pread(7, ""..., 9286, 0) = 9286
+20:24:56.642202 close(7)                = 0
+20:24:56.642497 stat("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/mydb.db", {st_mode=S_IFREG|0660, st_size=12288, ...}) = 0
+20:24:56.642746 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/mydb.db", O_RDWR) = 7
+20:24:56.645842 fcntl(7, F_GETFD)       = 0
+20:24:56.649003 fcntl(7, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.652119 read(7, ""..., 512)     = 512
+20:24:56.655199 close(7)                = 0
+20:24:56.655386 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/mydb.db", O_RDWR|O_CREAT, 0) = 7
+20:24:56.658601 fcntl(7, F_GETFD)       = 0
+20:24:56.661057 fcntl(7, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.662966 fstat(7, {st_mode=S_IFREG|0660, st_size=12288, ...}) = 0
+20:24:56.663210 pread(7, ""..., 4096, 0) = 4096
+20:24:56.665390 pread(7, ""..., 4096, 4096) = 4096
+20:24:56.667690 pread(7, ""..., 4096, 8192) = 4096
+20:24:56.674849 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000001", O_RDWR) = 8
+20:24:56.678079 fcntl(8, F_GETFD)       = 0
+20:24:56.681368 fcntl(8, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.685951 read(8, ""..., 28)      = 28
+20:24:56.690446 pwrite(8, ""..., 31614, 9286) = 31614
+20:24:56.694655 fdatasync(8)            = 0
+20:24:56.770324 pread(7, "", 4096, 16384) = 0
+20:24:56.774352 lseek(7, 16384, SEEK_SET) = 16384
+20:24:56.774488 read(7, "", 4096)       = 0
+20:24:56.778302 brk(0x2153000)          = 0x2153000
+20:24:56.781381 brk(0x2152000)          = 0x2152000
+20:24:56.784121 close(8)                = 0
+20:24:56.784332 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000002", O_RDWR|O_CREAT, 0660) = 8
+20:24:56.788855 fcntl(8, F_GETFD)       = 0
+20:24:56.792745 fcntl(8, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.795525 read(8, "", 28)         = 0
+20:24:56.799941 lseek(8, 32768, SEEK_SET) = 32768
+20:24:56.800160 write(8, ""..., 8192)   = 8192
+20:24:56.804302 pwrite(8, ""..., 32000, 0) = 32000
+20:24:56.806852 pwrite(8, ""..., 7396, 32000) = 7396
+20:24:56.809318 fdatasync(8)            = 0
+20:24:56.846657 close(8)                = 0
+20:24:56.846878 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000003", O_RDWR|O_CREAT, 0660) = 8
+20:24:56.850759 fcntl(8, F_GETFD)       = 0
+20:24:56.855240 fcntl(8, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.859833 read(8, "", 28)         = 0
+20:24:56.864243 lseek(8, 32768, SEEK_SET) = 32768
+20:24:56.864363 write(8, ""..., 8192)   = 8192
+20:24:56.868620 pwrite(8, ""..., 32000, 0) = 32000
+20:24:56.874184 pwrite(8, ""..., 8906, 32000) = 8906
+20:24:56.878287 fdatasync(8)            = 0
+20:24:56.904146 pread(7, "", 4096, 24576) = 0
+20:24:56.908333 lseek(7, 24576, SEEK_SET) = 24576
+20:24:56.908577 read(7, "", 4096)       = 0
+20:24:56.912874 pread(7, "", 4096, 28672) = 0
+20:24:56.916353 lseek(7, 28672, SEEK_SET) = 28672
+20:24:56.916469 read(7, "", 4096)       = 0
+20:24:56.920284 close(8)                = 0
+20:24:56.920430 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000004", O_RDWR|O_CREAT, 0660) = 8
+20:24:56.925098 fcntl(8, F_GETFD)       = 0
+20:24:56.929620 fcntl(8, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.934074 read(8, "", 28)         = 0
+20:24:56.937543 lseek(8, 32768, SEEK_SET) = 32768
+20:24:56.937615 write(8, ""..., 8192)   = 8192
+20:24:56.940243 pwrite(8, ""..., 32000, 0) = 32000
+20:24:56.942900 pwrite(8, ""..., 7934, 32000) = 7934
+20:24:56.945449 fdatasync(8)            = 0
+20:24:56.977421 pread(7, "", 4096, 32768) = 0
+20:24:56.979531 lseek(7, 32768, SEEK_SET) = 32768
+20:24:56.979575 read(7, "", 4096)       = 0
+20:24:56.982022 close(8)                = 0
+20:24:56.982115 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000005", O_RDWR|O_CREAT, 0660) = 8
+20:24:56.985529 fcntl(8, F_GETFD)       = 0
+20:24:56.990243 fcntl(8, F_SETFD, FD_CLOEXEC) = 0
+20:24:56.994741 read(8, "", 28)         = 0
+20:24:56.997853 lseek(8, 32768, SEEK_SET) = 32768
+20:24:56.997892 write(8, ""..., 8192)   = 8192
+20:24:57.000423 pwrite(8, ""..., 32000, 0) = 32000
+20:24:57.003209 pwrite(8, ""..., 8898, 32000) = 8898
+20:24:57.005668 fdatasync(8)            = 0
+20:24:57.036390 fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 5), ...}) = 0
+20:24:57.036552 mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7fbf64fcb000
+20:24:57.036704 write(1, ""..., 23)     = 23
+20:24:57.038599 close(8)                = 0
+20:24:57.038669 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/log.0000000006", O_RDWR|O_CREAT, 0660) = 8
+20:24:57.041111 fcntl(8, F_GETFD)       = 0
+20:24:57.043266 fcntl(8, F_SETFD, FD_CLOEXEC) = 0
+20:24:57.045409 read(8, "", 28)         = 0
+20:24:57.047437 lseek(8, 32768, SEEK_SET) = 32768
+20:24:57.047489 write(8, ""..., 8192)   = 8192
+20:24:57.049505 pwrite(8, ""..., 540, 0) = 540
+20:24:57.051420 write(1, ""..., 14)     = 14
+20:24:57.052974 fdatasync(8)            = 0
+20:24:57.086814 pwrite(7, ""..., 4096, 0) = 4096
+20:24:57.089069 pwrite(7, ""..., 4096, 4096) = 4096
+20:24:57.091203 pwrite(7, ""..., 4096, 8192) = 4096
+20:24:57.093347 pwrite(7, ""..., 4096, 12288) = 4096
+20:24:57.095451 pwrite(7, ""..., 4096, 16384) = 4096
+20:24:57.097607 pwrite(7, ""..., 4096, 20480) = 4096
+20:24:57.100353 pwrite(7, ""..., 4096, 24576) = 4096
+20:24:57.102489 pwrite(7, ""..., 4096, 28672) = 4096
+20:24:57.104637 pwrite(7, ""..., 4096, 32768) = 4096
+20:24:57.106720 pwrite(7, ""..., 4096, 36864) = 4096
+20:24:57.108859 fdatasync(7)            = 0
+20:24:57.155527 close(7)                = 0
+20:24:57.155620 pwrite(8, ""..., 134, 540) = 134
+20:24:57.158872 fdatasync(8)            = 0
+20:24:57.175630 close(8)                = 0
+20:24:57.175717 munmap(0x7fbf64dda000, 163840) = 0
+20:24:57.175816 open("/home/ramnatthan/code/adsl-work/ALC/bdb/databases/mydb.db", O_RDWR) = 7
+20:24:57.178315 fcntl(7, F_GETFD)       = 0
+20:24:57.180488 fcntl(7, F_SETFD, FD_CLOEXEC) = 0
+20:24:57.182603 fdatasync(7)            = 0
+20:24:57.184881 close(7)                = 0
+20:24:57.185017 munmap(0x7fbf64e02000, 196608) = 0
+20:24:57.185183 rt_sigaction(SIGINT, {SIG_DFL, [], SA_RESTORER, 0x7fbf64b9ecb0}, {0x558fd0, [], SA_RESTORER, 0x7fbf64b9ecb0}, 8) = 0
+20:24:57.187475 brk(0x20e6000)          = 0x20e6000
+20:24:57.190300 exit_group(0)           = ?
+20:24:57.191436 +++ exited with 0 +++

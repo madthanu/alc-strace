@@ -1,0 +1,54 @@
+import sys
+import subprocess
+import os
+
+suffix = sys.argv[1]
+logprefix = 'RmAddCommit' + suffix + '::'
+
+fo = open('/tmp/short_output','a')
+lockwarningpath = '/home/ramnatthan/workload_snapshots/merc/replayed_snapshot/.hg/wlock'
+
+if os.path.exists(lockwarningpath):
+    os.remove(lockwarningpath)
+
+fo.write('In RmAddCommit')
+
+bashcommand="command=\"hg rm file1 file2 2>&1\"; op=`eval $command`;rm -rf /tmp/hgdebugstate; echo $op > /tmp/hgdebugstate"
+os.system(bashcommand)
+debug_output = ''
+with open('/tmp/hgdebugstate') as fi:
+        for line in fi:
+            line = line.rstrip('\n')
+            debug_output += line
+
+if 'file1' in debug_output or 'file2' in debug_output:
+	prob = True
+	fo.write("\n"+ logprefix+"file1 and file2 remove failed")
+
+bashcommand2="command=\"hg add file5 2>&1\"; echo hello > file5; op=`eval $command`; command2=\"hg commit -m 'File5' -u 'user1'\"; op=`eval $command2`; rm -rf /tmp/file5add; echo $op > /tmp/file5add"
+os.system(bashcommand2)
+
+bashcommand3="command=\"hg debugstate 2>&1\"; op=`eval $command`; rm -rf /tmp/hgdebugstate; echo $op > /tmp/hgdebugstate"
+os.system(bashcommand3)
+
+file5addcommitoutput = ''
+with open('/tmp/file5add') as fi:
+        for line in fi:
+            line = line.rstrip('\n')
+            file5addcommitoutput += line
+
+debug_output = ''
+with open('/tmp/hgdebugstate') as fi:
+        for line in fi:
+            line = line.rstrip('\n')
+            debug_output += line
+
+if file5addcommitoutput is not '' or 'file5' not in debug_output:
+	prob = True
+    fo.write("\n"+ logprefix+"file5 add and commit failed")
+
+if not prob:
+	fo.write("\n"+ logprefix+"No problem")
+
+#fo.write("\n"+ logprefix+" Done with script execution")
+fo.close()    
