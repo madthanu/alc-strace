@@ -257,7 +257,7 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 
 	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg, '', __stack_repr(stack_repr, op)]
 	if op.op in ['append', 'write']:
-		if op.offset / 4096 != (op.offset + op.count) / 4096:
+		if op.offset / 4096 != (op.offset + op.count - 1) / 4096:
 			# If append crosses page boundary
 			report[3] = 'across_boundary(' + str(op.count) + ')'
 		else:
