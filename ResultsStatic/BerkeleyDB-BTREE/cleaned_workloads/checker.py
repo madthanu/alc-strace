@@ -5,8 +5,11 @@
 from bsddb3 import db
 import alice # Our testing framework
 
+access_method = db.DB_HASH
+
 db_location = '/home/ramnatthan/code/adsl-work/ALC/bdb/databases'
 file_name = 'my_db.db'
+
 
 # Boolean representing whether the crash happened after or before the message
 # 'Finished committing insert of 1200 pairs' was printed in the terminal
@@ -25,7 +28,7 @@ def check_db(with_db_recover):
 	my_env.set_flags(db.DB_CREATE | db.DB_NOMMAP | db.DB_CHKSUM, 1)
 
 	try:
-		flags = db_location, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOG | db.DB_INIT_TXN | db.DB_INIT_LOCK | db.DB_THREAD
+		flags = db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOG | db.DB_INIT_TXN | db.DB_INIT_LOCK | db.DB_THREAD
 		if with_db_recover: flags = flags | db.DB_RECOVER
 		my_env.open(db_location, flags)
 		my_db = db.DB(my_env)
@@ -33,7 +36,7 @@ def check_db(with_db_recover):
 		return 'Environment open failed.'
 
 	try:
-		my_db.open(db_location + '/' + file_name, None, self.accessMethod, db.DB_CREATE | db.DB_INIT_LOG | db.DB_INIT_TXN | db.DB_NOMMAP)
+		my_db.open(db_location + '/' + file_name, None, access_method, db.DB_CREATE | db.DB_INIT_LOG | db.DB_INIT_TXN | db.DB_NOMMAP)
 	except:
 		return 'Database open failed.'
 
