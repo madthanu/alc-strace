@@ -4,6 +4,7 @@
 
 from bsddb3 import db
 import alice # Our testing framework
+import subprocess
 
 access_method = db.DB_HASH
 
@@ -11,13 +12,13 @@ db_location = '/home/ramnatthan/code/adsl-work/ALC/bdb/databases'
 file_name = 'my_db.db'
 
 
-# Boolean representing whether the crash happened after or before the message
-# 'Finished committing insert of 1200 pairs' was printed in the terminal
+# Boolean representing whether the power loss or system crash happened after
+# the message 'Finished committing insert of 1200 pairs' was printed
 crashed_after_committing = 'Finished committing insert of 1200 pairs' in alice.crash_time_terminal_output()
 
 
 # This function actually opens and retrieves from the database, and finds if
-# there are any problems
+# there are any problems.
 def check_db(with_db_recover):
 	global my_env, my_db, txn
 
@@ -55,27 +56,32 @@ def check_db(with_db_recover):
 		return 'Exception while retrieving values.'
 
 	if count != 1 and count != 1200:
-		return 'Violation of ACI guarantees'
+		return 'Violation of ACI'
 
 	# The database seems consistent. But is durability satisfied?
 	if crashed_after_committing and count != 1200:
 		return 'Durability not satisfied'
 
-	return 'Correct!'
+	return 'Correct'
 
-# In our actual checker, we first use the db_verify tool to find whether the
-# database needs recovery, then open the database both with the DB_RECOVER flag
-# and without, as a means towards more stringent checking. All our discovered
-# vulnerabilities, however, only deal with what happens after opening the
-# database with DB_RECOVER. I am hence omitting details about the more
-# stringent checking, but including those steps that were a part of the
-# checking which might have affected the state of the database.
+# Try retriving the database without DB_RECOVER
+output_without_recovery = check_db(with_db_recover = False)
 
-check_db(with_db_recover = False) # Detail of more stringent checking that might
-				  # have affected the state of the database.
+# In case there are silent errors when opening without DB_RECOVER, *or* if we
+# successfully retrieved the database without DB_RECOVER, print the output and
+# exit.
+silent_errors = (output_without_recovery == 'Durability not satisfied' or output_without_recovery == 'Violation of ACI')
+successful = output_without_recovery == 'Correct'
+if silent_errors or successful:
+	print output_without_recovery + ' without recovery'
+	exit()
 
-# Try closing the database, just in case it was left open with the previous
-# check_db() call.
+# At this point, either retrieving values from the database resulted in an
+# exception, or resulted in a silent error. We now try to open the database
+# with the DB_RECOVER flag.
+
+# First try closing the database, just in case it was left open with the
+# previous check_db() call.
 try: txn.abort()
 except: pass
 try: my_db.close()
@@ -83,5 +89,5 @@ except: pass
 try: my_env.close()
 except: pass
 
-# Actual step that discovers vulnerabilities.
-check_db(with_db_recover = True)
+# Finally, try retrieving the database with the DB_RECOVER flag
+print check_db(with_db_recover = True)
