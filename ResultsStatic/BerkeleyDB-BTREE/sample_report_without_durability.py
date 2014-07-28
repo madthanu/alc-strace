@@ -11,7 +11,7 @@ def failure_category(msg):
 	msg = msg.strip()
 
 	if '''Normal mode! -- Normal:WOR:Exception:(-30985, 'DB_PAGE_NOTFOUND: Requested page not found')--No of rows retrieved:0Normal:TWR: Durability signal present. No problem. No of rows retrieved:1200''' == msg:
-		return [FailureCategory.CORRECT]
+		return [FailureCategory.MISC, "DB Verify tool - False Negative!"]
 
 	if '''Normal mode! -- Normal:WOR: Durability signal present. But No of rows retrieved:1''' in msg \
 		or '''TWR: Silent loss of durability - Recovered to old state''' in msg:
