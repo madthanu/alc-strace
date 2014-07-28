@@ -29,13 +29,15 @@ replay_output = None
 readable_output = True
 strace_description_checksum = None
 filter = None
+debug = None
 
-def initialize_options(filter = None, readable_output = False, strace_description_checksum = None):
+def initialize_options(filter = None, debug = None, readable_output = False, strace_description_checksum = None):
 	global vulnerabilities, overall_stats, replay_output
 	vulnerabilities = list()
 	overall_stats = Struct()
 	replay_output = None
 	globals()['filter'] = filter
+	globals()['debug'] = debug
 	globals()['readable_output']= readable_output
 	globals()['strace_description_checksum']= strace_description_checksum
 
@@ -66,7 +68,7 @@ class Op:
 		return hash((self.micro, self.disk))
 
 class ReplayOutputParser:
-	def __init__(self, fname, delimiter, is_correct):
+	def __init__(self, fname, delimiter, is_correct, failure_category):
 		global filter
 		self.prefix = collections.defaultdict(dict)
 		self.omitmicro = {}
@@ -97,6 +99,10 @@ class ReplayOutputParser:
 				if testcase[m.start(i):m.end(i)] != '':
 					args.append(testcase[m.start(i):m.end(i)])
 			output = testcase[m.start(6):m.end(6)]
+
+			if debug != None:
+				print ' '.join([case, ' '.join(args), str(is_correct(output)), FailureCategory.repr(failure_category(output)).ljust(30), output])
+				continue
 
 			type = case.split('-')[0]
 			type_dict = eval('self.' + type)
@@ -486,7 +492,9 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 	global replay_output, strace_description_checksum
 	micro_ops = MicroOps(strace_description)
 	micro_operations = micro_ops.one
-	replay_output = ReplayOutputParser(replay_output_file, delimiter, is_correct)
+	replay_output = ReplayOutputParser(replay_output_file, delimiter, is_correct, failure_category)
+	if debug != None:
+		exit()
 
 	if strace_description_checksum != None:
 		checksums = subprocess.check_output('sum ' + strace_description, shell = True)
@@ -658,10 +666,11 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 if '__file__' in __main__.__dict__.keys() and 'report' in __main__.__file__ or 'report2' in __main__.__file__:
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--filter', dest = 'filter', type = str, default = None)
+	parser.add_argument('--debug', dest = 'debug', type = str, default = None)
 	cmdline = parser.parse_args()
 	if cmdline.filter != None:
 		print 'Using filter: ' + cmdline.filter
 		cmdline.filter = pickle.load(open(cmdline.filter))
 		if type(cmdline.filter) == dict and 'content' in cmdline.filter.keys():
 			cmdline.filter = cmdline.filter['content']
-	initialize_options(filter = cmdline.filter, readable_output = True)
+	initialize_options(filter = cmdline.filter, debug = cmdline.debug, readable_output = True)
