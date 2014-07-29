@@ -18,7 +18,7 @@ my_env.open(db_location, db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOG | db.D
 
 # Open the database
 my_db = db.DB(my_env)
-my_db.open(db_location + '/' + file_name, None, access_method, db.DB_CREATE | db.DB_AUTO_COMMIT | db.DB_NOMMAP)
+my_db.open(db_location + '/' + file_name, None, access_method, db.DB_CREATE | db.DB_NOMMAP)
 
 # Perform the actual transaction
 txn = my_env.txn_begin(flags = db.DB_TXN_SYNC)
