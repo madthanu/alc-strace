@@ -406,6 +406,9 @@ def report_prefix(micro_operations, i, j, msg, stack_repr):
 	second_index = str(j)
 	if type(i) == tuple: i = i[0]
 	if type(j) == tuple: j = j[0]
+	assert micro_operations[j].op not in conv_micro.sync_ops
+	if micro_operations[j].op in ['stdout', 'stderr']:
+		print 'Warning: Inverse durability prefix bug'
 	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' ... ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
 	report = [PREFIX, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
 	if readable_output: print ' '.join(report)
@@ -503,39 +506,38 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 	# Finding prefix machine_mode_bugs
 	prefix_problems = {}
 	for i in range(0, len(micro_operations)):
-		if micro_operations[i].op not in conv_micro.sync_ops and micro_ops.dops_len('one', i) > 0:
-			correct = None
-			# Determining whether this is an inter-syscall-prefix bug
-			for subtype in replay_output.prefix:
-				prefix_dict = replay_output.prefix[subtype]
-				end = Op(i, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 1)
-				if subtype == 'one':
-					assert end in prefix_dict.keys()
-				if end in prefix_dict.keys():
-					if correct == None:
-						correct = is_correct(prefix_dict[end])
-						if not correct:
-							wrong_output = prefix_dict[end]
-					else:
-						assert correct == is_correct(prefix_dict[end])
+		correct = None
+		# Determining whether this is an inter-syscall-prefix bug
+		for subtype in replay_output.prefix:
+			prefix_dict = replay_output.prefix[subtype]
+			end = Op(i, micro_ops.dops_len(subtype, i, expanded_atomicity = True) - 1)
+			if subtype == 'one':
+				assert end in prefix_dict.keys()
+			if end in prefix_dict.keys():
+				if correct == None:
+					correct = is_correct(prefix_dict[end])
+					if not correct:
+						wrong_output = prefix_dict[end]
 				else:
-					assert micro_operations[i].op not in conv_micro.expansive_ops
+					assert correct == is_correct(prefix_dict[end])
+			else:
+				assert micro_operations[i].op not in conv_micro.expansive_ops
 
-			# Determining whether this is the last real micro_op
-			ending = True
-			for j in range(i + 1, len(micro_operations)):
-				if micro_operations[j].op not in conv_micro.sync_ops:
-					ending = False
-					break
+		# Determining whether this is the last real micro_op
+		ending = True
+		for j in range(i + 1, len(micro_operations)):
+			if micro_operations[j].op not in conv_micro.sync_ops:
+				ending = False
+				break
 
-			if ending and not correct:
-				print 'WARNING: Incorrect in the ending'
-				assert i not in prefix_problems
-				prefix_problems[i] = wrong_output
-			elif not correct:
-				assert i not in prefix_problems
-				assert (i + 1) not in prefix_problems
-				prefix_problems[i] = wrong_output
+		if ending and not correct:
+			print 'WARNING: Incorrect in the ending'
+			assert i not in prefix_problems
+			prefix_problems[i] = wrong_output
+		elif not correct:
+			assert i not in prefix_problems
+			assert (i + 1) not in prefix_problems
+			prefix_problems[i] = wrong_output
 
 	# Reporting patches of prefix inter-syscall-atomicity vulnerabilities
 	range_start = None
