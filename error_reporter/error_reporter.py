@@ -299,7 +299,7 @@ def report_atomicity(incorrect_under, op, msg, micro_ops, i, stack_repr):
 	append_partial_meanings = ['filled_zero', 'filled_garbage', 'partial']
 	expand_partial_meanings = ['garbage', 'partial']
 
-	report = ['Atomicity: ', op.op, str(op.hidden_id), '', '', msg, '', __stack_repr(stack_repr, op)]
+	report = ['Atomicity: ', opname(op), str(op.hidden_id), '', '', msg, '', __stack_repr(stack_repr, op)]
 	if op.op in ['append', 'write']:
 		if op.offset / 4096 != (op.offset + op.count - 1) / 4096:
 			# If append crosses page boundary
@@ -409,7 +409,7 @@ def report_prefix(micro_operations, i, j, msg, stack_repr):
 	assert micro_operations[j].op not in conv_micro.sync_ops
 	if micro_operations[j].op in ['stdout', 'stderr']:
 		print 'Warning: Inverse durability prefix bug'
-	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' ... ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
+	explanation = opname(micro_operations[i])  + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' ... ' + opname(micro_operations[j]) + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
 	report = [PREFIX, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
 	if readable_output: print ' '.join(report)
 
@@ -437,7 +437,7 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr, unknown = Fal
 		second_index = second_index + '::unknown'
 	if type(i) == tuple: i = i[0]
 	if type(j) == tuple: j = j[0]
-	explanation = micro_operations[i].op + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + micro_operations[j].op + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
+	explanation = opname(micro_operations[i]) + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + opname(micro_operations[j]) + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
 	report = [vul_type, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
 
 	if micro_operations[i].op in ['rename', 'link'] or micro_operations[j].op in ['rename', 'link']:
@@ -490,6 +490,11 @@ def fname(op):
 	else:
 		print op
 		assert False
+
+def opname(op):
+	if 'hidden_parsed_line' in op.__dict__:
+		return op.op + '-' + op.hidden_parsed_line.syscall
+	return op.op
 
 def report_errors(delimiter = '\n', strace_description = './micro_cache_file', replay_output_file = './replay_output', is_correct = None, failure_category = None, stack_repr = None):
 	global replay_output, strace_description_checksum

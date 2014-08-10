@@ -35,6 +35,7 @@ def init_cmdline(default_initialize = False):
 	parser.add_argument('--omit_actual_stdout', dest = 'omit_actual_stdout', type = bool, default = False)
 	parser.add_argument('--scratchpad_dir', dest = 'scratchpad_dir', type = str, default = '/tmp')
 	parser.add_argument('--mtrace_shadow', dest = 'mtrace_shadow', type = bool, default = False)
+	parser.add_argument('--ignore_stacktrace', dest = 'ignore_stacktrace', type = bool, default = False)
 
 	if default_initialize:
 		__cmdline = parser.parse_args([])
