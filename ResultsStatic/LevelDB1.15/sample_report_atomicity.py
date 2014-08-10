@@ -8,19 +8,17 @@ from error_reporter import FailureCategory
 
 def meaning(x):
 	if 'key and it->key() mismatch.' in x or 'value and it->value() mismatch.' in x:
-		return 'Wrong'
+		return 'SilentAtomicity'
 	elif 'Assertion `character_present[i + \'a\'] == 1\' failed' in x:
-		return 'Wrong'
+		return 'SilentOrdering'
+	elif 'Corruption: bad record length' in x or 'Corruption: checksum mismatch' in x or 'Corruption: error in middle of record' in x or 'Corruption: missing start of fragmented record' in x or 'Corruption: partial record without end' in x:
+		return 'AtomicityException'
+	elif 'Assertion `replayed_entries == ' in x:
+		return 'SilentDurability'
+	elif 'Assertion `replayed_entries >= ' in x:
+		return 'SilentDurability'
 	elif 'Assertion `ret.ok()\' failed.' in x:
 		return 'Exception'
-	elif 'Assertion `it->status().ok()\' failed.' in x:
-		return 'Exception'
-	elif 'Assertion `replayed_entries == ' in x:
-		return 'DurabilityWrong'
-	elif 'Assertion `replayed_entries >= ' in x:
-		return 'DurabilityWrong'
-	elif 'what():  basic_string::_S_create' in x:
-		return 'Wrong'
 	elif x in ['C', '']:
 		return x
 	else:
@@ -28,37 +26,26 @@ def meaning(x):
 		assert False
 
 def is_correct(msg):
-	msg = msg.replace('; e.g.', '')
-	msg = msg.split(';')
-	msg = [x.strip() for x in msg]
-	if meaning(msg[4]) != 'C':
-		return False
-	if meaning(msg[3]) == 'Exception':
-		return False
-	if 'Wrong' in meaning(msg[2]):
-		return False
-	return True
+	failures = failure_category(msg)
+	if FailureCategory.CORRECT in failures:
+		assert len(failures) == 1
+		return True
+	return False
 
 def failure_category(msg):
 	msg = msg.replace('; e.g.', '')
 	msg = msg.split(';')
 	msg = [x.strip() for x in msg]
 	toret = set()
-	if meaning(msg[4]) == 'Wrong':
+	msg[1] = meaning(msg[1])
+	if msg[1] == 'SilentAtomicity':
 		toret.add(FailureCategory.CORRUPTED_READ_VALUES)
-	if meaning(msg[4]) == 'Exception':
+	if msg[1] == 'AtomicityException':
 		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
-	if meaning(msg[3]) == 'Exception':
-		toret.add(FailureCategory.PARTIAL_READ_FAILURE)
-	if meaning(msg[2]) == 'Wrong':
-		toret.add(FailureCategory.MISC)
-	for x in msg:
-		if 'Durability' in meaning(x):
-			toret.add(FailureCategory.DURABILITY)
-	assert len(toret) > 0
+	if len(toret) == 0:
+		assert 'Atomicity' not in msg[1]
+		return [FailureCategory.CORRECT]
 	return list(toret)
-
-#stack_repr for leveldb is hard coded in error_reporter.py
 
 def stack_repr(backtrace):
 	backtrace = error_reporter.standard_stack_traverse(backtrace)
