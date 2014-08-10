@@ -1,0 +1,13 @@
+BEGIN;
+insert into test1 values (1000);
+insert into test1 values (1001);
+insert into test1 values (1002);
+insert into test1 values (1003);
+insert into test1 values (1004);
+insert into test1 values (1005);
+insert into test1 values (1006);
+insert into test1 values (1007);
+insert into test1 values (1008);
+insert into test1 values (1009);
+insert into test1 values (1010);
+COMMIT;

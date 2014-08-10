@@ -1,0 +1,12 @@
+prefix = "tmp/strace.out"
+initial_snapshot = "tmp/initial_snapshot"
+#replayed_snapshot = "/tmp/replayed_snapshot"
+base_path = "/tmp/mydisk/"
+#orderings_script = "crash_specifier.py"
+orderings_script = "/root/alc-strace/error_reporter/standardized_specifier.py"
+#checker_tool = "./psql_checker.sh"
+checker_tool = "/root/a.sh"
+#replayer_threads=8
+starting_cwd = "/root/alc-strace/test" 
+auto_run = True
+scratchpad_dir = "/run/shm/madthanu-postgres"
