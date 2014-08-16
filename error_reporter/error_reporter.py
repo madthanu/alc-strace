@@ -217,6 +217,8 @@ class FailureCategory:
 	@staticmethod
 	def repr(meaning):
 		inv_dict = {v:k for k, v in FailureCategory.__dict__.items()}
+		if type(meaning) == str:
+			return meaning
 		if type(meaning) == int:
 			return inv_dict[meaning]
 		ans = []
@@ -512,6 +514,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 	prefix_problems = {}
 	for i in range(0, len(micro_operations)):
 		correct = None
+		if micro_operations[i].op == 'trunc' and micro_operations[i].initial_size == micro_operations[i].final_size:
+			if i - 1 in prefix_problems:
+				prefix_problems[i] = prefix_problems[i - 1]
+			continue
 		# Determining whether this is an inter-syscall-prefix bug
 		for subtype in replay_output.prefix:
 			prefix_dict = replay_output.prefix[subtype]
