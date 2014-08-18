@@ -30,8 +30,9 @@ readable_output = True
 strace_description_checksum = None
 filter = None
 debug = None
+ignore_omit_one = False
 
-def initialize_options(filter = None, debug = None, readable_output = False, strace_description_checksum = None):
+def initialize_options(filter = None, debug = None, readable_output = False, strace_description_checksum = None, ignore_omit_one = False):
 	global vulnerabilities, overall_stats, replay_output
 	vulnerabilities = list()
 	overall_stats = Struct()
@@ -40,6 +41,7 @@ def initialize_options(filter = None, debug = None, readable_output = False, str
 	globals()['debug'] = debug
 	globals()['readable_output']= readable_output
 	globals()['strace_description_checksum']= strace_description_checksum
+	globals()['ignore_omit_one'] = ignore_omit_one
 
 def get_results():
 	return (vulnerabilities, overall_stats)
@@ -141,6 +143,8 @@ class ReplayOutputParser:
 					if not is_correct(output): overall_stats.failure_crash_states += 1
 				overall_stats.total_unfiltered_crash_states += 1
 			elif type == 'omit_one':
+				if ignore_omit_one:
+					continue
 				assert len(args) == 4
 				assert args[0].startswith('R')
 				assert args[2].startswith('E')
@@ -423,8 +427,13 @@ def report_prefix(micro_operations, i, j, msg, stack_repr):
 		micro_op.append(micro_operations[x].op)
 		hidden_details_micro_op.append(micro_operations[x])
 
+	if len(stacks) == 1:
+		stacks = (stacks[0], stacks[0])
+	else:
+		stacks = (stacks[0], stacks[-1])
+
 	vulnerabilities.append(Struct(type = PREFIX,
-			stack_repr = tuple(sorted(stacks)),
+			stack_repr = tuple(stacks),
 			micro_op = tuple(sorted(micro_op)),
 			failure_category = msg,
 			subtype = report[2],
@@ -440,12 +449,31 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr, unknown = Fal
 	if type(i) == tuple: i = i[0]
 	if type(j) == tuple: j = j[0]
 	explanation = opname(micro_operations[i]) + '(' + first_index + ', ' + fname(micro_operations[i]) + ')' + ' <-> ' + opname(micro_operations[j]) + '( ' + second_index + ', ' + fname(micro_operations[j]) + ')'
-	report = [vul_type, explanation, '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
+	report = [vul_type, explanation, '', '', ':', msg, __stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])]
 
-	if micro_operations[i].op in ['rename', 'link'] or micro_operations[j].op in ['rename', 'link']:
-		report[2] = 'two_dir_ops'
+	if (micro_operations[i].op in ['rename', 'link'] and micro_operations[j].op not in ['rename', 'link']) or \
+		(micro_operations[j].op in ['rename', 'link'] and micro_operations[i].op not in ['rename', 'link']):
+		if micro_operations[i].op in ['rename', 'link']:
+			link_op = micro_operations[i]
+			other_op = micro_operations[j]
+		else:
+			link_op = micro_operations[j]
+			other_op = micro_operations[i]
+		other_inode = ''
+		if other_op.op not in ['stdout', 'stderr']:
+			other_inode = other_op.inode
+		if link_op.source_inode == other_inode:
+			report[2] = 'same_source'
+		elif link_op.op == 'rename' and link_op.dest_inode == other_inode:
+			report[2] = 'same_destination'
+		else:
+			report[2] = 'different_file'			
+	elif micro_operations[i].op in ['rename', 'link'] and micro_operations[j].op in ['rename', 'link']:
+		report[2] = 'two_link_dir_ops'
 	elif micro_operations[i].op in ['trunc', 'append', 'write'] or micro_operations[j].op in ['trunc', 'append', 'write']:
-		if fname(micro_operations[i]) == fname(micro_operations[j]):
+		if micro_operations[i].op in ['stdout', 'stderr'] or micro_operations[j].op in ['stdout', 'stderr']:
+			report[2] = ''
+		elif micro_operations[i].inode == micro_operations[j].inode:
 			report[2] = 'same_file'
 		else:
 			report[2] = 'different_file'
@@ -466,23 +494,32 @@ def report_pair(vul_type, micro_operations, i, j, msg, stack_repr, unknown = Fal
 		else:
 			report[2] = 'different_dir'
 
+	if micro_operations[i].op in ['creat', 'mkdir']:
+		# Not using inode, so this is a guess.
+		for x in range(i, j + 1):
+			if 'sync' in micro_operations[x].op and micro_operations[i].name in micro_operations[x].name:
+				report[3] = 'child_flushed'
+		if report[3] == '':
+			report[3] = 'child_unflushed'
 
 	vulnerabilities.append(Struct(type = vul_type,
 			stack_repr = (__stack_repr(stack_repr, micro_operations[i]), __stack_repr(stack_repr, micro_operations[j])),
 			micro_op = (micro_operations[i].op, micro_operations[j].op if not unknown else "unknown"),
 			failure_category = msg,
 			subtype = report[2],
+			subtype2 = report[3],
 			hidden_details = Struct(micro_op = (micro_operations[i], micro_operations[j]))))
 
 	report[2] = myutils.colorize(report[2], 3)
 	if readable_output: print ' '.join(report)
 
+def shorter(name):
+	if name.endswith('/'): name = name[-1]
+	to_shorten = os.path.dirname(os.path.dirname(name))
+	name = '/S' + str(hash(to_shorten) % 1000) + name[len(to_shorten) : ]
+	return name
+
 def fname(op):
-	def shorter(name):
-		if name.endswith('/'): name = name[-1]
-		to_shorten = os.path.dirname(os.path.dirname(name))
-		name = '/S' + str(hash(to_shorten) % 1000) + name[len(to_shorten) : ]
-		return name
 	if op.op in ['trunc', 'append', 'write', 'unlink', 'creat', 'mkdir', 'rmdir']:
 		return shorter(op.name)
 	elif op.op in ['rename', 'link']:
@@ -628,7 +665,10 @@ def report_errors(delimiter = '\n', strace_description = './micro_cache_file', r
 					break
 
 	# Special re-orderings
-	for i in range(0, len(micro_operations)):
+	to_traverse = range(0, len(micro_operations))
+	if ignore_omit_one:
+		to_traverse = []
+	for i in to_traverse:
 		if i not in prefix_problems and i - 1 not in prefix_problems \
 				and i not in atomicity_violators \
 				and micro_operations[i].op not in conv_micro.pseudo_ops \

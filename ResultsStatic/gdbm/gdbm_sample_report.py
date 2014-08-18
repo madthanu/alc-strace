@@ -1,5 +1,7 @@
+#!/usr/bin/python
+import os
 import sys
-sys.path.append('/root/application_fs_bugs/alc-strace/error_reporter')
+sys.path.append(os.getenv('ALC_STRACE_HOME') + '/error_reporter')
 import error_reporter
 from error_reporter import FailureCategory
 
@@ -14,10 +16,8 @@ def failure_category(msg):
 	workload_str = msg[0]
 	check_str = msg[1]
 
-	if 'dbcreated' in workload_str and 'db-error' in check_str:
-		return [FailureCategory.FULL_READ_FAILURE, FailureCategory.FULL_WRITE_FAILURE]
 	if 'db-error' in check_str:
-		return [FailureCategory.MISC]
+		return [FailureCategory.FULL_READ_FAILURE, FailureCategory.FULL_WRITE_FAILURE]
 	if '-miss' in check_str:
 		return [FailureCategory.SILENT_DATA_LOSS]
 	if '-corrupt' in check_str:

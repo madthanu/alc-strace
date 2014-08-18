@@ -54,7 +54,11 @@ def stack_repr(backtrace):
 			continue
 		if stack_frame.src_filename == None:
 			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
-		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		if 'EmitPhysicalRecord' in stack_frame.func_name:
+			src_line_num = (stack_frame.src_line_num / 10) * 10 # Fuzz out the exact line num
+		else:
+			src_line_num = stack_frame.src_line_num
+		return str(stack_frame.src_filename) + ':' + str(src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
 
 def run_me():
 	error_reporter.report_errors('\n', './strace_description', './replay_output', is_correct, failure_category, stack_repr)
