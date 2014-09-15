@@ -720,10 +720,11 @@ if '__file__' in __main__.__dict__.keys() and 'report' in __main__.__file__ or '
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--filter', dest = 'filter', type = str, default = None)
 	parser.add_argument('--debug', dest = 'debug', type = str, default = None)
+	parser.add_argument('--ignore_omit_one', dest = 'ignore_omit_one', type = bool, default = False)
 	cmdline = parser.parse_args()
 	if cmdline.filter != None:
 		print 'Using filter: ' + cmdline.filter
 		cmdline.filter = pickle.load(open(cmdline.filter))
 		if type(cmdline.filter) == dict and 'content' in cmdline.filter.keys():
 			cmdline.filter = cmdline.filter['content']
-	initialize_options(filter = cmdline.filter, debug = cmdline.debug, readable_output = True)
+	initialize_options(filter = cmdline.filter, debug = cmdline.debug, readable_output = True, ignore_omit_one = cmdline.ignore_omit_one)

@@ -150,6 +150,13 @@ def ext3o_dependencies(replayer, ops):
 		if ops[i].op not in ['stdout', 'stderr']:
 			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
 
+def ext3j_dependencies(replayer, ops):
+	abstract_dependencies(replayer, ops)
+	safe_new_file_flush(replayer, ops)
+	for i in range(0, len(ops)):
+		if ops[i].op not in ['stdout', 'stderr']:
+			ops[i].hidden_dependencies = ops[i].hidden_dependencies.union(range(i - 1, -1, -1))
+
 def btrfs_dependencies(replayer, ops):
 	abstract_dependencies(replayer, ops)
 	safe_new_file_flush(replayer, ops)
@@ -258,6 +265,7 @@ def ordered_atomicity_validate(mode, micro_op, selected):
 filesystems = collections.OrderedDict()
 filesystems['twojournalfs'] = (twojournalfs_dependencies, ordered_atomicity_validate)
 filesystems['ext3_o'] = (ext3o_dependencies, ordered_atomicity_validate)
+filesystems['ext3_j'] = (ext3j_dependencies, ordered_atomicity_validate)
 filesystems['twojournalfs_nonewfileflush'] = (twojournalfs_nonewfileflush_dependencies, ordered_atomicity_validate)
 filesystems['ext3_w'] = (ext3w_dependencies, writeback_atomicity_validate)
 filesystems['ext4_o'] = (ext4o_dependencies, ordered_atomicity_validate)

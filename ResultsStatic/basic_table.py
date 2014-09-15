@@ -47,6 +47,9 @@ omit_one_exempted_folders = ['BerkeleyDB-BTREE',
 	'VMWare',
 ]
 
+remove_folders = ['BerkeleyDB-BTREE', 
+	'BerkeleyDB-Hash', 
+]
 
 def get_filter(fs, strace_description):
 	try:
@@ -70,12 +73,12 @@ def get_vulnerabilities(fs):
 	cwd = os.getcwd()
 	debug = True
 	for folder in folders:
+		vulnerabilities[folder] = []
+		if folder in ghost_folders:
+			continue
 		os.chdir(cwd)
 		os.chdir(folder)
 		try:
-			vulnerabilities[folder] = []
-			if folder in ghost_folders:
-				continue
 			stats[folder] = []
 			if debug: print 'Trying ' + folder + ' ........'
 			cmd = 'ls  *report*.py'
@@ -110,39 +113,6 @@ def get_vulnerabilities(fs):
 	os.chdir(cwd)
 	return (vulnerabilities, stats)
 
-def do_table(vulnerabilities, consider_bug_type, get_columns):
-	global folders
-	rows = defaultdict(lambda: defaultdict(lambda: list()))
-	columns = set(['ztotal'])
-	toret = ''
-
-	for app in vulnerabilities:
-		for bug in vulnerabilities[app]:
-			if consider_bug_type(bug):
-				for col in get_columns(bug):
-					columns.add(col)
-					rows[app][col].append(bug.stack_repr)
-				rows[app]['ztotal'].append(bug.stack_repr)
-	columns = sorted(list(columns))
-
-	line = ' ;'
-	for column in columns:
-		line += column + ';'
-	toret += line + '\n'
-	for folder in folders:
-#		if folder not in rows:
-#			continue
-		row = folder
-		line = str(row) + ';'
-		for column in columns:
-			output = ' '
-			if len(rows[row][column]) > 0:
-				dynamic_uniques = set()
-				output = str(len(set(rows[row][column]))) #+ '(' + str(len(rows[row][column])) + ')'
-			line += output + ';'
-		toret += line + '\n'
-	return toret
-
 def do_generic_table(vulnerabilities, col_func_array):
 	legend = set()
 
@@ -168,7 +138,7 @@ def do_generic_table(vulnerabilities, col_func_array):
 			if row == 'LMDB' and output == '1$^{' + symbol('DOCUMENTED') + 'F}$':
 				return 'read-only open$^{' + symbol('DOCUMENTED') + '}$'
 			if row == 'git' and output == '2$^{' + symbol('UNCLEAR') + 'F}$,1$^{' + symbol('UNCLEAR') + 'R}$':
-				return '3$^{+'+ symbol('UNCLEAR') +'}$'
+				return '3$^{\#'+ symbol('UNCLEAR') +'}$'
 			if row == 'MercurialDynamic' and output == '5$^{' + symbol('UNCLEAR') + 'D}$':
 				return '5 dirstate fail$^{' + symbol('UNCLEAR') + '}$'
 		if column == 'Total unique' and row == 'Sqlite-WAL' and output == '':
@@ -236,40 +206,10 @@ def do_generic_table(vulnerabilities, col_func_array):
 			answer += symbol(t)
 		return answer
 
-	expanded_col_func_array = [	Struct(name = 'No-commit durability',
-						test = lambda x: 'SILENT_DATA_LOSS' in x.failure_category and has_stdout(x)),
-					Struct(name = 'Losing-previous-commit durability',
-						test = lambda x: 'SILENT_DATA_LOSS' in x.failure_category and not has_stdout(x)),
-					Struct(name = 'Atomicity across system calls',
-						test = lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.PREFIX),
-					Struct(name = 'Atomicity - total',
-						test = lambda x: atomicity(x)),
-					Struct(name = 'Atomicity - appends',
-						test = lambda x: atomicity(x) and x.micro_op in ['append']),
-					Struct(name = 'Atomicity - CA appends',
-						test = lambda x: atomicity(x) and x.micro_op in ['append'] and append_atomicity_type(x) == 'content-atomic'),
-					Struct(name = 'Atomicity - BA appends',
-						test = lambda x: atomicity(x) and x.micro_op in ['append'] and append_atomicity_type(x) == 'block-atomic'),
-					Struct(name = 'Atomicity - both appends',
-						test = lambda x: atomicity(x) and x.micro_op in ['append'] and append_atomicity_type(x) == 'both'),
-					Struct(name = 'Atomicity - expands',
-						test = lambda x: atomicity(x) and x.micro_op in ['trunc', 'truncates'] and is_expand(x)),
-					Struct(name = 'Atomicity - big overwrites',
-						test = lambda x: atomicity(x) and x.micro_op in ['write'] and 'across_boundary' in x.subtype),
-					Struct(name = 'Atomicity - small overwrites',
-						test = lambda x: atomicity(x) and x.micro_op in ['write'] and 'across_boundary' not in x.subtype),
-					Struct(name = 'Atomicity - rename',
-						test = lambda x: atomicity(x) and x.micro_op in ['rename']),
-					Struct(name = 'Atomicity - unlink',
-						test = lambda x: atomicity(x) and x.micro_op in ['unlink']),
-					Struct(name = 'Atomicity - shorten',
-						test = lambda x: atomicity(x) and x.micro_op in ['trunc', 'truncates'] and not is_expand(x)),
-					Struct(name = 'Reordering',
-						test = lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.REORDERING),
-				]
 
+	total_col_func_array = [Struct(name = 'Total unique', test = lambda x: x.type != error_reporter.SPECIAL_REORDERING)]
 
-	summary_col_func_array = [
+	vul_types_consequences_col_func_array = [
 					Struct(name = 'Atomicity across system calls',
 						test = lambda x: not durability(x) and x.type == error_reporter.PREFIX,
 						subcol = standard_subcolumn),
@@ -309,10 +249,60 @@ def do_generic_table(vulnerabilities, col_func_array):
 						test = lambda x: x.type != error_reporter.SPECIAL_REORDERING),
 				]
 
-	if col_func_array == 'expanded':
-		col_func_array = expanded_col_func_array
+	vul_types_only_col_func_array = [
+					Struct(name = 'Atomicity across system calls',
+						test = lambda x: not durability(x) and x.type == error_reporter.PREFIX,
+						subcol = standard_subcolumn),
+					Struct(name = 'Atomicity - appends and expands',
+						test = lambda x: atomicity(x) and (x.micro_op in ['append'] or (x.micro_op in ['trunc', 'truncates'] and is_expand(x)))),
+					Struct(name = 'Atomicity - small overwrites',
+						test = lambda x: atomicity(x) and x.micro_op in ['write'] and 'across_boundary' not in x.subtype),
+					Struct(name = 'Atomicity - renames and unlinks',
+						test = lambda x: atomicity(x) and x.micro_op in ['rename', 'unlink']),
+					# Reordering stuff are all guesses
+					Struct(name = 'Reordering safe file flush',
+						test = lambda x: not durability(x) and reordering_type(x) == 'safe_file_flush'),
+					Struct(name = 'Reordering safe rename',
+						test = lambda x: not durability(x) and reordering_type(x) == 'safe_rename'),
+					Struct(name = 'Reordering other',
+						test = lambda x: not durability(x) and reordering_type(x) == 'other'),
+					Struct(name = 'Safe file flush durability',
+						test = lambda x: durability(x) and reordering_type(x) == 'safe_file_flush'),
+					Struct(name = 'Other durability',
+						test = lambda x: durability(x) and not reordering_type(x) == 'safe_file_flush'),
+					Struct(name = 'Total unique',
+						test = lambda x: x.type != error_reporter.SPECIAL_REORDERING),
+				]
+
+	vul_consequences_only_col_func_array = [
+					Struct(name = 'Silent corruption',
+						test = lambda x: 'CORRUPTED_READ_VALUES' in x.failure_category and x.type != error_reporter.SPECIAL_REORDERING,
+						subcol = failure_categories_subcolumn),
+					Struct(name = 'Data loss',
+						test = lambda x: durability(x) and x.type != error_reporter.SPECIAL_REORDERING,
+						subcol = failure_categories_subcolumn),
+					Struct(name = 'Cannot open',
+						test = lambda x: 'FULL_WRITE_FAILURE' in x.failure_category and 'FULL_READ_FAILURE' in x.failure_category  and x.type != error_reporter.SPECIAL_REORDERING,
+						subcol = failure_categories_subcolumn),
+					Struct(name = 'Failed reads or writes',
+						test = lambda x: ('PARTIAL_READ_FAILURE' in x.failure_category or 'PARTIAL_WRITE_FAILURE' in x.failure_category) and x.type != error_reporter.SPECIAL_REORDERING,
+						subcol = failure_categories_subcolumn),
+					Struct(name = 'Other consequences',
+						test = lambda x: other_consequences(x) and x.type != error_reporter.SPECIAL_REORDERING,
+						subcol = failure_categories_subcolumn),
+				]
+
+
+	if col_func_array == 'vul_types_consequences':
+		col_func_array = vul_types_consequences_col_func_array
+	elif col_func_array == 'vul_types_only':
+		col_func_array = vul_types_only_col_func_array
+	elif col_func_array == 'vul_consequences_only':
+		col_func_array = vul_consequences_only_col_func_array
+	elif col_func_array == 'total':
+		col_func_array = total_col_func_array
 	else:
-		col_func_array = summary_col_func_array
+		assert False
 
 	
 	
@@ -370,10 +360,15 @@ def do_generic_table(vulnerabilities, col_func_array):
 def columnize_write(str, filename):
 	open('/tmp/x', 'w').write(str)
 	ret = os.system('cat /tmp/x | column -s \';\' -t >| ' + filename)
-	print filename
+	print 'Output written to: ' + filename
 	assert(ret == 0)
 
-def latex_write(input, filename, columns = 'cccccccccccccccccccccc'):
+def text_write(str):
+	open('/tmp/x', 'w').write(str)
+	ret = os.system('cat /tmp/x | tr \'\\\\\' \'X\' | sed \'s/\\$^[^\\$]*\\$//g\'  | sed \'s/\\$^[^\\$]*\\$//g\'')
+	assert(ret == 0)
+
+def latex_write(input, columns = 'cccccccccccccccccccccc'):
 	header = '''\\documentclass{article}
 			\\usepackage{graphicx}
 			\\usepackage[margin=0.2in]{geometry}
@@ -404,8 +399,14 @@ def latex_write(input, filename, columns = 'cccccccccccccccccccccc'):
 			line[0] = line[0][2:]
 			for j in range(0, len(line)):
 				line[j] = '\\textbf{' + line[j] + '}'
-		output.write('&'.join(line) + '\\\\\\hline\n')
+		if i == 1:
+			output.write('\n\n\n')
+		if i == len(lines) - 1 or '---' in lines[i + 1]:
+			output.write('&'.join(line) + '\\\\\n')
+		else:
+			output.write('&'.join(line) + '\\\\\\hline\n')
 
+	output.write('\n\n\n')
 	output.write(tail1)
 
 	for line in lines:
@@ -414,14 +415,14 @@ def latex_write(input, filename, columns = 'cccccccccccccccccccccc'):
 
 	output.close()
 
-	ret = os.system('rm -f /tmp/x.pdf')
+	cwd = os.getcwd()
+	ret = os.chdir('/tmp')
+	ret = os.system('rm -f x.pdf')
 	assert ret == 0
 	ret = os.system('pdflatex -interaction batchmode -output-directory=/tmp /tmp/x &> /dev/null')
 	assert ret == 0
-	ret = os.system('mv /tmp/x.pdf ' + filename)
-	assert ret == 0
 	
-	print filename
+	print 'Output written to /tmp/x.tex and /tmp/x.pdf'
 
 
 def add_vulnerability_details(vulnerabilities, stats):
@@ -478,17 +479,14 @@ def add_vulnerability_details(vulnerabilities, stats):
 		if v.type == error_reporter.ATOMICITY and v.micro_op == 'rename':
 			fs_properties.atomic_rename = False
 
-	for v in vulnerabilities['LevelDB1.10']:
-		if v.type == error_reporter.REORDERING and v.micro_op[0] == 'write' and v.micro_op[1] == 'write':
-			assert v.subtype == 'same_file'
-			fs_properties.ordered_writes = False
-
 	for v in vulnerabilities['MercurialDynamic']:
 		if v.type == error_reporter.REORDERING and v.micro_op[0] == 'append' and v.micro_op[1] == 'rename':
 			if v.subtype == 'different_file':
 				fs_properties.ordered_dir_file_ops = False
-			if v.subtype == 'same_file':
+			if v.subtype == 'same_source':
 				fs_properties.safe_rename = False
+
+	fs_properties.ordered_writes = '_j' in str(cmdline.fs) or 'twojournal' in str(cmdline.fs)
 
 	fs_properties.one_true = False
 	for key in fs_properties.__dict__.keys():
@@ -514,6 +512,21 @@ def add_vulnerability_details(vulnerabilities, stats):
 			if v.type == error_reporter.REORDERING and v.micro_op[0] == 'trunc' and v.micro_op[1] == 'rename':
 				assert v.subtype == 'same_source'
 				vulnerabilities['LevelDB1.10'].pop(i)
+	# End of HACK
+	###############
+
+	#############
+	# HACK - TODO
+	# BerkeleyDB-BTREE current reports the single-block-write atomicity
+	# that is prevented, according to its documentation. Remove that 
+	# particular bug. 
+	count = 0
+	for i in range(len(vulnerabilities['BerkeleyDB-BTREE']) - 1, -1, -1):
+		v = vulnerabilities['BerkeleyDB-BTREE'][i]
+		if v.type == error_reporter.ATOMICITY and v.micro_op == 'write':
+			vulnerabilities['BerkeleyDB-BTREE'].pop(i)
+			count += 1
+	if not fs_properties.one_true: assert count == 1
 	# End of HACK
 	###############
 
@@ -654,6 +667,9 @@ def add_vulnerability_details(vulnerabilities, stats):
 	add_failure_all(vulnerabilities, 'MercurialDynamic', 'UNCLEAR')	
 	add_failure_all(vulnerabilities, 'LMDB', 'DOCUMENTED')	
 	add_failure_all(vulnerabilities, 'Postgres', 'DOCUMENTED')
+	add_failure_all(vulnerabilities, 'VMWare', 'UNCLEAR')	
+	add_failure_all(vulnerabilities, 'HDFS', 'UNCLEAR')	
+	add_failure_all(vulnerabilities, 'ZooKeeper', 'UNCLEAR')	
 
 	vulnerabilities['BerkeleyDB-BTREE'] = berkeleydb_documented(fs_properties, vulnerabilities['BerkeleyDB-BTREE'])
 	vulnerabilities['BerkeleyDB-Hash'] = berkeleydb_documented(fs_properties, vulnerabilities['BerkeleyDB-Hash'])
@@ -672,9 +688,13 @@ if __name__ == '__main__':
 	parser.add_argument('--fs', dest = 'fs', type = str, default = None)
 	parser.add_argument('--cache', dest = 'cache', type = str, default = None)
 	parser.add_argument('--updatecacheonly', dest = 'updatecacheonly', type = bool, default = False)
+	parser.add_argument('--statsoutput', dest = 'statsoutput', type = bool, default = False)
+	parser.add_argument('--totalsoutput', dest = 'totalsoutput', type = bool, default = False)
+	parser.add_argument('--vulsonly', dest = 'vulsonly', type = bool, default = False)
+	parser.add_argument('--consonly', dest = 'consonly', type = bool, default = False)
+
 	cmdline = parser.parse_args()
 	fs_name = 'basic' if cmdline.fs == None else cmdline.fs
-#	fs_name = 'testing'
 
 	if cmdline.cache != None:
 		try:
@@ -696,102 +716,57 @@ if __name__ == '__main__':
 
 	(vulnerabilities, stats) = add_vulnerability_details(vulnerabilities, stats)
 
-	output = ''
+	for folder in remove_folders:
+		del folders[folder]
+		del vulnerabilities[folder]
 
-	output += ' ; ; ; \n'
-	output += 'DURABILITY VULNERABILITIES:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' in x.failure_category, lambda x: list(x.micro_op))
+	if cmdline.statsoutput:
+		output = ''
 
-	output += ' ; ; ; \n'
-	output += 'ATOMICITY VULNERABILITIES:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.ATOMICITY, lambda x: [x.micro_op])
+		output += ' ; ; ; \n'
+		output += 'OVERALL_STATS:\n'
+		output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls;Total abstract states\n'
+		for folder in folders:
+			if folder not in stats:
+				continue
+			row = folder
+			total_crash_states = None
+			failure_crash_states = 0
+			non_output_syscalls = 0
+			sync_syscalls = 0
+			output_syscalls = 0
+			unfiltered_crash_states = 0
+			for version in stats[row]:
+				failure_crash_states = max(failure_crash_states, version.failure_crash_states)
+				if total_crash_states != None:
+					assert total_crash_states == version.total_crash_states
+					assert non_output_syscalls == version.total_ops - version.pseudo_ops + version.sync_ops
+					assert sync_syscalls == version.sync_ops
+					assert output_syscalls == version.pseudo_ops - version.sync_ops
+					assert unfiltered_crash_states == version.total_unfiltered_crash_states
+				total_crash_states = version.total_crash_states
+				non_output_syscalls = version.total_ops - version.pseudo_ops + version.sync_ops
+				sync_syscalls = version.sync_ops
+				output_syscalls = version.pseudo_ops - version.sync_ops
+				unfiltered_crash_states = version.total_unfiltered_crash_states
 
-	output += ' ; ; ; \n'
-	output += 'REORDERING VULNERABILITIES - BARRIERING SYSCALL COUNT:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.REORDERING, lambda x: [x.micro_op[1]])
+			output += row + ';' + str(total_crash_states) + ';' + str(failure_crash_states) + ';' + str(non_output_syscalls) + ';' + str(sync_syscalls) + ';' + str(output_syscalls) + ';' + str(unfiltered_crash_states) + '\n'
 
-	output += ' ; ; ; \n'
-	output += 'INTER_SYS_CALL VULNERABILITIES - ALL SYSCALLS COUNT:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.PREFIX, lambda x: list(x.micro_op))
-
-	output += ' ; ; ; \n'
-	output += 'INTER_SYS_CALL VULNERABILITIES - STARTING SYSCALL COUNT:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.PREFIX, lambda x: [x.micro_op[0]])
-
-	output += ' ; ; ; \n'
-	output += 'SPECIAL_REORDERING VULNERABILITIES:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and x.type == error_reporter.SPECIAL_REORDERING, lambda x: [x.micro_op[1]])
-
-	output += ' ; ; ; \n'
-	output += 'SPECIAL_AND_NORMAL_REORDERING VULNERABILITIES:\n'
-	output += do_table(vulnerabilities, lambda x: 'SILENT_DATA_LOSS' not in x.failure_category and (x.type == error_reporter.SPECIAL_REORDERING or x == error_reporter.REORDERING), lambda x: [x.micro_op[1]])
-
-	output += ' ; ; ; \n'
-	output += 'TOTAL VULNERABILITIES:\n'
-	output += do_table(vulnerabilities, lambda x: True, lambda x: [x.micro_op] if type(x.micro_op) != tuple else list(x.micro_op))
-
-	columnize_write(output, fs_name + '_table1.txt')
-	output = ''
-
-	def failure_categories_classify(failure_categories, report_standard):
-		answer = []
-		for x in failure_categories.split('|'):
-			standard = x in error_reporter.FailureCategory.__dict__.keys()
-			if standard and report_standard:
-				answer.append(x)
-			if not standard and not report_standard:
-				answer.append(x)
-		return answer
-
-	output += ' ; ; ; \n'
-	output += 'CATEGORIZED FAILURES:\n'
-	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, True))
-
-	output += ' ; ; ; \n'
-	output += 'NON-CATEGORIZED FAILURES:\n'
-	output += do_table(vulnerabilities, lambda x: True, lambda x: failure_categories_classify(x.failure_category, False))
-
-	columnize_write(output, fs_name + '_table2.txt')
-	output = ''
-
-	output += ' ; ; ; \n'
-	output += 'OVERALL_STATS:\n'
-	output += ' ;Total states;Failed states;Total non-output syscalls; Sync syscalls; Output syscalls;Total abstract states\n'
-	for folder in folders:
-		if folder not in stats:
-			continue
-		row = folder
-		total_crash_states = None
-		failure_crash_states = 0
-		non_output_syscalls = 0
-		sync_syscalls = 0
-		output_syscalls = 0
-		unfiltered_crash_states = 0
-		for version in stats[row]:
-			failure_crash_states = max(failure_crash_states, version.failure_crash_states)
-			if total_crash_states != None:
-				assert total_crash_states == version.total_crash_states
-				assert non_output_syscalls == version.total_ops - version.pseudo_ops + version.sync_ops
-				assert sync_syscalls == version.sync_ops
-				assert output_syscalls == version.pseudo_ops - version.sync_ops
-				assert unfiltered_crash_states == version.total_unfiltered_crash_states
-			total_crash_states = version.total_crash_states
-			non_output_syscalls = version.total_ops - version.pseudo_ops + version.sync_ops
-			sync_syscalls = version.sync_ops
-			output_syscalls = version.pseudo_ops - version.sync_ops
-			unfiltered_crash_states = version.total_unfiltered_crash_states
-
-		output += row + ';' + str(total_crash_states) + ';' + str(failure_crash_states) + ';' + str(non_output_syscalls) + ';' + str(sync_syscalls) + ';' + str(output_syscalls) + ';' + str(unfiltered_crash_states) + '\n'
-
-	columnize_write(output, fs_name + '_table3.txt')
-
-	output = ''
-	output += do_generic_table(vulnerabilities, 'expanded')
-	columnize_write(output, fs_name + '_table4.txt')
-	latex_write(output, fs_name + '_table4.pdf')
-
-	output = ''
-	output += do_generic_table(vulnerabilities, 'summary')
-	columnize_write(output, fs_name + '_table5.txt')
-	latex_write(output, fs_name + '_table5.pdf', columns = 'c||c|ccc|ccc|cc||ccccc||c')
-
+		columnize_write(output, '/tmp/table.txt')
+	elif cmdline.totalsoutput == True:
+		print do_generic_table(vulnerabilities, 'total')
+	elif cmdline.vulsonly == True:
+		output = ''
+		output += do_generic_table(vulnerabilities, 'vul_types_only')
+		latex_write(output, columns = 'c||c|ccc|ccc|cc||c')
+		text_write(output)
+	elif cmdline.consonly == True:
+		output = ''
+		output += do_generic_table(vulnerabilities, 'vul_consequences_only')
+		latex_write(output, columns = 'c||ccccc')
+		text_write(output)
+	else:
+		output = ''
+		output += do_generic_table(vulnerabilities, 'vul_types_consequences')
+		latex_write(output, columns = 'c||c|ccc|ccc|cc||ccccc||c')
+		text_write(output)
