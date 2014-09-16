@@ -22,78 +22,40 @@ from mystruct import Struct
 from myutils import *
 import gc
 
-class MultiThreadedReplayer(threading.Thread):
+class MultiThreadedChecker(threading.Thread):
 	queue = Queue.Queue()
-	short_outputs = {}
-	path_inode_map = None
+	outputs = {}
 	
 	def __init__(self, queue):
 		threading.Thread.__init__(self)
 		self.queue = MultiThreadedReplayer.queue
 
-	def __threaded_replay_and_check(self, to_replay, replay_count, summary_string, checker_params):
-		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
+	def __threaded_check(self, dirname, retcodeid):
 		assert type(cmdline().checker_tool) in [list, str, tuple]
-		args = [cmdline().checker_tool, replay_dir]
-		stdout = ''
-		stderr = ''
-		for diskop in to_replay:
-			if diskop.op == 'stdout':
-				stdout += diskop.data
-			if diskop.op == 'stderr':
-				stderr += diskop.data
-		args.append(stdout)
-		args.append(stderr)
-		if not checker_params:
-			pass
-		elif type(checker_params) == str:
-			args.append(x)
-		else:
-			for x in checker_params:
-				if type(x) != str:
-					args.append(repr(x))
-				else:
-					args.append(x)
-		tmp_short_output = subprocess.check_output(args)
-
-		if summary_string == None:
-			summary_string = 'R' + str(replay_count)
-		else:
-			summary_string = str(summary_string)
-		if len(tmp_short_output) > 0 and tmp_short_output[-1] == '\n':
-			tmp_short_output = tmp_short_output[0 : -1]
-		MultiThreadedReplayer.short_outputs[replay_count] = str(summary_string) + '\t' + tmp_short_output + '\n'
-		print 'replay_check(' + summary_string + ') finished. ' + tmp_short_output
-		os.system('rm -rf ' + replay_dir)
+		args = [cmdline().checker_tool, dirname]
+		retcode = subprocess.call(args, stdout = open('/dev/null', 'w'))
+		MultiThreadedChecker.outputs[retcodeid] = retcode
+		os.system('rm -rf ' + dirname)
 
 	def run(self):
 		while True:
 			task = self.queue.get()
-			self.__threaded_replay_and_check(*task)
+			self.__threaded_check(*task)
 			self.queue.task_done()
 
 	@staticmethod
-	def replay_and_check(to_replay, replay_count, summary_string, checker_params = None):
-		replay_dir = cmdline().replayed_snapshot + '/' + str(replay_count)
-		if replay_count % cmdline().replayer_threads == 0:
-			time.sleep(0)
-
-		diskops.replay_disk_ops(MultiThreadedReplayer.path_inode_map, to_replay, replay_dir, use_cached = True)
-		MultiThreadedReplayer.queue.put((to_replay, replay_count, summary_string, checker_params))
+	def replay_and_check(dirname, retcodeid):
+		MultiThreadedChecker.queue.put((dirname, retcodeid))
 
 	@staticmethod
 	def reset():
-		os.system("rm -rf " + cmdline().replayed_snapshot)
-		os.system("mkdir -p " + cmdline().replayed_snapshot)
-		assert MultiThreadedReplayer.queue.empty()
+		assert MultiThreadedChecker.queue.empty()
+		MultiThreadedChecker.outputs = {}
 
 	@staticmethod
-	def wait_and_write_outputs(fname):
-		f = open(fname, 'a+')
-		MultiThreadedReplayer.queue.join()
-		for i in MultiThreadedReplayer.short_outputs:
-			f.write(str(MultiThreadedReplayer.short_outputs[i]))
-		f.close()
+	def wait_and_get_outputs():
+		MultiThreadedChecker.queue.join()
+		return MultiThreadedChecker.outputs
 
 class Replayer:
 	def __init__(self, path_inode_map, original_micro_ops):
@@ -112,9 +74,6 @@ class Replayer:
 		self.short_outputs = ""
 		self.replay_count = 0
 		self.path_inode_map = path_inode_map
-
-		if cmdline().replayer_threads > 0:
-			MultiThreadedReplayer.path_inode_map = path_inode_map
 
 		if cmdline().debug_level >= 1: print "Initializing dops legalization ..."
 		all_diskops = []
@@ -163,17 +122,6 @@ class Replayer:
 		self.test_suite = retrieved.test_suite
 		self.test_suite_initialized = retrieved.test_suite_initialized
 
-	def __multithreaded_replay(self, summary_string = None, checker_params = None):
-		assert cmdline().replayer_threads > 0
-		to_replay = []
-		for i in range(0, self.__micro_end + 1):
-			micro_op = self.micro_ops[i]
-			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
-			for j in range(0, till):
-				if not micro_op.hidden_disk_ops[j].hidden_omitted:
-					to_replay.append(micro_op.hidden_disk_ops[j])
-		MultiThreadedReplayer.replay_and_check(to_replay, self.replay_count, summary_string, checker_params)
-		self.replay_count += 1
 	def construct_crashed_dir(self, dirname):
 		to_replay = []
 		for i in range(0, self.__micro_end + 1):
@@ -306,15 +254,17 @@ class Replayer:
 
 def default_checks(alice_args):
 	init_cmdline(alice_args)
-	for i in range(0, cmdline().replayer_threads + 1):
-		t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
+	assert cmdline().replayer_threads > 0
+	for i in range(0, cmdline().replayer_threads):
+		t = MultiThreadedChecker(MultiThreadedChecker.queue)
 		t.setDaemon(True)
 		t.start()
 	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
 	replayer = Replayer(path_inode_map, micro_operations)
 	replayer.print_ops()
 
-	MultiThreadedReplayer.reset()
+	os.system("rm -rf " + cmdline().replayed_snapshot)
+	os.system("mkdir -p " + cmdline().replayed_snapshot)
 
 	for i in range(0, replayer.dops_len()):
 		op = replayer.get_op(replayer.dops_double(i)[0]).op
@@ -322,18 +272,7 @@ def default_checks(alice_args):
 		replayer.dops_end_at(replayer.dops_double(i))
 		replayer.dops_replay('E' + E)
 
-	MultiThreadedReplayer.wait_and_write_outputs(scratchpad('replay_output'))
+	MultiThreadedChecker.wait_and_write_outputs(scratchpad('replay_output'))
 
 	subprocess.call("( cat " + scratchpad('current_orderings') + "; cat " + scratchpad('replay_output') + " ) | less -SR", shell = True) 
 
-
-if __name__ == "__main__":
-	init_cmdline()
-	for i in range(0, cmdline().replayer_threads + 1):
-		t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
-		t.setDaemon(True)
-		t.start()
-	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
-	replayer = Replayer(path_inode_map, micro_operations)
-#	cProfile.run('replayer.listener_loop()')
-	replayer.listener_loop()
