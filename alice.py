@@ -568,7 +568,7 @@ def default_checks(alice_args):
 		op = replayer.get_op(replayer.dops_double(i)[0]).op
 		E = str(i) + str(replayer.dops_double(i))
 		replayer.dops_end_at(replayer.dops_double(i))
-		replayer.dops_replay(msg + ' E' + E)
+		replayer.dops_replay('E' + E)
 
 	MultiThreadedReplayer.wait_and_write_outputs(scratchpad('replay_output'))
 
