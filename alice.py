@@ -552,6 +552,17 @@ def replay_micro_ops(rows):
 			print line.op
 			assert False
 
+def default_checks(alice_args):
+	init_cmdline(alice_args)
+	for i in range(0, cmdline().replayer_threads + 1):
+		t = MultiThreadedReplayer(MultiThreadedReplayer.queue)
+		t.setDaemon(True)
+		t.start()
+	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
+	replayer = Replayer(path_inode_map, micro_operations)
+	replayer.print_ops()
+	subprocess.call("less -SR " + scratchpad('current_orderings'), shell = True) 
+
 if __name__ == "__main__":
 	init_cmdline()
 	for i in range(0, cmdline().replayer_threads + 1):

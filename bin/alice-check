@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+import argparse
+import sys
+import os
+sys.path.append(os.getenv("ALICE_HOME"))
+import subprocess
+import pickle
+import alice
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--checker', required = True)
+parser.add_argument('--traces_dir', required = True)
+parser.add_argument('--verbose', action='store_true')
+
+args = parser.parse_args()
+args.checker = os.path.abspath(args.checker)
+args.traces_dir = os.path.abspath(args.traces_dir)
+
+f = open(os.path.join(args.traces_dir, "config"), "r")
+config = pickle.load(f)
+f.close()
+
+def try_mkdir(name):
+	try:
+		os.mkdir(name)
+		return True
+	except e as OSError:
+		return False
+
+alice_args = dict()
+alice_args['prefix'] = os.path.join(args.traces_dir, "strace.out")
+alice_args['initial_snapshot'] = os.path.join(args.traces_dir, "initial_snapshot")
+alice_args['base_path'] = config['workload_dir']
+alice_args['starting_cwd'] = config['starting_wd']
+alice_args['replayer_threads'] = 2
+alice_args['hide_diskops'] = True
+folders = ['/run/shm/', '/dev/shm/', '/tmp', None]
+for folder in folders:
+	assert(folder != None)
+	folder = os.path.join(folder, 'alice-' + str(os.getpid()))
+	if try_mkdir(folder):
+		alice_args['scratchpad_dir'] = folder
+		break
+
+alice.default_checks(alice_args)
