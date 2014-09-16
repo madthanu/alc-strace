@@ -34,6 +34,7 @@ alice_args['base_path'] = config['workload_dir']
 alice_args['starting_cwd'] = config['starting_wd']
 alice_args['replayer_threads'] = 2
 alice_args['hide_diskops'] = True
+alice_args['checker_tool'] = args.checker
 folders = ['/run/shm/', '/dev/shm/', '/tmp', None]
 for folder in folders:
 	assert(folder != None)
