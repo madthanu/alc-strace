@@ -561,7 +561,19 @@ def default_checks(alice_args):
 	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
 	replayer = Replayer(path_inode_map, micro_operations)
 	replayer.print_ops()
-	subprocess.call("less -SR " + scratchpad('current_orderings'), shell = True) 
+
+	MultiThreadedReplayer.reset()
+
+	for i in range(0, replayer.dops_len()):
+		op = replayer.get_op(replayer.dops_double(i)[0]).op
+		E = str(i) + str(replayer.dops_double(i))
+		replayer.dops_end_at(replayer.dops_double(i))
+		replayer.dops_replay(msg + ' E' + E)
+
+	MultiThreadedReplayer.wait_and_write_outputs(scratchpad('replay_output'))
+
+	subprocess.call("( cat " + scratchpad('current_orderings') + "; cat " + scratchpad('replay_output') + " ) | less -SR", shell = True) 
+
 
 if __name__ == "__main__":
 	init_cmdline()
