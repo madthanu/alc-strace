@@ -18,6 +18,8 @@ import cProfile
 import Queue
 import threading
 import time
+import pprint
+import code
 from mystruct import Struct
 from myutils import *
 import gc
@@ -28,13 +30,15 @@ class MultiThreadedChecker(threading.Thread):
 	
 	def __init__(self, queue):
 		threading.Thread.__init__(self)
-		self.queue = MultiThreadedReplayer.queue
+		self.queue = MultiThreadedChecker.queue
 
-	def __threaded_check(self, dirname, retcodeid):
+	def __threaded_check(self, dirname, crashid):
 		assert type(cmdline().checker_tool) in [list, str, tuple]
 		args = [cmdline().checker_tool, dirname]
-		retcode = subprocess.call(args, stdout = open('/dev/null', 'w'))
-		MultiThreadedChecker.outputs[retcodeid] = retcode
+		output_stdout = os.path.join(cmdline().replayed_snapshot, 'output_stdout' + str(crashid))
+		output_stderr = os.path.join(cmdline().replayed_snapshot, 'output_stderr' + str(crashid))
+		retcode = subprocess.call(args, stdout = open(output_stdout, 'w'), stderr = open(output_stderr, 'w'))
+		MultiThreadedChecker.outputs[crashid] = retcode
 		os.system('rm -rf ' + dirname)
 
 	def run(self):
@@ -44,7 +48,7 @@ class MultiThreadedChecker(threading.Thread):
 			self.queue.task_done()
 
 	@staticmethod
-	def replay_and_check(dirname, retcodeid):
+	def check_later(dirname, retcodeid):
 		MultiThreadedChecker.queue.put((dirname, retcodeid))
 
 	@staticmethod
@@ -142,7 +146,7 @@ class Replayer:
 		assert j != None
 		self.__micro_end = i
 		self.__disk_end = j
-	def dops_set_legal(self):
+	def __dops_set_legal(self):
 		all_diskops = []
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
@@ -161,6 +165,7 @@ class Replayer:
 			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode, expanded_atomicity)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
+		self.__dops_set_legal()
 	def __dops_get_i_j(self, i, j):
 		if type(i) == tuple:
 			assert j == None
@@ -194,6 +199,8 @@ class Replayer:
 			return total
 		assert i < len(self.micro_ops)
 		return len(self.micro_ops[i].hidden_disk_ops)
+	def mops_len(self):
+		return len(self.micro_ops)
 	def dops_double(self, single):
 		i = 0
 		seen_disk_ops = 0
@@ -230,6 +237,33 @@ class Replayer:
 		for j in range(0, max_single_answers):
 			assert j in drop_list or j in single_answers
 		return self.dops_double(max_single_answers)
+	def is_legal(self):
+		assert self.test_suite_initialized
+		if 'cached_is_legal_droplist' not in self.test_suite.__dict__:
+			self.test_suite.cached_is_legal_droplist = None
+		dropped_double = list()
+
+		for i in range(0, self.__micro_end + 1):
+			micro_op = self.micro_ops[i]
+			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
+			for j in range(0, till):
+				if micro_op.hidden_disk_ops[j].hidden_omitted:
+					dropped_double.append((i, j))
+
+		for i in range(0, len(self.micro_ops)):
+			micro_op = self.micro_ops[i]
+			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
+			for j in range(0, len(micro_op.hidden_disk_ops)):
+				if micro_op.hidden_disk_ops[j].hidden_omitted:
+					dropped_double.append(i, j)
+				if i > self.__micro_end or (i == self.__micro_end and j > self.__disk_end):
+					dropped_double.append(i, j)
+
+		dropped_single = [self.dops_single(double) for double in dropped_double]
+
+		for x in dropped_single:
+			sorted(self.test_suite.drop_list_of_ops(drop_list))
+
 	def _dops_verify_replayer(self, i = None):
 		if i == None:
 			to_check = range(0, len(self.micro_ops))
@@ -252,7 +286,39 @@ class Replayer:
 			print('__dops_verify_replayer(' + str(till) + ') finished.')
 
 
+
+def stack_repr(op):
+	try:
+		backtrace = 0
+		try:
+			backtrace = op.hidden_backtrace
+		except:
+			pass
+		found = False
+		#code.interact(local=dict(globals().items() + locals().items()))
+		for i in range(0, len(backtrace)):
+			stack_frame = backtrace[i]
+			if stack_frame.src_filename != None and 'syscall-template' in stack_frame.src_filename:
+				continue
+			if '/libc' in stack_frame.binary_filename:
+				continue
+			if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
+				continue
+			found = True
+			break
+		if not found:
+			raise Exception('Standard stack traverse did not work')
+		if stack_frame.src_filename == None:
+			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
+	except Exception as e:
+		return 'Unknown (stacktraces not traversable for finding static vulnerabilities):' + op.hidden_id
+
+
 def default_checks(alice_args):
+	print '--------------------------'
+	print 'WARNING: Properly determining static vulnerabilities might need customization of how ALICE traverses the stack trace to determine a source line representing the vulnerability'
+	print '--------------------------'
 	init_cmdline(alice_args)
 	assert cmdline().replayer_threads > 0
 	for i in range(0, cmdline().replayer_threads):
@@ -265,14 +331,38 @@ def default_checks(alice_args):
 
 	os.system("rm -rf " + cmdline().replayed_snapshot)
 	os.system("mkdir -p " + cmdline().replayed_snapshot)
+ 
+	# Finding across-syscall atomicity
+	for i in range(0, replayer.mops_len()):
+		dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + str(i))
+		replayer.dops_end_at((i, replayer.dops_len(i) - 1))
+		replayer.construct_crashed_dir(dirname)
+		MultiThreadedChecker.check_later(dirname, i)
 
-	for i in range(0, replayer.dops_len()):
-		op = replayer.get_op(replayer.dops_double(i)[0]).op
-		E = str(i) + str(replayer.dops_double(i))
-		replayer.dops_end_at(replayer.dops_double(i))
-		replayer.dops_replay('E' + E)
+	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
 
-	MultiThreadedChecker.wait_and_write_outputs(scratchpad('replay_output'))
+	staticvuls = set()
 
-	subprocess.call("( cat " + scratchpad('current_orderings') + "; cat " + scratchpad('replay_output') + " ) | less -SR", shell = True) 
+	i = 0
+	while(i < replayer.mops_len()):
+		if checker_outputs[i] != 0:
+			patch_start = i
+			# Go until the last but one mop
+			while(i < replayer.mops_len() - 1 and checker_outputs[i + 1] != 0):
+				i += 1
+			patch_end = i + 1
+			if patch_end >= replayer.mops_len():
+				patch_end = replayer.mops_len() - 1
+				print 'WARNING: Application found to be inconsistent after the entire workload completes. Recheck workload and checker. Possible bug in ALICE framework if this is not expected.'
+			print '(Dynamic vulnerability) Across-syscall atomicity, sometimes concerning durability: ' + \
+				'Operations ' + str(patch_start) + ' until ' + str(patch_end) + ' need to be atomically persisted'
+			staticvuls.add((stack_repr(replayer.get_op(patch_start)),
+				stack_repr(replayer.get_op(patch_end))))
+		i += 1
+
+	for vul in staticvuls:
+		print '(Static vulnerability) Across-syscall atomicity: ' + \
+			'Operation ' + vul[0] + ' until ' + vul[1]
+
+	# Finding ordering vulnerabilities
 

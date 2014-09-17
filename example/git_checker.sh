@@ -1,2 +1,4 @@
 #!/bin/bash
-echo hello
+cd "$1"
+rm -f .git/HEAD
+git status

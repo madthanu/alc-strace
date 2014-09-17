@@ -22,6 +22,7 @@ f.close()
 
 def try_mkdir(name):
 	try:
+		os.system("rm -rf " + name)
 		os.mkdir(name)
 		return True
 	except e as OSError:
@@ -44,3 +45,5 @@ for folder in folders:
 		break
 
 alice.default_checks(alice_args)
+os.system("rm -rf " + alice_args['scratchpad_dir'])
+
