@@ -206,10 +206,10 @@ static void
 usage(FILE *ofp, int exitval)
 {
 	fprintf(ofp, "\
-usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
+usage: alice-strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
               [-a column] [-o file] [-s strsize] [-P path]...\n\
               -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
-   or: strace -c[df] [-I n] [-e expr]... [-O overhead] [-S sortby]\n\
+   or: alice-strace -c[df] [-I n] [-e expr]... [-O overhead] [-S sortby]\n\
               -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
 -c -- count time, calls, and errors for each syscall and report summary\n\
 -C -- like -c but also print regular output\n\

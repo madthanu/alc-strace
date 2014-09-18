@@ -13,9 +13,9 @@ TYPE_FILE = 1
 pseudo_ops = set(['sync', 'stderr', 'stdout'])
 real_ops = set(['create_dir_entry', 'delete_dir_entry', 'truncate', 'write'])
 
-def get_disk_ops(line, splits, split_mode, expanded_atomicity):
+def get_disk_ops(line, splits, split_mode):
 	assert split_mode in ['aligned', 'count']
-	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None):
+	def trunc_disk_ops(inode, initial_size, final_size, append_micro_op = None, atomicity_prefix = ''):
 		toret = []
 
 		if initial_size == final_size:
@@ -53,29 +53,48 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 			end = count + start
 
 			if invert:
-				# Actually truncate
-				disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end)
+				# Actually truncate. Final operation (if there is no size-splitting) for size-decreasing truncates. 
+				atomicity = atomicity_prefix
+				if remaining != count:
+					atomicity += ' semi-truncated (' + str(splits) + ' ' + split_mode + ' splits)'
+				disk_op = Struct(op = 'truncate', inode = inode, initial_size = start, final_size = end, atomicity = atomicity)
 				toret.append(disk_op)
 
 			if append_micro_op:
 				# Write zeros
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
+				atomicity = atomicity_prefix + 'zero written'
+				if remaining != count:
+					atomicity += ' semi-expanded (' + str(splits) + ' ' + split_mode + ' splits)'
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, \
+					dump_file = None, override_data = None, special_write = 'ZEROS', atomicity = atomicity)
 				toret.append(disk_op)
 
 			if not invert:
 				# Write garbage
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'GARBAGE')
+				atomicity = atomicity_prefix + 'garbage written'
+				if remaining != count:
+					atomicity += ' semi-expanded (' + str(splits) + ' ' + split_mode + ' splits)'
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, \
+					dump_file = None, override_data = None, special_write = 'GARBAGE', atomicity = atomicity)
 				toret.append(disk_op)
 
 			if (not invert) and not append_micro_op:
-				# Write zeros
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, dump_file = None, override_data = None, special_write = 'ZEROS')
+				# Write zeros. Final operation (if there is no size-splitting) for size-increasing truncate.
+				atomicity = atomicity_prefix
+				if remaining != count:
+					atomicity += 'semi-expanded (' + str(splits) + ' ' + split_mode + ' splits)'
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = 0, count = count, \
+					dump_file = None, override_data = None, special_write = 'ZEROS', atomicity = atomicity)
 				toret.append(disk_op)
 
 			if append_micro_op:
-				# Write data
+				# Write data. Final operation (if there is no size-splitting) for appends.
+				atomicity = atomicity_prefix
+				if remaining != count:
+					atomicity += 'semi-expanded (' + str(splits) + ' ' + split_mode + ' splits)'
 				dump_offset = append_micro_op.dump_offset + (start - append_micro_op.offset)
-				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = dump_offset, count = count, dump_file = append_micro_op.dump_file, special_write = None)
+				disk_op = Struct(op = 'write', inode = inode, offset = start, dump_offset = dump_offset, count = count, \
+					dump_file = append_micro_op.dump_file, special_write = None, atomicity = atomicity)
 				toret.append(disk_op)
 	
 			remaining -= count
@@ -92,11 +111,13 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 
 		return toret
 
-	def unlink_disk_ops(parent, inode, name, size, hardlinks, entry_type = TYPE_FILE):
+	def unlink_disk_ops(parent, inode, name, size, hardlinks, entry_type = TYPE_FILE, atomicity_prefix = ''):
 		toret = []
 		if hardlinks == 1:
-			toret += trunc_disk_ops(inode, size, 0)
-		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode, entry_type = entry_type) # Inode stored, Vijay hack
+			toret += trunc_disk_ops(inode, size, 0, atomicity_prefix = atomicity_prefix)
+			if len(toret) > 0:
+				toret[-1].atomicity = atomicity_prefix + 'fully truncated'
+		disk_op = Struct(op = 'delete_dir_entry', parent = parent, entry = name, inode = inode, entry_type = entry_type)
 		toret.append(disk_op)
 		return toret
 	def link_disk_ops(parent, inode, name, mode = None, entry_type = TYPE_FILE):
@@ -111,31 +132,19 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 	elif line.op == 'rename':
 		line.hidden_disk_ops = []
 		# source: source_inode, dest: dest_inode
-		if expanded_atomicity:
-			line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2)
-		# source: None, dest: dest_inode
 		if line.dest_hardlinks >= 1:
-			line.hidden_disk_ops += unlink_disk_ops(line.dest_parent, line.dest_inode, line.dest, line.dest_size, line.dest_hardlinks)
-		# source: None, dest: None
-		if expanded_atomicity:
-			line.hidden_disk_ops += link_disk_ops(line.source_parent, line.source_inode, line.source)
+			line.hidden_disk_ops += unlink_disk_ops(line.dest_parent, line.dest_inode, line.dest, line.dest_size, line.dest_hardlinks, atomicity_prefix = 'destination unlinking partial ')
+			line.hidden_disk_ops[-1].atomicity = 'destination unlinked fully, source untouched'
 		# source: source_inode, dest: None
-		line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2) # Setting hardlinks as 2 so that trunc does not happen
+		line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2, atomicity_prefix = 'destination unlinked fully, source unlinking partial ') # Setting hardlinks as 2 so that trunc does not happen
+		line.hidden_disk_ops[-1].atomicity = 'destination and source unlinked fully'
 		# source: None, dest: None
 		line.hidden_disk_ops += link_disk_ops(line.dest_parent, line.source_inode, line.dest)
-		# source: None, dest: source_inode
-		if expanded_atomicity:
-			line.hidden_disk_ops += link_disk_ops(line.source_parent, line.source_inode, line.source)
-		# source: source_inode, dest: source_inode
-		if expanded_atomicity:
-			line.hidden_disk_ops += unlink_disk_ops(line.source_parent, line.source_inode, line.source, line.source_size, 2) # Setting hardlinks as 2 so that trunc does not happen
 		# source: None, dest: source_inode
 	elif line.op == 'trunc':
 		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.initial_size, line.final_size)
 	elif line.op == 'append':
 		line.hidden_disk_ops = trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
-		if expanded_atomicity:
-			line.hidden_disk_ops += trunc_disk_ops(line.inode, line.offset, line.offset + line.count, line)
 	elif line.op == 'write':
 		assert line.count > 0
 		line.hidden_disk_ops = []
@@ -152,7 +161,9 @@ def get_disk_ops(line, splits, split_mode, expanded_atomicity):
 				count = min(per_slice_size, remaining)
 
 			dump_offset = line.dump_offset + (offset - line.offset)
-			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, count = count, dump_file = line.dump_file, override_data = None, special_write = None)
+			disk_op = Struct(op = 'write', inode = line.inode, offset = offset, dump_offset = dump_offset, \
+				count = count, dump_file = line.dump_file, override_data = None, special_write = None, \
+				atomicity = str(splits) + ' ' + split_mode + ' split')
 			line.hidden_disk_ops.append(disk_op)
 			remaining -= count
 			offset += count

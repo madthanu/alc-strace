@@ -12,6 +12,9 @@ warranty of any kind.
 Basic Installation
 ==================
 
+Prerequisite: The libunwind libraries. In Ubuntu 14.04, for example,
+these can be installed with `apt-get install libunwind8-dev'.
+
 Briefly, the shell commands `./configure; make; make install' should
 configure, build, and install this package.  The following
 more-detailed instructions are generic; see the `README' file for

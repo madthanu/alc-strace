@@ -20,6 +20,8 @@ import threading
 import time
 import pprint
 import code
+import sys
+import collections
 from mystruct import Struct
 from myutils import *
 import gc
@@ -35,8 +37,9 @@ class MultiThreadedChecker(threading.Thread):
 	def __threaded_check(self, dirname, crashid):
 		assert type(cmdline().checker_tool) in [list, str, tuple]
 		args = [cmdline().checker_tool, dirname]
-		output_stdout = os.path.join(cmdline().replayed_snapshot, 'output_stdout' + str(crashid))
-		output_stderr = os.path.join(cmdline().replayed_snapshot, 'output_stderr' + str(crashid))
+		output_stdout = dirname + '.output_stdout'
+		output_stderr = dirname + '.output_stderr'
+		print 'Checking ' + str(crashid)
 		retcode = subprocess.call(args, stdout = open(output_stdout, 'w'), stderr = open(output_stderr, 'w'))
 		MultiThreadedChecker.outputs[crashid] = retcode
 		os.system('rm -rf ' + dirname)
@@ -62,6 +65,57 @@ class MultiThreadedChecker(threading.Thread):
 		return MultiThreadedChecker.outputs
 
 class Replayer:
+	def set_additional_dependencies(self, get_deps):
+		all_diskops = []
+		for micro_op in self.micro_ops:
+			all_diskops += micro_op.hidden_disk_ops
+		get_deps(self, all_diskops)
+		dependency_tuples = []
+		for i in range(0, len(all_diskops)):
+			for j in sorted(list(all_diskops[i].hidden_dependencies)):
+				dependency_tuples.append((i, j))
+		self.test_suite.add_deps_to_ops(dependency_tuples)
+	def is_legal(self):
+		diskops_index = 0
+		included_diskops = []
+		for i in range(0, self.__micro_end + 1):
+			micro_op = self.micro_ops[i]
+			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
+			for j in range(0, till):
+				if not micro_op.hidden_disk_ops[j].hidden_omitted:
+					included_diskops.append(diskops_index)
+				diskops_index += 1
+	#	print '+++' + str(included_diskops) + '+++'
+		return self.test_suite.test_combo_validity(included_diskops)
+	def str_micro_ops_dependencies(self):
+		output = ''
+		for x in self.micro_ops:
+			if len(x.hidden_disk_ops) == 0:
+				continue
+			dops_dependencies = dict()
+			for y in x.hidden_disk_ops:
+				for dependency in y.hidden_dependencies:
+					if dependency in dops_dependencies:
+						dops_dependencies[dependency] += 1
+					else:
+						dops_dependencies[dependency] = 1
+			#	assert y.hidden_dependencies == dops_dependencies
+			dependencies = set()
+			for y in dops_dependencies:
+				dependencies.add(self.dops_double(y)[0])
+			dependency_list = ''
+			for y in dependencies:
+				mychar1 = ''
+				mychar2 = ''
+				for z in range(0, len(self.micro_ops[y].hidden_disk_ops)):
+					if self.dops_single((y, z)) not in dops_dependencies:
+						mychar1 = 'Pa'
+					elif dops_dependencies[self.dops_single((y, z))] < len(x.hidden_disk_ops):
+						mychar2 = 'Pb'
+				dependency_list += mychar1 + mychar2 + str(y) + ' '
+			output += str(x.hidden_id) + '\t' + str(x) + '\n'
+			output += '\t' + dependency_list + '\n'
+		return output
 	def __init__(self, path_inode_map, original_micro_ops):
 		self.micro_ops = copy.deepcopy(original_micro_ops)
 		cnt = 0
@@ -83,16 +137,20 @@ class Replayer:
 		all_diskops = []
 		for micro_op in self.micro_ops:
 			all_diskops += micro_op.hidden_disk_ops
+		## Hack required for ALCTestSuite
 		for i in range(0, len(all_diskops)):
 			if all_diskops[i].op in ['stdout', 'stderr']:
-				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
+				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1, hidden_actual_op = all_diskops[i])
 		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
+		## Reverting hack
+		for i in range(0, len(all_diskops)):
+			if all_diskops[i].op == 'write' and all_diskops[i].inode == -1:
+				all_diskops[i] = all_diskops[i].hidden_actual_op
 		if cmdline().debug_level >= 1: print "... done."
 		self.test_suite_initialized = True
 		self.save(0)
 	def print_ops(self):
-		f = open(scratchpad('current_orderings'), 'w+')
 		for i in range(0, len(self.micro_ops)):
 			micro_id = colorize(str(i), 3 if i > self.__micro_end else 2)
 			orig_id = colorize(str(self.micro_ops[i].hidden_id), 3)
@@ -101,16 +159,15 @@ class Replayer:
 				tid_info = str(self.micro_ops[i].hidden_pid) + '\t' + str(self.micro_ops[i].hidden_tid) + '\t'
 			if cmdline().show_time:
 				tid_info += self.micro_ops[i].hidden_time + '\t'
-			f.write(micro_id + '\t' + orig_id + '\t' + tid_info + str(self.micro_ops[i]) + '\n')
+			print(micro_id + '\t' + orig_id + '\t' + tid_info + str(self.micro_ops[i]))
 			for j in range(0, len(self.micro_ops[i].hidden_disk_ops)):
 				disk_op_str = str(self.micro_ops[i].hidden_disk_ops[j])
 				if self.micro_ops[i].hidden_disk_ops[j].hidden_omitted:
 					disk_op_str = colorize(disk_op_str, 3)
 				if not cmdline().hide_diskops:
-					f.write('\t' + str(j) + '\t' + disk_op_str + '\n')
+					print('\t' + str(j) + '\t' + disk_op_str)
 				if i == self.__micro_end and j == self.__disk_end:
-					f.write('-------------------------------------\n')
-		f.close()
+					print('-------------------------------------')
 	def save(self, i):
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
 							micro_end = self.__micro_end,
@@ -155,14 +212,14 @@ class Replayer:
 				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
 		self.test_suite_initialized = True
-	def dops_generate(self, ids = None, splits = 3, split_mode = 'count', expanded_atomicity = False):
+	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
 		self.test_suite_initialized = False
 		if type(ids) == int:
 			ids = [ids]
 		if ids == None:
 			ids = range(0, len(self.micro_ops))
 		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode, expanded_atomicity)
+			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode)
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
 		self.__dops_set_legal()
@@ -183,11 +240,6 @@ class Replayer:
 	def dops_include(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = False
-	def dops_replay(self, summary_string = None, checker_params = None):
-		if cmdline().replayer_threads > 0:
-			self.__multithreaded_replay(summary_string, checker_params)
-		else:
-			self.__replay_and_check(True, summary_string, checker_params)
 	def dops_get_op(self, i, j = None):
 		(i, j) = self.__dops_get_i_j(i, j)
 		return copy.deepcopy(self.micro_ops[i].hidden_disk_ops[j])
@@ -217,75 +269,6 @@ class Replayer:
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
-	def dops_independent_till(self, drop_list):
-		assert self.test_suite_initialized
-		if type(drop_list) != list:
-			if type(drop_list) == tuple:
-				drop_list = [self.dops_single(drop_list)]
-			else:
-				assert type(drop_list) == int
-				drop_list = [drop_list]
-		else:
-			if type(drop_list[0]) == tuple:
-				drop_list = [self.dops_single(double) for double in drop_list]
-			else:
-				assert type(drop_list[0]) == int
-		single_answers = sorted(self.test_suite.drop_list_of_ops(drop_list))
-		if len(single_answers) == 0:
-			return None
-		max_single_answers = single_answers[-1]
-		for j in range(0, max_single_answers):
-			assert j in drop_list or j in single_answers
-		return self.dops_double(max_single_answers)
-	def is_legal(self):
-		assert self.test_suite_initialized
-		if 'cached_is_legal_droplist' not in self.test_suite.__dict__:
-			self.test_suite.cached_is_legal_droplist = None
-		dropped_double = list()
-
-		for i in range(0, self.__micro_end + 1):
-			micro_op = self.micro_ops[i]
-			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
-			for j in range(0, till):
-				if micro_op.hidden_disk_ops[j].hidden_omitted:
-					dropped_double.append((i, j))
-
-		for i in range(0, len(self.micro_ops)):
-			micro_op = self.micro_ops[i]
-			till = self.__disk_end + 1 if self.__micro_end == i else len(micro_op.hidden_disk_ops)
-			for j in range(0, len(micro_op.hidden_disk_ops)):
-				if micro_op.hidden_disk_ops[j].hidden_omitted:
-					dropped_double.append(i, j)
-				if i > self.__micro_end or (i == self.__micro_end and j > self.__disk_end):
-					dropped_double.append(i, j)
-
-		dropped_single = [self.dops_single(double) for double in dropped_double]
-
-		for x in dropped_single:
-			sorted(self.test_suite.drop_list_of_ops(drop_list))
-
-	def _dops_verify_replayer(self, i = None):
-		if i == None:
-			to_check = range(0, len(self.micro_ops))
-		else:
-			to_check = [i]
-		for till in to_check:
-			to_replay = []
-			for micro_op in self.micro_ops[0 : till + 1]:
-				for disk_op in micro_op.hidden_disk_ops:
-					to_replay.append(disk_op)
-			diskops.replay_disk_ops(self.path_inode_map, to_replay)
-			os.system("rm -rf " + scratchpad("disk_ops_output"))
-			os.system("cp -R " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output"))
-
-			replay_micro_ops(self.micro_ops[0 : till + 1])
-
- 			subprocess.call("diff -ar " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output") + " > " + scratchpad("replay_output"), shell = True)
-			self.short_outputs += str(till) + '\t' + subprocess.check_output("diff -ar " + cmdline().replayed_snapshot + " " + scratchpad("disk_ops_output") + " | wc -l", shell = True)
-			self.replay_count += 1
-			print('__dops_verify_replayer(' + str(till) + ') finished.')
-
-
 
 def stack_repr(op):
 	try:
@@ -316,10 +299,12 @@ def stack_repr(op):
 
 
 def default_checks(alice_args):
+	init_cmdline(alice_args)
+
+	#sys.stdout = open(scratchpad('output'), 'w')
 	print '--------------------------'
 	print 'WARNING: Properly determining static vulnerabilities might need customization of how ALICE traverses the stack trace to determine a source line representing the vulnerability'
 	print '--------------------------'
-	init_cmdline(alice_args)
 	assert cmdline().replayer_threads > 0
 	for i in range(0, cmdline().replayer_threads):
 		t = MultiThreadedChecker(MultiThreadedChecker.queue)
@@ -332,6 +317,8 @@ def default_checks(alice_args):
 	os.system("rm -rf " + cmdline().replayed_snapshot)
 	os.system("mkdir -p " + cmdline().replayed_snapshot)
  
+	dont_consider_mops = set()
+
 	# Finding across-syscall atomicity
 	for i in range(0, replayer.mops_len()):
 		dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + str(i))
@@ -340,16 +327,16 @@ def default_checks(alice_args):
 		MultiThreadedChecker.check_later(dirname, i)
 
 	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
-
 	staticvuls = set()
-
 	i = 0
 	while(i < replayer.mops_len()):
 		if checker_outputs[i] != 0:
 			patch_start = i
+			dont_consider_mops.add(i)
 			# Go until the last but one mop
 			while(i < replayer.mops_len() - 1 and checker_outputs[i + 1] != 0):
 				i += 1
+				dont_consider_mops.add(i)
 			patch_end = i + 1
 			if patch_end >= replayer.mops_len():
 				patch_end = replayer.mops_len() - 1
@@ -364,5 +351,79 @@ def default_checks(alice_args):
 		print '(Static vulnerability) Across-syscall atomicity: ' + \
 			'Operation ' + vul[0] + ' until ' + vul[1]
 
-	# Finding ordering vulnerabilities
+#	# Finding ordering vulnerabilities
+#	replayer.load(0)
+#	MultiThreadedChecker.reset()
+#
+#	for i in range(0, replayer.mops_len()):
+#		if replayer.dops_len(i) == 0 or i in dont_consider_mops:
+#			continue
+#
+#		for j in range(0, replayer.dops_len(i)):
+#			replayer.dops_omit((i, j))
+#
+#		for j in range(i + 1, replayer.mops_len()):
+#			if replayer.dops_len(j)  == 0 or j in dont_consider_mops:
+#				continue
+#			replayer.dops_end_at((j, replayer.dops_len(j) - 1))
+#			if replayer.is_legal():
+#				dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + str(i) + '-' + str(j))
+#				replayer.construct_crashed_dir(dirname)
+#				MultiThreadedChecker.check_later(dirname, (i, j))
+#
+#		for j in range(0, replayer.dops_len(i)):
+#			replayer.dops_include((i, j))
+#
+#	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
+#	staticvuls = set()
+#	for i in range(0, replayer.mops_len()):
+#		for j in range(i + 1, replayer.mops_len()):
+#			if (i, j) in checker_outputs and checker_outputs[(i, j)] != 0:
+#				print '(Dynamic vulnerability) Ordering: ' + \
+#					'Operation ' + str(i) + ' needs to be persisted before ' + str(j)
+#				staticvuls.add((stack_repr(replayer.get_op(i)),
+#					stack_repr(replayer.get_op(j))))
+#				break
+#
+#	for vul in staticvuls:
+#		print '(Static vulnerability) Ordering: ' + \
+#			'Operation ' + vul[0] + ' needed before ' + vul[1]
 
+	# Finding atomicity vulnerabilities
+	replayer.load(0)
+	MultiThreadedChecker.reset()
+	atomicity_explanations = dict()
+
+	for mode in (('count', 1), ('count', 3), ('aligned', 4096)):
+		replayer.dops_generate(split_mode=mode[0], splits=mode[1])
+		for i in range(0, replayer.mops_len()):
+			if i in dont_consider_mops:
+				continue
+
+			for j in range(0, replayer.dops_len(i) - 1):
+				replayer.dops_end_at((i, replayer.dops_len(i) - 1))
+				if replayer.is_legal():
+					dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + mode[0] + '-' + str(mode[1]) + '-' + str(i) + '-' + str(j))
+					replayer.construct_crashed_dir(dirname)
+					MultiThreadedChecker.check_later(dirname, (mode, i, j))
+					atomicity_explanations[(mode, i, j)] = replayer.get_op(i).hidden_disk_ops[j].atomicity
+
+	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
+	staticvuls = collections.defaultdict(lambda:set())
+	for i in range(0, replayer.mops_len()):
+		dynamicvuls = set()
+		for j in range(0, replayer.dops_len(i) - 1):
+			for mode in (('count', 1), ('count', 3), ('aligned', 4096)):
+				if (mode, i, j) in checker_outputs and checker_outputs[(mode, i, j)] != 0:
+					dynamicvuls.add(atomicity_explanations[(mode, i, j)])
+		if len(dynamicvuls) > 0:
+			print '(Dynamic vulnerability) Atomicity: ' + \
+				'Operation ' + str(i) + '(' + (', '.join(dynamicvuls)) + ')'
+			staticvuls[stack_repr(replayer.get_op(i))].update(dynamicvuls)
+
+	for vul in staticvuls:
+		print '(Static vulnerability) Atomicity: ' + \
+			'Operation ' + vul + ' (' + (','.join(staticvuls[vul])) + ')'
+
+	while(1):
+		pass
