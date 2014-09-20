@@ -1,7 +1,9 @@
 import re
-from myutils import *
+from _aliceutils import *
 
 class Struct:
+	TYPE_DIR = 0
+	TYPE_FILE = 1
 	def __init__(self, **entries): self.__dict__.update(entries)
 	def update(self, mydict): self.__dict__.update(mydict)
 	def __repr__(self):

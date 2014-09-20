@@ -9,10 +9,9 @@ import copy
 import string
 import traceback
 import random
-import auto_test
+import _aliceautotest as auto_test
 import signal
-import diskops
-import conv_micro
+import _aliceparsesyscalls
 import pdb
 import cProfile
 import Queue
@@ -22,60 +21,227 @@ import pprint
 import code
 import sys
 import collections
-from mystruct import Struct
-from myutils import *
+from alicestruct import Struct
+from _aliceutils import *
 import gc
 
-class MultiThreadedChecker(threading.Thread):
-	queue = Queue.Queue()
-	outputs = {}
-	
-	def __init__(self, queue):
-		threading.Thread.__init__(self)
-		self.queue = MultiThreadedChecker.queue
+cached_rows = None
+cached_dirinode_map = {}
 
-	def __threaded_check(self, dirname, crashid):
-		assert type(cmdline().checker_tool) in [list, str, tuple]
-		args = [cmdline().checker_tool, dirname]
-		output_stdout = dirname + '.output_stdout'
-		output_stderr = dirname + '.output_stderr'
-		print 'Checking ' + str(crashid)
-		retcode = subprocess.call(args, stdout = open(output_stdout, 'w'), stderr = open(output_stderr, 'w'))
-		MultiThreadedChecker.outputs[crashid] = retcode
-		os.system('rm -rf ' + dirname)
+# use_cached works only on a single thread
+def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, stdout_file, stderr_file, use_cached = False):
+	def get_stat(path):
+		try:
+			return os.stat(path)
+		except OSError as err:
+			return False
 
-	def run(self):
-		while True:
-			task = self.queue.get()
-			self.__threaded_check(*task)
-			self.queue.task_done()
+	def get_inode_file(inode, mode = None):
+		assert type(inode) == int
+		if not get_stat(replay_dir + '/.inodes/' + str(inode)):
+			if mode == None:
+				mode = 0666
+			if type(mode) == str:
+				mode = safe_string_to_int(mode)
+			fd = os.open(replay_dir + '/.inodes/' + str(inode), os.O_CREAT | os.O_WRONLY, mode)
+			assert fd > 0
+			os.close(fd)
+		return replay_dir + '/.inodes/' + str(inode)
 
-	@staticmethod
-	def check_later(dirname, retcodeid):
-		MultiThreadedChecker.queue.put((dirname, retcodeid))
+	dirinode_map = {} # From initial_inode to replayed_directory_path
+	def is_linked_inode_directory(inode):
+		assert type(inode) == int
+		if inode not in dirinode_map:
+			return False
+		if dirinode_map[inode] == replay_dir + '/.inodes/' + str(inode):
+			return False
+		return True
 
-	@staticmethod
-	def reset():
-		assert MultiThreadedChecker.queue.empty()
-		MultiThreadedChecker.outputs = {}
+	def get_inode_directory(inode, mode = None):
+		assert type(inode) == int
+		if inode not in dirinode_map:
+			if mode == None:
+				mode = 0777
+			if type(mode) == str:
+				mode = safe_string_to_int(mode)
+			os.mkdir(replay_dir + '/.inodes/' + str(inode), mode)
+			dirinode_map[inode] = replay_dir + '/.inodes/' + str(inode)
+		return dirinode_map[inode]
 
-	@staticmethod
-	def wait_and_get_outputs():
-		MultiThreadedChecker.queue.join()
-		return MultiThreadedChecker.outputs
+	def set_inode_directory(inode, dir_path):
+		assert type(inode) == int
+		dirinode_map[inode] = dir_path
+
+	def initialize_inode_links(initial_paths_inode_map):
+		final_paths_inode_map = get_path_inode_map(replay_dir) # This map is used only for assertions
+		assert len(final_paths_inode_map) == len(initial_paths_inode_map)
+
+		# Asserting there are no hardlinks on the initial list - if there were, 'cp -R' wouldn't have worked correctly.
+		initial_inodes_list = [inode for (inode, entry_type) in initial_paths_inode_map.values()]
+		assert len(initial_inodes_list) == len(set(initial_inodes_list))
+
+		os.system("mkdir " + replay_dir + '/.inodes')
+
+		for path in initial_paths_inode_map.keys():
+			final_path = path.replace(aliceconfig().scratchpad_dir, replay_dir, 1)
+			assert final_path in final_paths_inode_map
+			(initial_inode, entry_type) = initial_paths_inode_map[path]
+			(tmp_final_inode, tmp_entry_type) = final_paths_inode_map[final_path]
+			assert entry_type == tmp_entry_type
+			if entry_type == 'd':
+				set_inode_directory(initial_inode, final_path)
+			else:
+				os.link(final_path, replay_dir + '/.inodes/' + str(initial_inode))
+
+
+	global cached_rows, cached_dirinode_map
+	if use_cached:
+		original_replay_dir = replay_dir
+		replay_dir = os.path.join(aliceconfig().scratchpad_dir, 'cached_replay_dir')
+		dirinode_map = cached_dirinode_map
+		if cached_rows and len(cached_rows) <= len(rows) and rows[0:len(cached_rows)] == cached_rows:
+			rows = copy.deepcopy(rows[len(cached_rows):])
+			cached_rows += rows
+		else:
+			cached_rows = copy.deepcopy(rows)
+			cached_dirinode_map = {}
+			dirinode_map = cached_dirinode_map
+			os.system("rm -rf " + replay_dir)
+			os.system("cp -R " + aliceconfig().initial_snapshot + " " + replay_dir)
+			initialize_inode_links(initial_paths_inode_map)
+	else:
+		os.system("rm -rf " + replay_dir)
+		os.system("cp -R " + aliceconfig().initial_snapshot + " " + replay_dir)
+		initialize_inode_links(initial_paths_inode_map)
+
+	output_stdout = open(stdout_file, 'w')
+	output_stderr = open(stderr_file, 'w')
+	for line in rows:
+	#	print line
+		if line.op == 'create_dir_entry':
+			new_path = get_inode_directory(line.parent) + '/' + os.path.basename(line.entry)
+			if line.entry_type == Struct.TYPE_FILE:
+				if os.path.exists(new_path):
+					os.unlink(new_path)
+				assert not os.path.exists(new_path)
+				os.link(get_inode_file(line.inode, line.mode), new_path)
+			else:
+				assert not is_linked_inode_directory(line.inode) # According to the model, there might
+					# exist two links to the same directory after FS crash-recovery. However, Linux
+					# does not allow this to be simulated. Checking for that condition here - if this
+					# assert is ever triggered in a real workload, we'll have to handle this case
+					# somehow. Can potentially be handled using symlinks.
+				os.rename(get_inode_directory(line.inode, line.mode), new_path)
+				set_inode_directory(line.inode, new_path)
+		elif line.op == 'delete_dir_entry':
+			path = get_inode_directory(line.parent) + '/' + os.path.basename(line.entry)
+			if get_stat(path):
+				if line.entry_type == Struct.TYPE_FILE:
+					os.unlink(path)
+				else:
+					os.rename(path, replay_dir + '/.inodes/' + str(line.inode)) # Deletion of
+						# directory is equivalent to moving it back into the '.inodes' directory.
+		elif line.op == 'truncate':
+			old_mode = writeable_toggle(get_inode_file(line.inode))
+			fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+			assert fd > 0
+			os.ftruncate(fd, line.final_size)
+			os.close(fd)
+			writeable_toggle(get_inode_file(line.inode), old_mode)
+		elif line.op == 'write':
+			old_mode = writeable_toggle(get_inode_file(line.inode))
+			if line.special_write != None:
+				if (line.special_write == 'GARBAGE' or line.special_write == 'ZEROS') and line.count > 4096:
+					if line.count > 4 * 1024 * 1024:
+						BLOCK_SIZE = 1024 * 1024
+					else:
+						BLOCK_SIZE = 4096
+					blocks_byte_offset = int(math.ceil(float(line.offset) / BLOCK_SIZE)) * BLOCK_SIZE
+					blocks_byte_count = max(0, (line.offset + line.count) - blocks_byte_offset)
+					blocks_count = int(math.floor(float(blocks_byte_count) / BLOCK_SIZE))
+					blocks_byte_count = blocks_count * BLOCK_SIZE
+					blocks_offset = blocks_byte_offset / BLOCK_SIZE
+
+					pre_blocks_offset = line.offset
+					pre_blocks_count = blocks_byte_offset - line.offset
+					if pre_blocks_count > line.count:
+						assert blocks_byte_count == 0
+						pre_blocks_count = line.count
+					assert pre_blocks_count >= 0
+
+					post_blocks_count = 0
+					if pre_blocks_count < line.count:
+						post_blocks_offset = (blocks_byte_offset + blocks_byte_count)
+						assert post_blocks_offset % BLOCK_SIZE == 0
+						post_blocks_count = line.offset + line.count - post_blocks_offset
+
+					assert pre_blocks_count >= 0
+					assert blocks_count >= 0
+					assert post_blocks_count >= 0
+					assert pre_blocks_count + blocks_count * BLOCK_SIZE + post_blocks_count == line.count
+					assert pre_blocks_offset == line.offset
+					if pre_blocks_count < line.count:
+						assert blocks_offset * BLOCK_SIZE == pre_blocks_offset + pre_blocks_count
+					if post_blocks_count > 0:
+						assert (blocks_offset + blocks_count) * BLOCK_SIZE == post_blocks_offset
+
+					if line.special_write == 'GARBAGE':
+						cmd = "dd if=/dev/urandom of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat status=noxfer "
+					else:
+						cmd = "dd if=/dev/zero of=\"" + get_inode_file(line.inode) + "\" conv=notrunc conv=nocreat status=noxfer "
+					if pre_blocks_count > 0:
+						subprocess.check_call(cmd + 'seek=' + str(pre_blocks_offset) + ' count=' + str(pre_blocks_count) + ' bs=1 2>/dev/null', shell=True, )
+					if blocks_count > 0:
+						subprocess.check_call(cmd + 'seek=' + str(blocks_offset) + ' count=' + str(blocks_count) + ' bs=' + str(BLOCK_SIZE) + '  2>/dev/null', shell=True)
+					if post_blocks_count > 0:
+						subprocess.check_call(cmd + 'seek=' + str(post_blocks_offset) + ' count=' + str(post_blocks_count) + ' bs=1 2>/dev/null', shell=True)
+				elif line.special_write == 'GARBAGE' or line.special_write == 'ZEROS':
+					if line.special_write == 'GARBAGE':
+						data = string.ascii_uppercase + string.digits
+					else:
+						data = '\0'
+					buf = ''.join(random.choice(data) for x in range(line.count))
+					fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+					os.lseek(fd, line.offset, os.SEEK_SET)
+					os.write(fd, buf)
+					os.close(fd)
+					buf = ""
+				else:
+					assert False
+			else:
+				if line.dump_file == None:
+					buf = line.override_data
+				else:
+					fd = os.open(line.dump_file, os.O_RDONLY)
+					os.lseek(fd, line.dump_offset, os.SEEK_SET)
+					buf = os.read(fd, line.count)
+					os.close(fd)
+				fd = os.open(get_inode_file(line.inode), os.O_WRONLY)
+				os.lseek(fd, line.offset, os.SEEK_SET)
+				os.write(fd, buf)
+				os.close(fd)
+				buf = ""
+			writeable_toggle(get_inode_file(line.inode), old_mode)
+		elif line.op == 'stdout':
+			print 'stdout found'
+			output_stdout.write(line.data)
+		elif line.op == 'stderr':
+			output_stderr.write(line.data)
+		else:
+			assert line.op == 'sync'
+
+	if use_cached:
+		os.system('rm -rf ' + original_replay_dir)
+		os.system('cp -a ' + replay_dir + ' ' + original_replay_dir)
+		replay_dir = original_replay_dir
+		cached_dirinode_map = copy.deepcopy(dirinode_map)
+
+	os.system("rm -rf " + replay_dir + '/.inodes')
+
 
 class Replayer:
-	def set_additional_dependencies(self, get_deps):
-		all_diskops = []
-		for micro_op in self.micro_ops:
-			all_diskops += micro_op.hidden_disk_ops
-		get_deps(self, all_diskops)
-		dependency_tuples = []
-		for i in range(0, len(all_diskops)):
-			for j in sorted(list(all_diskops[i].hidden_dependencies)):
-				dependency_tuples.append((i, j))
-		self.test_suite.add_deps_to_ops(dependency_tuples)
 	def is_legal(self):
+		assert self.fs_initialized
 		diskops_index = 0
 		included_diskops = []
 		for i in range(0, self.__micro_end + 1):
@@ -85,39 +251,10 @@ class Replayer:
 				if not micro_op.hidden_disk_ops[j].hidden_omitted:
 					included_diskops.append(diskops_index)
 				diskops_index += 1
-	#	print '+++' + str(included_diskops) + '+++'
 		return self.test_suite.test_combo_validity(included_diskops)
-	def str_micro_ops_dependencies(self):
-		output = ''
-		for x in self.micro_ops:
-			if len(x.hidden_disk_ops) == 0:
-				continue
-			dops_dependencies = dict()
-			for y in x.hidden_disk_ops:
-				for dependency in y.hidden_dependencies:
-					if dependency in dops_dependencies:
-						dops_dependencies[dependency] += 1
-					else:
-						dops_dependencies[dependency] = 1
-			#	assert y.hidden_dependencies == dops_dependencies
-			dependencies = set()
-			for y in dops_dependencies:
-				dependencies.add(self.dops_double(y)[0])
-			dependency_list = ''
-			for y in dependencies:
-				mychar1 = ''
-				mychar2 = ''
-				for z in range(0, len(self.micro_ops[y].hidden_disk_ops)):
-					if self.dops_single((y, z)) not in dops_dependencies:
-						mychar1 = 'Pa'
-					elif dops_dependencies[self.dops_single((y, z))] < len(x.hidden_disk_ops):
-						mychar2 = 'Pb'
-				dependency_list += mychar1 + mychar2 + str(y) + ' '
-			output += str(x.hidden_id) + '\t' + str(x) + '\n'
-			output += '\t' + dependency_list + '\n'
-		return output
-	def __init__(self, path_inode_map, original_micro_ops):
-		self.micro_ops = copy.deepcopy(original_micro_ops)
+	def __init__(self, alice_args):
+		init_aliceconfig(alice_args)
+		(self.path_inode_map, self.micro_ops) = _aliceparsesyscalls.get_micro_ops()
 		cnt = 0
 		for i in self.micro_ops:
 			i.hidden_id = str(cnt)
@@ -125,65 +262,43 @@ class Replayer:
 		self.__micro_end = len(self.micro_ops) - 1
 		self.__disk_end = 0 # Will be set during the dops_generate() call
 
-		if cmdline().debug_level >= 1: print "Starting dops generation ..."
-		self.dops_generate()
-		if cmdline().debug_level >= 1: print "... done."
 		self.saved = dict()
-		self.short_outputs = ""
-		self.replay_count = 0
-		self.path_inode_map = path_inode_map
+		self.fs_initialized = False
 
-		if cmdline().debug_level >= 1: print "Initializing dops legalization ..."
-		all_diskops = []
-		for micro_op in self.micro_ops:
-			all_diskops += micro_op.hidden_disk_ops
-		## Hack required for ALCTestSuite
-		for i in range(0, len(all_diskops)):
-			if all_diskops[i].op in ['stdout', 'stderr']:
-				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1, hidden_actual_op = all_diskops[i])
-		if cmdline().debug_level >= 1: print "... starting dops legalization ..."
-		self.test_suite = auto_test.ALCTestSuite(all_diskops)
-		## Reverting hack
-		for i in range(0, len(all_diskops)):
-			if all_diskops[i].op == 'write' and all_diskops[i].inode == -1:
-				all_diskops[i] = all_diskops[i].hidden_actual_op
-		if cmdline().debug_level >= 1: print "... done."
-		self.test_suite_initialized = True
-		self.save(0)
-	def print_ops(self):
+	def print_ops(self, show_diskops = False, show_tids = False, show_time = False):
 		for i in range(0, len(self.micro_ops)):
 			micro_id = colorize(str(i), 3 if i > self.__micro_end else 2)
-			orig_id = colorize(str(self.micro_ops[i].hidden_id), 3)
 			tid_info = ''
-			if cmdline().show_tids:
+			if show_tids:
 				tid_info = str(self.micro_ops[i].hidden_pid) + '\t' + str(self.micro_ops[i].hidden_tid) + '\t'
-			if cmdline().show_time:
+			if show_time:
 				tid_info += self.micro_ops[i].hidden_time + '\t'
-			print(micro_id + '\t' + orig_id + '\t' + tid_info + str(self.micro_ops[i]))
+			print(micro_id + '\t' + tid_info + str(self.micro_ops[i]))
 			for j in range(0, len(self.micro_ops[i].hidden_disk_ops)):
 				disk_op_str = str(self.micro_ops[i].hidden_disk_ops[j])
 				if self.micro_ops[i].hidden_disk_ops[j].hidden_omitted:
 					disk_op_str = colorize(disk_op_str, 3)
-				if not cmdline().hide_diskops:
+				if show_diskops:
 					print('\t' + str(j) + '\t' + disk_op_str)
 				if i == self.__micro_end and j == self.__disk_end:
 					print('-------------------------------------')
 	def save(self, i):
+		assert self.fs_initialized
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,
 							micro_end = self.__micro_end,
 							disk_end = self.__disk_end,
-							test_suite = self.test_suite,
-							test_suite_initialized = self.test_suite_initialized))
+							test_suite = self.test_suite))
 	def load(self, i):
+		assert self.fs_initialized
 		assert int(i) in self.saved
 		retrieved = copy.deepcopy(self.saved[int(i)])
 		self.micro_ops = retrieved.micro_ops
 		self.__micro_end = retrieved.micro_end
 		self.__disk_end = retrieved.disk_end
 		self.test_suite = retrieved.test_suite
-		self.test_suite_initialized = retrieved.test_suite_initialized
 
-	def construct_crashed_dir(self, dirname):
+	def construct_crashed_dir(self, dirname, stdout_file, stderr_file):
+		assert self.fs_initialized
 		to_replay = []
 		for i in range(0, self.__micro_end + 1):
 			micro_op = self.micro_ops[i]
@@ -191,11 +306,12 @@ class Replayer:
 			for j in range(0, till):
 				if not micro_op.hidden_disk_ops[j].hidden_omitted:
 					to_replay.append(micro_op.hidden_disk_ops[j])
-		diskops.replay_disk_ops(self.path_inode_map, to_replay, dirname, use_cached = True)
+		replay_disk_ops(self.path_inode_map, to_replay, dirname, stdout_file, stderr_file, use_cached = True)
 	def get_op(self, i):
 		assert i <= len(self.micro_ops)
 		return copy.deepcopy(self.micro_ops[i])
 	def dops_end_at(self, i, j = None):
+		assert self.fs_initialized
 		if type(i) == tuple:
 			assert j == None
 			j = i[1]
@@ -203,26 +319,44 @@ class Replayer:
 		assert j != None
 		self.__micro_end = i
 		self.__disk_end = j
-	def __dops_set_legal(self):
+	def set_fs(self, fs):
 		all_diskops = []
-		for micro_op in self.micro_ops:
-			all_diskops += micro_op.hidden_disk_ops
-		for i in range(0, len(all_diskops)):
-			if all_diskops[i].op in ['stdout', 'stderr']:
-				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1) 
-		self.test_suite = auto_test.ALCTestSuite(all_diskops)
-		self.test_suite_initialized = True
-	def dops_generate(self, ids = None, splits = 3, split_mode = 'count'):
-		self.test_suite_initialized = False
-		if type(ids) == int:
-			ids = [ids]
-		if ids == None:
-			ids = range(0, len(self.micro_ops))
-		for micro_op_id in ids:
-			diskops.get_disk_ops(self.micro_ops[micro_op_id], splits, split_mode)
+		for micro_op_id in range(0, len(self.micro_ops)):
+			fs.get_disk_ops(self.micro_ops[micro_op_id])
+
 			if micro_op_id == self.__micro_end:
 				self.__disk_end = len(self.micro_ops[micro_op_id].hidden_disk_ops) - 1
-		self.__dops_set_legal()
+
+			cnt = 0
+			for disk_op in self.micro_ops[micro_op_id].hidden_disk_ops:
+				disk_op.hidden_omitted = False
+				disk_op.hidden_id = cnt
+				disk_op.hidden_micro_op = self.micro_ops[micro_op_id]
+				cnt += 1
+
+			all_diskops += self.micro_ops[micro_op_id].hidden_disk_ops
+
+		for i in range(0, len(all_diskops)):
+			if all_diskops[i].op in ['stdout', 'stderr']:
+				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1, hidden_actual_op = all_diskops[i]) 
+
+		self.test_suite = auto_test.ALCTestSuite(all_diskops)
+
+		for i in range(0, len(all_diskops)):
+			if all_diskops[i].op == 'write' and all_diskops[i].inode == -1:
+				all_diskops[i] = all_diskops[i].hidden_actual_op
+
+		fs.get_deps(all_diskops)
+		dependency_tuples = []
+		for i in range(0, len(all_diskops)):
+			for j in sorted(list(all_diskops[i].hidden_dependencies)):
+				dependency_tuples.append((i, j))
+		self.test_suite.add_deps_to_ops(dependency_tuples)
+
+
+		self.fs_initialized = True
+		self.saved = dict()
+		self.save(0)
 	def __dops_get_i_j(self, i, j):
 		if type(i) == tuple:
 			assert j == None
@@ -234,16 +368,20 @@ class Replayer:
 		assert j < len(self.micro_ops[i].hidden_disk_ops)
 		return (i, j)
 	def dops_omit(self, i, j = None):
+		assert self.fs_initialized
 		(i, j) = self.__dops_get_i_j(i, j)
 		if self.micro_ops[i].op not in ['stdout', 'stderr']:
 			self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
 	def dops_include(self, i, j = None):
+		assert self.fs_initialized
 		(i, j) = self.__dops_get_i_j(i, j)
 		self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = False
 	def dops_get_op(self, i, j = None):
+		assert self.fs_initialized
 		(i, j) = self.__dops_get_i_j(i, j)
 		return copy.deepcopy(self.micro_ops[i].hidden_disk_ops[j])
 	def dops_len(self, i = None):
+		assert self.fs_initialized
 		if i == None:
 			total = 0
 			for micro_op in self.micro_ops:
@@ -254,6 +392,7 @@ class Replayer:
 	def mops_len(self):
 		return len(self.micro_ops)
 	def dops_double(self, single):
+		assert self.fs_initialized
 		i = 0
 		seen_disk_ops = 0
 		for i in range(0, len(self.micro_ops)):
@@ -263,167 +402,10 @@ class Replayer:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		assert False
 	def dops_single(self, double):
+		assert self.fs_initialized
 		if double == None:
 			return -1
 		seen_disk_ops = 0
 		for micro_op in self.micro_ops[0: double[0]]:
 			seen_disk_ops += len(micro_op.hidden_disk_ops)
 		return seen_disk_ops + double[1]
-
-def stack_repr(op):
-	try:
-		backtrace = 0
-		try:
-			backtrace = op.hidden_backtrace
-		except:
-			pass
-		found = False
-		#code.interact(local=dict(globals().items() + locals().items()))
-		for i in range(0, len(backtrace)):
-			stack_frame = backtrace[i]
-			if stack_frame.src_filename != None and 'syscall-template' in stack_frame.src_filename:
-				continue
-			if '/libc' in stack_frame.binary_filename:
-				continue
-			if stack_frame.func_name != None and 'output_stacktrace' in stack_frame.func_name:
-				continue
-			found = True
-			break
-		if not found:
-			raise Exception('Standard stack traverse did not work')
-		if stack_frame.src_filename == None:
-			return 'B-' + str(stack_frame.binary_filename) + ':' + str(stack_frame.raw_addr) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
-		return str(stack_frame.src_filename) + ':' + str(stack_frame.src_line_num) + '[' + str(stack_frame.func_name).replace('(anonymous namespace)', '()') + ']'
-	except Exception as e:
-		return 'Unknown (stacktraces not traversable for finding static vulnerabilities):' + op.hidden_id
-
-
-def default_checks(alice_args):
-	init_cmdline(alice_args)
-
-	#sys.stdout = open(scratchpad('output'), 'w')
-	print '--------------------------'
-	print 'WARNING: Properly determining static vulnerabilities might need customization of how ALICE traverses the stack trace to determine a source line representing the vulnerability'
-	print '--------------------------'
-	assert cmdline().replayer_threads > 0
-	for i in range(0, cmdline().replayer_threads):
-		t = MultiThreadedChecker(MultiThreadedChecker.queue)
-		t.setDaemon(True)
-		t.start()
-	(path_inode_map, micro_operations) = conv_micro.get_micro_ops()
-	replayer = Replayer(path_inode_map, micro_operations)
-	replayer.print_ops()
-
-	os.system("rm -rf " + cmdline().replayed_snapshot)
-	os.system("mkdir -p " + cmdline().replayed_snapshot)
- 
-	dont_consider_mops = set()
-
-	# Finding across-syscall atomicity
-	for i in range(0, replayer.mops_len()):
-		dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + str(i))
-		replayer.dops_end_at((i, replayer.dops_len(i) - 1))
-		replayer.construct_crashed_dir(dirname)
-		MultiThreadedChecker.check_later(dirname, i)
-
-	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
-	staticvuls = set()
-	i = 0
-	while(i < replayer.mops_len()):
-		if checker_outputs[i] != 0:
-			patch_start = i
-			dont_consider_mops.add(i)
-			# Go until the last but one mop
-			while(i < replayer.mops_len() - 1 and checker_outputs[i + 1] != 0):
-				i += 1
-				dont_consider_mops.add(i)
-			patch_end = i + 1
-			if patch_end >= replayer.mops_len():
-				patch_end = replayer.mops_len() - 1
-				print 'WARNING: Application found to be inconsistent after the entire workload completes. Recheck workload and checker. Possible bug in ALICE framework if this is not expected.'
-			print '(Dynamic vulnerability) Across-syscall atomicity, sometimes concerning durability: ' + \
-				'Operations ' + str(patch_start) + ' until ' + str(patch_end) + ' need to be atomically persisted'
-			staticvuls.add((stack_repr(replayer.get_op(patch_start)),
-				stack_repr(replayer.get_op(patch_end))))
-		i += 1
-
-	for vul in staticvuls:
-		print '(Static vulnerability) Across-syscall atomicity: ' + \
-			'Operation ' + vul[0] + ' until ' + vul[1]
-
-#	# Finding ordering vulnerabilities
-#	replayer.load(0)
-#	MultiThreadedChecker.reset()
-#
-#	for i in range(0, replayer.mops_len()):
-#		if replayer.dops_len(i) == 0 or i in dont_consider_mops:
-#			continue
-#
-#		for j in range(0, replayer.dops_len(i)):
-#			replayer.dops_omit((i, j))
-#
-#		for j in range(i + 1, replayer.mops_len()):
-#			if replayer.dops_len(j)  == 0 or j in dont_consider_mops:
-#				continue
-#			replayer.dops_end_at((j, replayer.dops_len(j) - 1))
-#			if replayer.is_legal():
-#				dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + str(i) + '-' + str(j))
-#				replayer.construct_crashed_dir(dirname)
-#				MultiThreadedChecker.check_later(dirname, (i, j))
-#
-#		for j in range(0, replayer.dops_len(i)):
-#			replayer.dops_include((i, j))
-#
-#	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
-#	staticvuls = set()
-#	for i in range(0, replayer.mops_len()):
-#		for j in range(i + 1, replayer.mops_len()):
-#			if (i, j) in checker_outputs and checker_outputs[(i, j)] != 0:
-#				print '(Dynamic vulnerability) Ordering: ' + \
-#					'Operation ' + str(i) + ' needs to be persisted before ' + str(j)
-#				staticvuls.add((stack_repr(replayer.get_op(i)),
-#					stack_repr(replayer.get_op(j))))
-#				break
-#
-#	for vul in staticvuls:
-#		print '(Static vulnerability) Ordering: ' + \
-#			'Operation ' + vul[0] + ' needed before ' + vul[1]
-
-	# Finding atomicity vulnerabilities
-	replayer.load(0)
-	MultiThreadedChecker.reset()
-	atomicity_explanations = dict()
-
-	for mode in (('count', 1), ('count', 3), ('aligned', 4096)):
-		replayer.dops_generate(split_mode=mode[0], splits=mode[1])
-		for i in range(0, replayer.mops_len()):
-			if i in dont_consider_mops:
-				continue
-
-			for j in range(0, replayer.dops_len(i) - 1):
-				replayer.dops_end_at((i, replayer.dops_len(i) - 1))
-				if replayer.is_legal():
-					dirname = os.path.join(cmdline().replayed_snapshot, 'reconstructeddir-' + mode[0] + '-' + str(mode[1]) + '-' + str(i) + '-' + str(j))
-					replayer.construct_crashed_dir(dirname)
-					MultiThreadedChecker.check_later(dirname, (mode, i, j))
-					atomicity_explanations[(mode, i, j)] = replayer.get_op(i).hidden_disk_ops[j].atomicity
-
-	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
-	staticvuls = collections.defaultdict(lambda:set())
-	for i in range(0, replayer.mops_len()):
-		dynamicvuls = set()
-		for j in range(0, replayer.dops_len(i) - 1):
-			for mode in (('count', 1), ('count', 3), ('aligned', 4096)):
-				if (mode, i, j) in checker_outputs and checker_outputs[(mode, i, j)] != 0:
-					dynamicvuls.add(atomicity_explanations[(mode, i, j)])
-		if len(dynamicvuls) > 0:
-			print '(Dynamic vulnerability) Atomicity: ' + \
-				'Operation ' + str(i) + '(' + (', '.join(dynamicvuls)) + ')'
-			staticvuls[stack_repr(replayer.get_op(i))].update(dynamicvuls)
-
-	for vul in staticvuls:
-		print '(Static vulnerability) Atomicity: ' + \
-			'Operation ' + vul + ' (' + (','.join(staticvuls[vul])) + ')'
-
-	while(1):
-		pass

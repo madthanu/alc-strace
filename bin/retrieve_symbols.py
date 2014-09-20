@@ -191,9 +191,9 @@ def get_symbol_table_using_gdb(filenames_to_addrs):
 	return ret
 
 
-prefix = sys.argv[1]
-output_file = prefix + '.symtab'
-stack_files = commands.getoutput("ls " + prefix + "*stackinfo*").split()
+strace_file_prefix = sys.argv[1]
+output_file = strace_file_prefix + '.symtab'
+stack_files = commands.getoutput("ls " + strace_file_prefix + "*stackinfo*").split()
 
 symtab = create_symtab(stack_files)
 

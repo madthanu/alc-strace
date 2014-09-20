@@ -7,7 +7,6 @@ sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/u
 import BitVector
 from collections import defaultdict
 import itertools
-import mystruct
 import pickle
 import pprint
 from sets import Set

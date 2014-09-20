@@ -7,8 +7,8 @@ import copy
 import os
 import traceback
 import pprint
-from mystruct import Struct
-from myutils import *
+from _aliceutils import *
+from alicestruct import Struct
 from collections import namedtuple
 
 innocent_syscalls = ["_exit","pread","_newselect","_sysctl","accept","accept4","access","acct","add_key","adjtimex",
@@ -239,13 +239,13 @@ def __replayed_truncate(path, new_size):
 	writeable_toggle(replayed_path(path), old_mode)
 
 def __get_files_from_inode(inode):
-	results = subprocess.check_output(['find', cmdline().replayed_snapshot, '-inum', str(inode)])
+	results = subprocess.check_output(['find', aliceconfig().scratchpad_dir, '-inum', str(inode)])
 	toret = []
 	for path in results.split('\n'):
 		if path != '':
 			# Converting the (replayed) path into original path
-			assert path.startswith(cmdline().replayed_snapshot)
-			path = path.replace(cmdline().replayed_snapshot, cmdline().base_path + '/', 1)
+			assert path.startswith(aliceconfig().scratchpad_dir)
+			path = path.replace(aliceconfig().scratchpad_dir, aliceconfig().base_path + '/', 1)
 			path = re.sub(r'//', r'/', path)
 
 			assert __replayed_stat(path)
@@ -259,7 +259,7 @@ class ProcessTracker:
 		self.memtracker = MemregionTracker()
 		self.fdtracker = FileDescriptorTracker()
 		self.fdtracker_unwatched = FileDescriptorTracker()
-		self.cwd = cmdline().starting_cwd 
+		self.cwd = aliceconfig().starting_cwd 
 		self.child_tids = []
 
 	def record_fork(self, forked_tid):
@@ -326,7 +326,7 @@ def __get_backtrace(stackinfo):
 	global symtab
 	backtrace = []
 
-	if cmdline().ignore_stacktrace: return backtrace
+	if aliceconfig().ignore_stacktrace: return backtrace
 
 	assert stackinfo[0] == '['
 	assert stackinfo[-2] == ']'
@@ -429,42 +429,26 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 			fdtracker_unwatched.new_fd_mapping(fd, name, 0, fd_flags, 0)
 	elif parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev']:	
 		fd = safe_string_to_int(parsed_line.args[0])
-		special_stdout = False
 		name = None
 		if fdtracker_unwatched.is_watched(fd):
 			name = fdtracker_unwatched.get_name(fd)
 		elif fdtracker.is_watched(fd):
 			name = fdtracker.get_name(fd)
-		if name and name == cmdline().special_stdout:
-			special_stdout = True
-		if fdtracker.is_watched(fd) or fd in [1, 2] or special_stdout:
+		if fdtracker.is_watched(fd) or fd in [1, 2]:
 			dump_file = eval(parsed_line.args[-2])
 			dump_offset = safe_string_to_int(parsed_line.args[-1])
-			if fd in [1, 2] or special_stdout:
+			if fd in [1, 2]:
 				count = safe_string_to_int(parsed_line.args[2])
 				fd_data = os.open(dump_file, os.O_RDONLY)
 				os.lseek(fd_data, dump_offset, os.SEEK_SET)
 				buf = os.read(fd_data, count)
 				os.close(fd_data)
-				if special_stdout:
-					starting = 0
-					ending = len(buf) - 1
-					if cmdline().special_stdout_prefix:
-						starting = buf.find(cmdline().special_stdout_prefix)
-					if cmdline().special_stdout_suffix:
-						ending = buf.find(cmdline().special_stdout_suffix) - 1
-					if starting < 0 or ending < 0:
-						special_stdout = False
-					else:
-						buf = buf[starting  + len(cmdline().special_stdout_prefix) : ending + 1]
-				if fd == 1 or special_stdout:
-					if not cmdline().omit_stdout and (special_stdout or not cmdline().omit_actual_stdout):
-						new_op = Struct(op = 'stdout', data = buf)
-						micro_operations.append(new_op)
+				if fd == 1:
+					new_op = Struct(op = 'stdout', data = buf)
+					micro_operations.append(new_op)
 				elif fd == 2:
-					if not cmdline().omit_stderr:
-						new_op = Struct(op = 'stderr', data = buf)
-						micro_operations.append(new_op)
+					new_op = Struct(op = 'stderr', data = buf)
+					micro_operations.append(new_op)
 			else:
 				if parsed_line.syscall == 'write':
 					count = safe_string_to_int(parsed_line.args[2])
@@ -516,7 +500,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 					fdtracker.set_pos(fd, pos + count)
 	elif parsed_line.syscall == 'close':
 		if int(parsed_line.ret) == -1:
-			if cmdline().debug_level >= 2:
+			if aliceconfig().debug_level >= 2:
 				print 'WARNING: close() returned -1. ' + line
 		else:
 			fd = safe_string_to_int(parsed_line.args[0])
@@ -736,7 +720,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 			name = fdtracker.get_name(fd)
 			file_size = __replayed_stat(name).st_size
 			assert file_size <= offset + length
-			if not cmdline().mtrace_shadow: assert syscall_tid in mtrace_recorded
+			if not aliceconfig().ignore_mmap: assert syscall_tid in mtrace_recorded
 			assert 'MAP_GROWSDOWN' not in flags
 			memtracker.insert(addr_start, addr_end, fdtracker.get_name(fd), fdtracker.get_inode(fd), offset)
 	elif parsed_line.syscall == 'munmap':
@@ -810,12 +794,12 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 			if fdtracker_unwatched.is_watched(fd):
 				name = fdtracker_unwatched.get_name(fd)
 			debug_level = 0
-			for start in ['/usr/bin', '/dev/snd', '/dev/tty', '/dev/vmnet', '/dev/urandom'] + cmdline().ioctl_ignore:
+			for start in ['/usr/bin', '/dev/snd', '/dev/tty', '/dev/vmnet', '/dev/urandom'] + aliceconfig().ignore_ioctl:
 				if str(name).startswith(start):
 					debug_level = 2
 			if name == None:
 				debug_level = 2
-			if cmdline().debug_level >= debug_level:
+			if aliceconfig().debug_level >= debug_level:
 				print 'WARNING: ' + line + ' name = ' + str(name)
 	elif parsed_line.syscall in ['shmget', 'shmat', 'shmdt', 'shmctl']:
 		if parsed_line.syscall == 'shmget':
@@ -823,7 +807,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 	elif parsed_line.syscall == 'execve':
 		proctracker.record_execve()
 	elif parsed_line.syscall in ['io_setup', 'aio_read', 'io_getevents', 'io_destroy']:
-		if cmdline().debug_level >= 2:
+		if aliceconfig().debug_level >= 2:
 			print 'Warning: AIO ' + line
 	elif parsed_line.syscall == 'symlink':
 		if eval(parsed_line.ret) != -1:
@@ -833,7 +817,7 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 				print 'WARNING: ' + line
 			if is_interesting(dest):
 				source_is_dir = False
-				if source.startswith(cmdline().base_path):
+				if source.startswith(aliceconfig().base_path):
 					if os.path.isdir(replayed_path(source)):
 						source_is_dir = True
 				else:
@@ -881,64 +865,52 @@ def get_micro_ops():
 	print '    * Various system calls that generate warnings while the script is run.'
 	print '-------------------------------------------------------'
 
-	if cmdline().micro_cache_file and os.path.exists(cmdline().micro_cache_file):
-		print 'Using micro cached file ...'
-		toret = pickle.load(open(cmdline().micro_cache_file, 'r'))
-		print 'loaded cache.'
-		return toret
-
-	if cmdline().filter_cache_file and os.path.exists(cmdline().filter_cache_file):
-		print 'Using filter cached file ...'
-		(mtrace_recorded, rows) = pickle.load(open(cmdline().filter_cache_file, 'r'))
-		print 'loaded cache.'
-	else:
-		files = commands.getoutput("ls " + cmdline().prefix + ".* | grep -v byte_dump | grep -v stackinfo | grep -v symtab").split()
-		rows = []
-		mtrace_recorded = []
-		assert len(files) > 0
-		for trace_file in files:
-			sys.stderr.write("Threaded mode processing file " + trace_file + "...\n")
-			f = open(trace_file, 'r')
-			array = trace_file.split('.')
-			pid = int(array[len(array) - 1])
-			if array[-2] == 'mtrace':
-				mtrace_recorded.append(pid)
-			cnt = 0
-			dump_offset = 0
-			m = re.search(r'\.[^.]*$', trace_file)
-			dump_file = trace_file[0 : m.start(0)] + '.byte_dump' + trace_file[m.start(0) : ]
-			if not cmdline().ignore_stacktrace:
-				stackinfo_file = open(trace_file[0 : m.start(0)] + '.stackinfo' + trace_file[m.start(0) : ], 'r')
-			for line in f:
-				cnt = cnt + 1
-				if(cnt % 100000 == 0):
-					sys.stderr.write("   line " + str(cnt) + " done.\n")
-				parsed_line = parse_line(line)
-				if parsed_line:
-					if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev', 'mwrite']:
-						if parsed_line.syscall == 'pwrite':
-							write_size = safe_string_to_int(parsed_line.args[-2])
-						else:
-							write_size = safe_string_to_int(parsed_line.args[-1])
-						m = re.search(r'\) += [^,]*$', line)
-						line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[m.start(0) : ]
-						dump_offset += write_size
-					stacktrace = '[]\n' if cmdline().ignore_stacktrace else stackinfo_file.readline()
-					if parsed_line.syscall in innocent_syscalls or parsed_line.syscall.startswith("ignore_"):
-						pass
+	files = commands.getoutput("ls " + aliceconfig().strace_file_prefix + ".* | grep -v byte_dump | grep -v stackinfo | grep -v symtab").split()
+	rows = []
+	mtrace_recorded = []
+	assert len(files) > 0
+	for trace_file in files:
+		sys.stderr.write("Threaded mode processing file " + trace_file + "...\n")
+		f = open(trace_file, 'r')
+		array = trace_file.split('.')
+		pid = int(array[len(array) - 1])
+		if array[-2] == 'mtrace':
+			mtrace_recorded.append(pid)
+		cnt = 0
+		dump_offset = 0
+		m = re.search(r'\.[^.]*$', trace_file)
+		dump_file = trace_file[0 : m.start(0)] + '.byte_dump' + trace_file[m.start(0) : ]
+		if not aliceconfig().ignore_stacktrace:
+			stackinfo_file = open(trace_file[0 : m.start(0)] + '.stackinfo' + trace_file[m.start(0) : ], 'r')
+		for line in f:
+			cnt = cnt + 1
+			if(cnt % 100000 == 0):
+				sys.stderr.write("   line " + str(cnt) + " done.\n")
+			parsed_line = parse_line(line)
+			if parsed_line:
+				if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev', 'mwrite']:
+					if parsed_line.syscall == 'pwrite':
+						write_size = safe_string_to_int(parsed_line.args[-2])
 					else:
-						rows.append((pid, parsed_line.time, line, stacktrace))
-		rows = sorted(rows, key = lambda row: row[1])
-		if cmdline().filter_cache_file:
-			pickle.dump((mtrace_recorded, rows), open(cmdline().filter_cache_file, 'wb'), 2)
+						write_size = safe_string_to_int(parsed_line.args[-1])
+					m = re.search(r'\) += [^,]*$', line)
+					line = line[ 0 : m.start(0) ] + ', "' + dump_file + '", ' + str(dump_offset) + line[m.start(0) : ]
+					dump_offset += write_size
+				stacktrace = '[]\n' if aliceconfig().ignore_stacktrace else stackinfo_file.readline()
+				if parsed_line.syscall in innocent_syscalls or parsed_line.syscall.startswith("ignore_"):
+					pass
+				else:
+					rows.append((pid, parsed_line.time, line, stacktrace))
+
+	rows = sorted(rows, key = lambda row: row[1])
 	
-	os.system("rm -rf " + cmdline().replayed_snapshot)
-	os.system("cp -R " + cmdline().initial_snapshot + " " + cmdline().replayed_snapshot)
+	os.system("rm -rf " + aliceconfig().scratchpad_dir)
+	os.system("cp -R " + aliceconfig().initial_snapshot + " " + aliceconfig().scratchpad_dir)
 
-	path_inode_map = get_path_inode_map(cmdline().replayed_snapshot)
+	path_inode_map = get_path_inode_map(aliceconfig().scratchpad_dir)
 
-	if not cmdline().ignore_stacktrace:
-		symtab = pickle.load(open(cmdline().prefix + '.symtab'))
+	if not aliceconfig().ignore_stacktrace:
+		symtab = pickle.load(open(aliceconfig().strace_file_prefix + '.symtab'))
 	micro_operations = []
 	for row in rows:
 		syscall_tid = row[0]
@@ -955,6 +927,4 @@ def get_micro_ops():
 				print op
 			exit()
 
-	if cmdline().micro_cache_file:
-		pickle.dump((path_inode_map, micro_operations), open(cmdline().micro_cache_file, 'wb'), 2)
 	return (path_inode_map, micro_operations)

@@ -5,7 +5,7 @@ import os
 sys.path.append(os.getenv("ALICE_HOME"))
 import subprocess
 import pickle
-import alice
+import alicedefaultexplorer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checker', required = True)
@@ -20,6 +20,10 @@ f = open(os.path.join(args.traces_dir, "config"), "r")
 config = pickle.load(f)
 f.close()
 
+
+#### HACK - MADTHANU - REMOVE
+os.system("rm -rf /run/shm/alice-*")
+
 def try_mkdir(name):
 	try:
 		os.system("rm -rf " + name)
@@ -28,22 +32,22 @@ def try_mkdir(name):
 	except e as OSError:
 		return False
 
-alice_args = dict()
-alice_args['prefix'] = os.path.join(args.traces_dir, "strace.out")
-alice_args['initial_snapshot'] = os.path.join(args.traces_dir, "initial_snapshot")
-alice_args['base_path'] = config['workload_dir']
-alice_args['starting_cwd'] = config['starting_wd']
-alice_args['replayer_threads'] = 2
-alice_args['hide_diskops'] = True
-alice_args['checker_tool'] = args.checker
+alice_config = dict()
+alice_config['strace_file_prefix'] = os.path.join(args.traces_dir, "strace.out")
+alice_config['initial_snapshot'] = os.path.join(args.traces_dir, "initial_snapshot")
+alice_config['base_path'] = config['workload_dir']
+alice_config['starting_cwd'] = config['starting_wd']
+alice_config['checker_tool'] = args.checker
+
 folders = ['/run/shm/', '/dev/shm/', '/tmp', None]
 for folder in folders:
 	assert(folder != None)
 	folder = os.path.join(folder, 'alice-' + str(os.getpid()))
 	if try_mkdir(folder):
-		alice_args['scratchpad_dir'] = folder
+		alice_config['scratchpad_dir'] = folder
 		break
 
-alice.default_checks(alice_args)
-os.system("rm -rf " + alice_args['scratchpad_dir'])
+alicedefaultexplorer.default_checks(alice_config, threads = 4)
+#### HACK - MADTHANU - INSERT
+#os.system("rm -rf " + alice_config['scratchpad_dir'])
 
