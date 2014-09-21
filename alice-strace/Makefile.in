@@ -305,7 +305,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = tests
 man_MANS = alice-strace.1
-bin_SCRIPTS = alice-strace-graph alice-strace-log-merge
+bin_SCRIPTS = alice-strace-graph alice-strace-log-merge alice-strace-retrieve-symbols
 OS = linux
 # ARCH is `i386', `m68k', `sparc', etc.
 ARCH = @arch@
