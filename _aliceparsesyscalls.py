@@ -853,35 +853,22 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 def get_micro_ops():
 	global innocent_syscalls, symtab, SymbolTableEntry
 
-	print '-------------------------------------------------------'
-	print 'WARNING: The following aspects of this script are still in the TODO list because the developer is lazy:'
-	print '    * FD_CLOEXEC composed for all FDs referring to the same open file description.'
-	print '    * Truncate garbage/zeros implementation will not produce desired results with the omit_range heuristic search.'
-	print '    * Garbage and zeros handling in the fallocate() call is funny.'
-	print '    * Various system calls that generate warnings while the script is run.'
-	print '-------------------------------------------------------'
-
 	files = commands.getoutput("ls " + aliceconfig().strace_file_prefix + ".* | grep -v byte_dump | grep -v stackinfo | grep -v symtab").split()
 	rows = []
 	mtrace_recorded = []
 	assert len(files) > 0
 	for trace_file in files:
-		sys.stderr.write("Threaded mode processing file " + trace_file + "...\n")
 		f = open(trace_file, 'r')
 		array = trace_file.split('.')
 		pid = int(array[len(array) - 1])
 		if array[-2] == 'mtrace':
 			mtrace_recorded.append(pid)
-		cnt = 0
 		dump_offset = 0
 		m = re.search(r'\.[^.]*$', trace_file)
 		dump_file = trace_file[0 : m.start(0)] + '.byte_dump' + trace_file[m.start(0) : ]
 		if not aliceconfig().ignore_stacktrace:
 			stackinfo_file = open(trace_file[0 : m.start(0)] + '.stackinfo' + trace_file[m.start(0) : ], 'r')
 		for line in f:
-			cnt = cnt + 1
-			if(cnt % 100000 == 0):
-				sys.stderr.write("   line " + str(cnt) + " done.\n")
 			parsed_line = parse_line(line)
 			if parsed_line:
 				if parsed_line.syscall in ['write', 'writev', 'pwrite', 'pwritev', 'mwrite']:

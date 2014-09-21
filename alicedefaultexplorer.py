@@ -80,11 +80,11 @@ def stack_repr(op):
 
 
 def default_checks(alice_args, threads = 1):
-	print '--------------------------'
-	print 'WARNING: Properly determining static vulnerabilities might need customization of how ALICE traverses the stack trace to determine a source line representing the vulnerability'
-	print '--------------------------'
+	print 'Parsing traces to determine logical operations ...'
 	replayer = Replayer(alice_args)
 	replayer.set_fs(defaultfs('count', 1))
+
+	print 'Logical operations:'
 	replayer.print_ops()
 
 	assert threads > 0
@@ -95,6 +95,7 @@ def default_checks(alice_args, threads = 1):
 
 	atomic_patch_middle = set()
 
+	print 'Finding vulnerabilities...'
 	# Finding across-syscall atomicity
 	for i in range(0, replayer.mops_len()):
 		dirname = os.path.join(aliceconfig().scratchpad_dir, 'reconstructeddir-' + str(i))
@@ -220,3 +221,4 @@ def default_checks(alice_args, threads = 1):
 		print '(Static vulnerability) Atomicity: ' + \
 			'Operation ' + vul + ' (' + (','.join(staticvuls[vul])) + ')'
 
+	print 'Done finding vulnerabilities.'

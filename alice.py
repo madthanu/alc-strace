@@ -25,6 +25,11 @@ from alicestruct import Struct
 from _aliceutils import *
 import gc
 
+print colorize('-------------------------------------------------------------------------------', 1)
+print 'ALICE tool version 0.0.1. Please go through the documentation, particularly the'
+print 'listed caveats and limitations, before deriving any inferences from this tool. '
+print colorize('-------------------------------------------------------------------------------', 1)
+
 cached_rows = None
 cached_dirinode_map = {}
 
@@ -277,7 +282,7 @@ class Replayer:
 				if show_diskops:
 					print('\t' + str(j) + '\t' + disk_op_str)
 				if i == self.__micro_end and j == self.__disk_end:
-					print('-------------------------------------')
+					print(colorize('-------------------------------------', 1))
 	def save(self, i):
 		assert self.fs_initialized
 		self.saved[int(i)] = copy.deepcopy(Struct(micro_ops = self.micro_ops,

@@ -10,16 +10,18 @@ class Struct:
 		if 'op' in vars(self):
 			if self.op == 'stdout':
 				args = ['"' + repr(self.data) + '"']
-			elif self.op == 'write':
-				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'dump_offset', 'inode']]
+			elif self.op in ['write', 'append']:
+				args = ['%s=%s' % (k, repr(vars(self)[k])) for k in ['offset', 'count', 'inode']]
 			else:
-				args = []
+				argsbegin = []
+				argsend = []
 				for (k,v) in vars(self).items():
 					if k != 'op' and k != 'name' and k[0:7] != 'hidden_':
 						if k == 'source' or k == 'dest':
-							args.append('%s="%s"' % (k, coded_colorize(short_path(v))))
+							argsbegin.append('%s="%s"' % (k, coded_colorize(short_path(v))))
 						else:
-							args.append('%s=%s' % (k, repr(v)))
+							argsend.append('%s=%s' % (k, repr(v)))
+				args = argsbegin + argsend
 			if 'name' in vars(self):
 				args.insert(0, '"' + coded_colorize(short_path(self.name)) + '"')
 			colored_op = self.op

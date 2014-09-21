@@ -8,10 +8,11 @@ import pickle
 import alicedefaultexplorer
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--checker', required = True)
-parser.add_argument('--traces_dir', required = True)
+parser.add_argument('--checker', required = True, help = 'Location of the checker')
+parser.add_argument('--traces_dir', required = True, help = 'Location of the traces directory')
 parser.add_argument('--threads', default = 4)
-parser.add_argument('--verbose', action='store_true')
+parser.add_argument('--debug_level', default = 0, choices = range(0, 3))
+parser.add_argument('--ignore_mmap', type = bool, default = False)
 
 args = parser.parse_args()
 args.checker = os.path.abspath(args.checker)
@@ -30,7 +31,7 @@ def try_mkdir(name):
 		os.system("rm -rf " + name)
 		os.mkdir(name)
 		return True
-	except e as OSError:
+	except OSError as e:
 		return False
 
 alice_config = dict()
@@ -39,6 +40,8 @@ alice_config['initial_snapshot'] = os.path.join(args.traces_dir, "initial_snapsh
 alice_config['base_path'] = config['workload_dir']
 alice_config['starting_cwd'] = config['starting_wd']
 alice_config['checker_tool'] = args.checker
+alice_config['debug_level'] = args.debug_level
+alice_config['ignore_mmap'] = args.ignore_mmap
 
 folders = ['/run/shm/', '/dev/shm/', '/tmp', None]
 for folder in folders:
