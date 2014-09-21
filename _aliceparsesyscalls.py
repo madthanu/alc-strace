@@ -55,7 +55,7 @@ innocent_syscalls += ['mtrace_mmap', 'mtrace_munmap', 'mtrace_thread_start']
 
 sync_ops = set(['fsync', 'fdatasync', 'file_sync_range'])
 expansive_ops = set(['append', 'trunc', 'write', 'unlink', 'rename'])
-pseudo_ops = sync_ops | set(['stderr', 'stdout'])
+pseudo_ops = sync_ops | set(['stdout'])
 real_ops = expansive_ops | set(['creat', 'link', 'mkdir', 'rmdir'])
 
 def parse_line(line):
@@ -434,21 +434,17 @@ def __get_micro_op(syscall_tid, line, stackinfo, mtrace_recorded):
 			name = fdtracker_unwatched.get_name(fd)
 		elif fdtracker.is_watched(fd):
 			name = fdtracker.get_name(fd)
-		if fdtracker.is_watched(fd) or fd in [1, 2]:
+		if fdtracker.is_watched(fd) or fd == 1:
 			dump_file = eval(parsed_line.args[-2])
 			dump_offset = safe_string_to_int(parsed_line.args[-1])
-			if fd in [1, 2]:
+			if fd == 1:
 				count = safe_string_to_int(parsed_line.args[2])
 				fd_data = os.open(dump_file, os.O_RDONLY)
 				os.lseek(fd_data, dump_offset, os.SEEK_SET)
 				buf = os.read(fd_data, count)
 				os.close(fd_data)
-				if fd == 1:
-					new_op = Struct(op = 'stdout', data = buf)
-					micro_operations.append(new_op)
-				elif fd == 2:
-					new_op = Struct(op = 'stderr', data = buf)
-					micro_operations.append(new_op)
+				new_op = Struct(op = 'stdout', data = buf)
+				micro_operations.append(new_op)
 			else:
 				if parsed_line.syscall == 'write':
 					count = safe_string_to_int(parsed_line.args[2])

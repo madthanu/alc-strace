@@ -26,7 +26,7 @@ subprocess.call(workload_strace_command)
 
 if args.verbose:
 	print 'Recording symbol information'
-subprocess.check_output("retrieve_symbols.py " + os.path.join(args.traces_dir, "strace.out"), shell = True)
+subprocess.check_output("alice-strace-retrieve-symbols " + os.path.join(args.traces_dir, "strace.out"), shell = True)
 
 if args.verbose:
 	print 'Recording config information'

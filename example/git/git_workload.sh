@@ -10,11 +10,14 @@ mkdir -p workload_dir
 
 # Move into the workload and initialize a git repository.
 cd workload_dir
-git init .
+hg init .
+echo "[ui]" > .hg/hgrc
+echo "username = alice" >> .hg/hgrc
 
 # Create some file that we will be adding to the repository during the
 # workload.
 echo "hello" > file1
+hg add .
 
 # Perform the actual workload and collect traces. The "workload_dir" argument
 # to alice-record specifies the entire directory which will be re-constructed
@@ -23,5 +26,5 @@ echo "hello" > file1
 # argument specifies where all the traces recorded will be stored.
 alice-record --workload_dir . \
 	--traces_dir ../traces_dir \
-	git add .
+	hg commit -m "tmp"
 

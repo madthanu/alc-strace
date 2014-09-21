@@ -9,11 +9,11 @@ int main() {
 	assert(ret == 5);
 	ret = close(fd);
 	assert(ret == 0);
-	ret = rename("tmp", "important_file");
+	ret = rename("tmp", "file1");
 	assert(ret == 0);
 	printf("Updated\n");
-	ret = link("important_file", "link1");
+	ret = link("file1", "link1");
 	assert(ret == 0);
-	ret = link("important_file", "link2");
+	ret = link("file1", "link2");
 	assert(ret == 0);
 }

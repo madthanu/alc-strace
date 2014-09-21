@@ -178,7 +178,7 @@ class defaultfs:
 				count = line.count
 			disk_op = Struct(op = 'sync', inode = line.inode, offset = offset, count = count)
 			line.hidden_disk_ops.append(disk_op)
-		elif line.op in ['stdout', 'stderr']:
+		elif line.op == 'stdout':
 			line.hidden_disk_ops = [Struct(op = line.op, data = line.data)]
 		else:
 			assert False
@@ -190,7 +190,7 @@ class defaultfs:
 			ops[i].hidden_twojournalfs_stuff = Struct(reverse_fsync_dependencies = set())
 			if last_sync != None:
 				ops[i].hidden_dependencies.add(last_sync)
-			if ops[i].op in ['sync', 'stdout', 'stderr']:
+			if ops[i].op in ['sync', 'stdout']:
 				last_sync = i
 			else:
 				assert ops[i].op in ['truncate', 'write', 'delete_dir_entry', 'create_dir_entry']
@@ -242,5 +242,5 @@ class defaultfs:
 						ops[i].hidden_dependencies.add(j)
 						ops[j].hidden_twojournalfs_stuff.reverse_fsync_dependencies.add(i)
 					else:
-						assert ops[j].op in ['stdout', 'stderr']
+						assert ops[j].op == 'stdout'
 

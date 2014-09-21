@@ -24,7 +24,7 @@ class MultiThreadedChecker(threading.Thread):
 
 	def __threaded_check(self, dirname, crashid):
 		assert type(aliceconfig().checker_tool) in [list, str, tuple]
-		args = [aliceconfig().checker_tool, dirname, dirname + '.input_stdout', dirname + '.input_stderr']
+		args = [aliceconfig().checker_tool, dirname, dirname + '.input_stdout']
 		output_stdout = dirname + '.output_stdout'
 		output_stderr = dirname + '.output_stderr'
 		retcode = subprocess.call(args, stdout = open(output_stdout, 'w'), stderr = open(output_stderr, 'w'))
@@ -99,7 +99,7 @@ def default_checks(alice_args, threads = 1):
 	for i in range(0, replayer.mops_len()):
 		dirname = os.path.join(aliceconfig().scratchpad_dir, 'reconstructeddir-' + str(i))
 		replayer.dops_end_at((i, replayer.dops_len(i) - 1))
-		replayer.construct_crashed_dir(dirname, dirname + '.input_stdout', dirname + '.input_stderr')
+		replayer.construct_crashed_dir(dirname, dirname + '.input_stdout')
 		MultiThreadedChecker.check_later(dirname, i)
 
 	checker_outputs = MultiThreadedChecker.wait_and_get_outputs()
@@ -144,7 +144,7 @@ def default_checks(alice_args, threads = 1):
 			replayer.dops_end_at((j, replayer.dops_len(j) - 1))
 			if replayer.is_legal():
 				dirname = os.path.join(aliceconfig().scratchpad_dir, 'reconstructeddir-' + str(i) + '-' + str(j))
-				replayer.construct_crashed_dir(dirname, dirname + '.input_stdout', dirname + '.input_stderr')
+				replayer.construct_crashed_dir(dirname, dirname + '.input_stdout')
 				MultiThreadedChecker.check_later(dirname, (i, j))
 
 		for j in range(0, replayer.dops_len(i)):
@@ -180,7 +180,7 @@ def default_checks(alice_args, threads = 1):
 				replayer.dops_end_at((i, j))
 				if replayer.is_legal():
 					dirname = os.path.join(aliceconfig().scratchpad_dir, 'reconstructeddir-' + mode[0] + '-' + str(mode[1]) + '-' + str(i) + '-' + str(j))
-					replayer.construct_crashed_dir(dirname, dirname + '.input_stdout', dirname + '.input_stderr')
+					replayer.construct_crashed_dir(dirname, dirname + '.input_stdout')
 					MultiThreadedChecker.check_later(dirname, (mode, i, j))
 					atomicity_explanations[(mode, i, j)] = replayer.get_op(i).hidden_disk_ops[j].atomicity
 
@@ -189,7 +189,7 @@ def default_checks(alice_args, threads = 1):
 						replayer.dops_omit((i, k))
 						if replayer.is_legal():
 							dirname = os.path.join(aliceconfig().scratchpad_dir, 'reconstructeddir-' + mode[0] + '-' + str(mode[1]) + '-' + str(i) + '-' + str(j) + '-' + str(k))
-							replayer.construct_crashed_dir(dirname, dirname + '.input_stdout', dirname + '.input_stderr')
+							replayer.construct_crashed_dir(dirname, dirname + '.input_stdout')
 							MultiThreadedChecker.check_later(dirname, (mode, i, j, k))
 						replayer.dops_include((i, k))
 

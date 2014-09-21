@@ -29,7 +29,7 @@ cached_rows = None
 cached_dirinode_map = {}
 
 # use_cached works only on a single thread
-def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, stdout_file, stderr_file, use_cached = False):
+def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, stdout_file, use_cached = False):
 	def get_stat(path):
 		try:
 			return os.stat(path)
@@ -115,7 +115,6 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, stdout_file, stde
 		initialize_inode_links(initial_paths_inode_map)
 
 	output_stdout = open(stdout_file, 'w')
-	output_stderr = open(stderr_file, 'w')
 	for line in rows:
 	#	print line
 		if line.op == 'create_dir_entry':
@@ -223,10 +222,7 @@ def replay_disk_ops(initial_paths_inode_map, rows, replay_dir, stdout_file, stde
 				buf = ""
 			writeable_toggle(get_inode_file(line.inode), old_mode)
 		elif line.op == 'stdout':
-			print 'stdout found'
 			output_stdout.write(line.data)
-		elif line.op == 'stderr':
-			output_stderr.write(line.data)
 		else:
 			assert line.op == 'sync'
 
@@ -297,7 +293,7 @@ class Replayer:
 		self.__disk_end = retrieved.disk_end
 		self.test_suite = retrieved.test_suite
 
-	def construct_crashed_dir(self, dirname, stdout_file, stderr_file):
+	def construct_crashed_dir(self, dirname, stdout_file):
 		assert self.fs_initialized
 		to_replay = []
 		for i in range(0, self.__micro_end + 1):
@@ -306,7 +302,7 @@ class Replayer:
 			for j in range(0, till):
 				if not micro_op.hidden_disk_ops[j].hidden_omitted:
 					to_replay.append(micro_op.hidden_disk_ops[j])
-		replay_disk_ops(self.path_inode_map, to_replay, dirname, stdout_file, stderr_file, use_cached = True)
+		replay_disk_ops(self.path_inode_map, to_replay, dirname, stdout_file, use_cached = True)
 	def get_op(self, i):
 		assert i <= len(self.micro_ops)
 		return copy.deepcopy(self.micro_ops[i])
@@ -337,7 +333,7 @@ class Replayer:
 			all_diskops += self.micro_ops[micro_op_id].hidden_disk_ops
 
 		for i in range(0, len(all_diskops)):
-			if all_diskops[i].op in ['stdout', 'stderr']:
+			if all_diskops[i].op == 'stdout':
 				all_diskops[i] = Struct(op = 'write', inode = -1, offset = 0, count = 1, hidden_actual_op = all_diskops[i]) 
 
 		self.test_suite = auto_test.ALCTestSuite(all_diskops)
@@ -370,7 +366,7 @@ class Replayer:
 	def dops_omit(self, i, j = None):
 		assert self.fs_initialized
 		(i, j) = self.__dops_get_i_j(i, j)
-		if self.micro_ops[i].op not in ['stdout', 'stderr']:
+		if self.micro_ops[i].op != 'stdout':
 			self.micro_ops[i].hidden_disk_ops[j].hidden_omitted = True
 	def dops_include(self, i, j = None):
 		assert self.fs_initialized

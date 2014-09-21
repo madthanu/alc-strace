@@ -1,17 +1,14 @@
 #!/bin/bash
 
-# Initialize the traces directory (where we are going to store traces collected
-# during the workload) and the workload directory (where we are going to
-# initialize a git repository and actually do the workload.
-rm -rf traces_dir
 rm -rf workload_dir
-mkdir -p traces_dir
 mkdir -p workload_dir
+echo -n "hello" > file1
 
-# Move into the workload and initialize a git repository.
-gcc -g -fPIC toy_workload.c
+rm -rf traces_dir
+mkdir -p traces_dir
+
+gcc -g -fPIC toy.c
 cd workload_dir
-echo -n "hello" > important_file
 
 # Perform the actual workload and collect traces. The "workload_dir" argument
 # to alice-record specifies the entire directory which will be re-constructed

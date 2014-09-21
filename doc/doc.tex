@@ -1,6 +1,66 @@
-\documentclass{memoir}
+\documentclass[oneside]{memoir}
+\usepackage{enumitem}
 \begin{document}
 \chapter{Installation}
-\subsection{Prerequisites}
-Hi!
+ALICE was tested to work on Ubuntu-12.02, and should be expected to work on similar (i.e., Linux-like) operating systems. The following are specific requirements:
+\begin{enumerate}
+\item Python-2.7, as the default version of python invoked via \verb;/usr/bin/env python;.
+\item Standard software build tools, such as \verb;gcc; and \verb;GNU Make;.
+\item The libunwind libraries, installable in Ubuntu-12.02 using \verb;apt-get install libunwind7;.
+\end{enumerate}
+The following are the steps to install ALICE.
+\begin{enumerate}
+\item Download the most recent source-code tarball of ALICE, and untar it. This should produce a directory named \verb;alice;.
+\item Set the environmental variable \verb;ALICE_HOME; to point to the \verb;alice; directory (i.e., the untared directory). For example, this can be done by adding the line \verb;export ALICE_HOME=/wherever-untarred/alice; to your \verb;.bashrc; file.
+\item Set the \verb;PATH; environmental variable to include the \verb;alice/bin; directory. For example, this can be done by adding the line \verb;export PATH=$PATH:/wherever-untarred/alice/bin; to your \verb;.bashrc; file.
+\item Install the \verb;alice-strace; tracing framework by moving into the \verb;alice/alice-strace; directory, and running \verb+./configure; make; make install;+
+\end{enumerate}
+\chapter{Basic Usage}
+The typical workflow for using ALICE has two steps. First, the application is run, and a trace of its activities are recorded. Second, ALICE is given this trace and a \textit{checker} script (explained later); ALICE explores the trace and displays discovered vulnerabilities. This documentation explains the typical usage of ALICE by using a toy application.
+
+\subsection{Toy application}
+The toy application can be found in \verb;alice/example/toy/toy.c;; the reader is encouraged to go through it. The application does the following:
+\begin{enumerate}
+\item It updates a file called \verb;file1;, changing the contents of the file from \textit{``hello''} to \textit{``world''}. The update is done using a typical ``write to temporary file and rename'' sequence, so that the contents are updated atomically. Immediately after updating, the application prints a message to the user's terminal (the user can then supposedly assume that the file has been updated, and that the file will contain \textit{``world''} even if a power loss happens).
+\item It creates two links to the file, \verb;link1; and \verb;link2;. The (imaginary) semantics of the toy application require both these links to be created atomically (i.e., if a power loss happens, either both links exist or neither do not).
+\end{enumerate}
+
+\subsection{Step 1: Running the application and recording a trace}
+A script that runs the application and records a trace, along with all initialization setup, can be found in \verb;alice/example/toy/toy_workload.sh;; the reader is encouraged to go through it. 
+
+To perform \textbf{Step 1}, two directories are needed. The first, the \textit{workload directory}, is where the files of the application will be stored. The application, as it runs, will modify the workload directory and its contents. For the toy application, this is the place where \verb;file1;, \verb;link1;, and \verb;link2;, are placed. The \verb;toy_workload.sh; script first creates the workload directory, \verb;workload_dir;, and then initializes it with the file \verb;file1; containing \textit{``hello''}.
+
+The other needed directory, \textit{traces directory} is for storing the (multiple) traces that are recorded as the application is run. The \verb;toy_workload.sh; script next creates this directory, \verb;traces_dir;. After setting up the workload directory and the traces directory, the \verb;toy_workload.sh; script does a few more initialization things: compiling the \verb;toy.c; application, and \verb;cd;ing into \verb;workload_dir; so that the toy application can be run within there.
+
+The \verb;toy_workload.sh; script finally runs the application and records traces, by issuing the following command:
+
+\begin{verbatim}
+         alice-record --workload_dir . \
+                  --traces_dir ../traces_dir \
+                  ../a.out
+\end{verbatim}
+
+If the reader is familiar with the \textit{strace} utility, the above command is similar to an invocation of strace: \verb;alice-record; is a script that records traces, while \verb;../a.out; is the actual application to be run (the process and all subprocesses of \verb;../a.out; are traced, similar to strace with the \verb;-ff; option). The \verb;alice-record; script requires two mandatory arguments: the workload directory and the traces directory (\verb;alice-record; does not take any other arguments).
+
+\subsection{Step 2: Supply ALICE with the trace and the checker, and get back list of vulnerabilities}
+\textbf{Step 2} requires the user to supply ALICE with a checker script. The checker script will be invoked multiple times by ALICE, each invocation corresponding to a (simulated) system crash scenario that could have happened while the application was running in \textbf{Step 1}. During each invocation, the checker script will be given a directory that reflects the state of the workload directory if the (simulated) crash had really happened. If the given crashed-state workload directory has an expected (i.e., consistent) set of files, the checker script should exit with status zero, and should exit with a non-zero status otherwise.
+
+ALICE supplies the checker script with two command-line arguments. The first is the path to the crashed-state workload directory; note that this might differ from the path to the workload directory used during \textbf{Step 1}. Hence, for applications that expect the \textit{absolute path} of the contents within the workload directory to not have changed (a small subset of applications in our experience), the checker script needs to move the supplied directory to the original directory, and then operate atop the original directory. The second command-line argument to the checker script is the path to an \textit{stdout file}. The stdout file contains all the messages that had been printed to the user's terminal at the time of the crash (corresponding to the supplied crashed-state workload directory), and can be used by the checker to check for durability, as explained below.
+
+The checker script for the toy application can be found in \verb;alice/example/;\discretionary{}{}{}\verb;toy/toy_checker.py;, and the reader is encouraged to go through it. The script first changes the current working directory into the crashed-state directory supplied by ALICE, and reads all the messages printed in the terminal at the time of the crash by reading the stdout file supplied by ALICE. If the application has printed the \textit{``Updated file1 to \emph{world}''} message, the checker script makes sure that \verb;file1; contains \textit{``world''}; otherwise, the checker script makes sure that \verb;file1; contains either \textit{``hello''} or \textit{``world''}. The checker script then makes sure that either \verb;link1; and \verb;link2; are both present, or are both not present. If any of the checked conditions do not hold, the checker script results in an assertion failure, thus exiting with a non-zero status (and thus informing ALICE that the application will fail if the simulated crash scenario happens in real).
+
+After writing the checker script, the user can invoke the \verb;alice-check; script to actually run ALICE and get the list of vulnerabilities. The reader is encouraged to run the following command from within the \verb;alice/example/toy; directory, to get a list of vulnerabilities discovered in the toy application.
+
+\begin{verbatim}
+         alice-check --traces_dir=traces_dir --checker=./toy_checker.py
+\end{verbatim}
+
+The \verb;alice-check; script has the following arguments.
+
+\begin{description}[labelindent=0.8cm]\itemsep1pt \parskip0pt \parsep0pt
+\item[traces\_dir] Mandatory. The traces directory, from \textbf{Step 1}.
+\item[checker] Mandatory. The checker script.
+\end{description}
+
+\chapter{Credits And Acknowledgements}
 \end{document}

@@ -10,6 +10,7 @@ import alicedefaultexplorer
 parser = argparse.ArgumentParser()
 parser.add_argument('--checker', required = True)
 parser.add_argument('--traces_dir', required = True)
+parser.add_argument('--threads', default = 4)
 parser.add_argument('--verbose', action='store_true')
 
 args = parser.parse_args()
@@ -47,7 +48,7 @@ for folder in folders:
 		alice_config['scratchpad_dir'] = folder
 		break
 
-alicedefaultexplorer.default_checks(alice_config, threads = 4)
+alicedefaultexplorer.default_checks(alice_config, threads = args.threads)
 #### HACK - MADTHANU - INSERT
 #os.system("rm -rf " + alice_config['scratchpad_dir'])
 
